@@ -1,0 +1,37 @@
+---
+name: Build Windows Electron App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: app
+
+      - name: Build installer
+        run: npm run electron:build
+        working-directory: app
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: webchess-windows
+          path: app/dist_electron/**

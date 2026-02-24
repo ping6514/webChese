@@ -1,0 +1,235 @@
+[
+  {
+    "id": "dark_moon_rook_lanhua",
+    "clan": "dark_moon",
+    "base": "rook",
+    "name": "蘭華",
+    "image": "/assets/cards/dark_moon/dark_moon_rook_lanhua.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1 },
+      {
+        "type": "IGNORE_BLOCKING",
+        "mode": "all",
+        "when": {
+          "type": "ENEMIES_WITHIN_RANGE_GTE",
+          "range": 2,
+          "count": 2
+        }
+      }
+    ],
+    "text": "【越境】：射擊忽略 1 個阻擋；若自身附近 2 格內敵方 ≥ 2，則忽略所有阻擋。"
+  },
+  {
+    "id": "dark_moon_rook_yinghua",
+    "clan": "dark_moon",
+    "base": "rook",
+    "name": "影華",
+    "image": "/assets/cards/dark_moon/dark_moon_rook_yinghua.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 0 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "IGNORE_BLOCKING", "mode": "all" }
+    ],
+    "text": "【越境】：射擊忽略所有阻擋。"
+  },
+  {
+    "id": "dark_moon_knight_yingzi",
+    "clan": "dark_moon",
+    "base": "knight",
+    "name": "櫻紫",
+    "image": "/assets/cards/dark_moon/dark_moon_knight_yingzi.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 0 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "MOVE_THEN_SHOOT", "perTurn": 1 }
+    ],
+    "text": "【越境】：執行「移動」後，可額外執行一次「射擊」（本回合限 1 次）。"
+  },
+  {
+    "id": "dark_moon_knight_wuying",
+    "clan": "dark_moon",
+    "base": "knight",
+    "name": "舞影",
+    "image": "/assets/cards/dark_moon/dark_moon_knight_wuying.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 0 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE" }
+    ],
+    "text": "【越境】：執行「移動」時忽略所有路徑阻擋（不被「拐馬腳」）。"
+  },
+  {
+    "id": "dark_moon_cannon_yehua",
+    "clan": "dark_moon",
+    "base": "cannon",
+    "name": "夜華",
+    "image": "/assets/cards/dark_moon/dark_moon_cannon_yehua.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "SPLASH", "radius": 1, "perTurn": 1 }
+    ],
+    "text": "【越境】：射擊產生「濺射」，目標格相鄰 1 格的敵方受到同等傷害（本回合限 1 次）。"
+  },
+  {
+    "id": "dark_moon_cannon_fenghua",
+    "clan": "dark_moon",
+    "base": "cannon",
+    "name": "風華",
+    "image": "/assets/cards/dark_moon/dark_moon_cannon_fenghua.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "CROSS_RIVER" },
+      { "type": "DAMAGE_BONUS", "amount": 1 }
+    ],
+    "text": "【越境】：射擊傷害 +1。"
+  },
+  {
+    "id": "dark_moon_advisor_yeji",
+    "clan": "dark_moon",
+    "base": "advisor",
+    "name": "夜姬",
+    "image": "/assets/cards/dark_moon/dark_moon_advisor_yeji.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 16,
+      "atk": { "key": "phys", "value": 1 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "PALACE_ONLY" },
+      {
+        "type": "AURA_IGNORE_BLOCKING",
+        "count": 1,
+        "perTurn": 1,
+        "when": { "type": "ATTACKER_IN_PALACE" }
+      },
+      {
+        "type": "DAMAGE_SHARE",
+        "amount": 4,
+        "when": { "type": "ALLIES_IN_PALACE_GTE", "count": 2 }
+      }
+    ],
+    "text": "【宮內】：己方單位射擊忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 2，可替受攻擊友軍分擔 4 點傷害。"
+  },
+  {
+    "id": "dark_moon_advisor_yingji",
+    "clan": "dark_moon",
+    "base": "advisor",
+    "name": "影姬",
+    "image": "/assets/cards/dark_moon/dark_moon_advisor_yingji.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "COUNTER_ON_KING_DAMAGED", "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 } , "perTurn": 1 }
+    ],
+    "text": "【反擊】：若「帥」受到傷害，影姬立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。"
+  },
+  {
+    "id": "dark_moon_elephant_yueji",
+    "clan": "dark_moon",
+    "base": "elephant",
+    "name": "月姬",
+    "image": "/assets/cards/dark_moon/dark_moon_elephant_yueji.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "RESONANCE", "need": 4 },
+      { "type": "AURA_DAMAGE_BONUS", "amount": 1, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" }
+    ],
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 4，所有己方「越境」單位傷害 +1。"
+  },
+  {
+    "id": "dark_moon_elephant_youji",
+    "clan": "dark_moon",
+    "base": "elephant",
+    "name": "幽姬",
+    "image": "/assets/cards/dark_moon/dark_moon_elephant_youji.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "RESONANCE", "need": 4 },
+      {
+        "type": "AURA_IGNORE_BLOCKING",
+        "count": 1,
+        "perTurn": 1,
+        "when": { "type": "RESONANCE_ACTIVE" }
+      }
+    ],
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 4，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。"
+  }
+]

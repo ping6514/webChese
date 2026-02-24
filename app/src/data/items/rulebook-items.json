@@ -1,0 +1,146 @@
+[
+  {
+    "id": "item_lingxue_holy_grail",
+    "name": "靈血聖杯",
+    "costGold": 3,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】修復：選擇 1 個己方單位（含帥），恢復 4 點 HP（不超過上限）。",
+    "copies": 4
+  },
+  {
+    "id": "item_soul_overload",
+    "name": "魂能超載",
+    "costGold": 4,
+    "timing": "combat",
+    "image": null,
+    "text": "【戰鬥】動作：本回合獲得 1 次免費「射擊」。該動作不可由本回合已執行射擊的單位使用。",
+    "copies": 3
+  },
+  {
+    "id": "item_bone_refine",
+    "name": "骸骨煉化",
+    "costGold": 4,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】轉化：移除場上 1 個己方屍骸，選擇獲得 3 點財力或 2 點魔力。",
+    "copies": 3
+  },
+  {
+    "id": "item_dark_moon_scope",
+    "name": "暗月窺視鏡",
+    "costGold": 3,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】盜取：本回合執行「盜取」時，可改為選擇敵方墳場「任意一張」靈魂卡。",
+    "copies": 2
+  },
+  {
+    "id": "item_last_stand_contract",
+    "name": "死戰契約",
+    "costGold": 5,
+    "timing": "necro",
+    "image": null,
+    "text": "【死靈】鋪場：立即執行 1 次不計入上限的「復活」，但該單位本回合不可附魔。",
+    "copies": 2
+  },
+  {
+    "id": "item_soul_infusion",
+    "name": "冥魂灌注",
+    "costGold": 6,
+    "timing": "necro",
+    "image": null,
+    "text": "【死靈】爆發：立即獲得 +1 次「死靈術」動作，且本次執行「附魔」時成本 -1 財力。",
+    "copies": 2
+  },
+  {
+    "id": "item_soul_reaper",
+    "name": "靈魂收割者",
+    "costGold": 5,
+    "timing": "combat",
+    "image": null,
+    "text": "【戰鬥】掠奪：本回合內擊殺附魔單位時，獲得 1 點魔力，且免財力將該靈魂卡納入己方牢籠。",
+    "copies": 2
+  },
+  {
+    "id": "item_death_chain",
+    "name": "死亡連鎖",
+    "costGold": 7,
+    "timing": "combat",
+    "image": null,
+    "text": "【戰鬥】殺戮：本回合每擊殺一個單位立即回復 1 點魔力。本效果單回合最多觸發 3 次。",
+    "copies": 1
+  },
+  {
+    "id": "item_nether_seal",
+    "name": "冥鎖封印",
+    "costGold": 6,
+    "timing": "combat",
+    "image": null,
+    "text": "【戰鬥】控制：選擇 1 個敵方單位，使其本回合無法執行移動與射擊動作。",
+    "copies": 1
+  },
+  {
+    "id": "item_cage_plunder",
+    "name": "牢籠掠奪",
+    "costGold": 6,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】干擾：隨機查看並奪取敵方牢籠 1 張靈魂卡（若滿則擇一棄置至墳場）。",
+    "copies": 1
+  },
+  {
+    "id": "item_thorn_domain",
+    "name": "棘荊領域",
+    "costGold": 5,
+    "timing": "combat",
+    "image": null,
+    "text": "【戰鬥】陣地：本回合敵方進入己方半場後，每移動 1 格需額外消耗 1 魔力。",
+    "copies": 1
+  },
+  {
+    "id": "item_soul_detach_needle",
+    "name": "靈魂剝離針",
+    "costGold": 5,
+    "timing": "necro",
+    "image": null,
+    "text": "【死靈】弱化：選 1 敵方附魔單位，對手選將卡收回牢籠或棄置；該單位回復至滿 HP 狀態回歸初始狀態。",
+    "copies": 1
+  },
+  {
+    "id": "item_dead_return_path",
+    "name": "亡者歸途",
+    "costGold": 4,
+    "timing": "necro",
+    "image": null,
+    "text": "【死靈】保護：選擇 1 個己方附魔單位，將靈魂卡收回牢籠。該單位回復至滿 HP 狀態回歸初始狀態。",
+    "copies": 2
+  },
+  {
+    "id": "item_wizard_greed",
+    "name": "法師的貪婪",
+    "costGold": 3,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】洗牌：將展示區「所有」靈魂展示位卡片置於各牌堆底部，並全部翻開新卡。",
+    "copies": 1
+  },
+  {
+    "id": "item_soul_astrolabe",
+    "name": "靈魂觀星儀",
+    "costGold": 5,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】檢索：檢視任一基底牌堆頂 3 張，將其中 1 張置入牢籠，其餘依序放回。",
+    "copies": 1
+  },
+  {
+    "id": "item_nether_tax",
+    "name": "冥界稅收",
+    "costGold": 5,
+    "timing": "buy",
+    "image": null,
+    "text": "【購買】壓制：下回合內，敵方執行「死靈術（復活或附魔）」的財力成本 +2。",
+    "copies": 1
+  }
+]
