@@ -1,4 +1,5 @@
 import darkMoon from '../data/souls/dark-moon.json'
+import type { PieceBase } from './types'
 
 export type SoulAbility = {
   type: string
@@ -8,7 +9,7 @@ export type SoulAbility = {
 export type SoulCard = {
   id: string
   clan: string
-  base: string
+  base: PieceBase
   name: string
   image: string
   costGold: number

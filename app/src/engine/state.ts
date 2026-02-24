@@ -1,4 +1,7 @@
 import type { Phase, PieceBase, Pos, Side } from './types'
+import { listSoulCards } from './cards'
+import { listItemDeckIds } from './items'
+import { DEFAULT_CONFIG, type GameConfig } from './gameConfig'
 
 export type StatKey = string
 
@@ -34,14 +37,35 @@ export type HandState = {
   items: string[]
 }
 
+export type CorpseEntry = {
+  ownerSide: Side
+  base: PieceBase
+}
+
 export type GameState = {
   units: Record<string, Unit>
+  corpsesByPos: Record<string, CorpseEntry[]>
+  graveyard: Record<Side, string[]>
+  soulDeckByBase: Partial<Record<PieceBase, string[]>>
+  displayByBase: Partial<Record<PieceBase, string | null>>
+  itemDeck: string[]
+  itemDisplay: Array<string | null>
+  itemDiscard: string[]
   turn: {
     side: Side
     phase: Phase
   }
   turnFlags: {
     shotUsed: Record<string, true>
+    movedThisTurn: Record<string, true>
+    soulReturnUsedCount: number
+    abilityUsed: Record<string, number>
+    soulBuyUsed: boolean
+    buySoulActionsUsed: number
+    buyItemActionsUsed: number
+    necroActionsUsed: number
+    bloodRitualUsed: boolean
+    necroBonusActions: number
   }
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
@@ -49,11 +73,21 @@ export type GameState = {
     manaMax: number
     storageManaMax: number
     goldMax: number
+    soulHandMax: number
+    itemHandMax: number
+    buySoulActionsPerTurn: number
+    buyItemActionsPerTurn: number
+    necroActionsPerTurn: number
+    soulReturnPerTurn: number
   }
   rules: {
     incomeGold: number
     incomeMana: number
     storageToGoldRate: number
+    reviveGoldCost: number
+    buySoulFromDeckGoldCost: number
+    buySoulFromDisplayGoldCost: number
+    buySoulFromEnemyGraveyardGoldCost: number
     moveManaCost: number
     shootManaCost: number
     diceFixed: number
@@ -119,24 +153,31 @@ function makeUnitsForSide(side: Side): Unit[] {
   return units
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(config?: Partial<GameConfig>): GameState {
   const unitsArr = [...makeUnitsForSide('red'), ...makeUnitsForSide('black')]
   const units: Record<string, Unit> = Object.fromEntries(unitsArr.map((u) => [u.id, u]))
 
-  const limits = {
-    manaMax: 999,
-    storageManaMax: 5,
-    goldMax: 15,
+  const merged: GameConfig = {
+    limits: {
+      ...DEFAULT_CONFIG.limits,
+      ...(config?.limits ?? {}),
+    },
+    rules: {
+      ...DEFAULT_CONFIG.rules,
+      ...(config?.rules ?? {}),
+    },
+    phaseActionLimits: {
+      ...DEFAULT_CONFIG.phaseActionLimits,
+      ...(config?.phaseActionLimits ?? {}),
+    },
   }
 
-  const rules = {
-    incomeGold: 4,
-    incomeMana: 3,
-    storageToGoldRate: 2,
-    moveManaCost: 1,
-    shootManaCost: 1,
-    diceFixed: 3,
+  const limits = {
+    ...merged.limits,
+    ...merged.phaseActionLimits,
   }
+
+  const rules = merged.rules
 
   const redStart: Resources = {
     gold: 999,
@@ -150,33 +191,63 @@ export function createInitialState(): GameState {
     storageMana: 0,
   }
 
-  // No hand limit for now: both players start with all souls available.
-  // Loaded elsewhere into registry; keep ids as strings.
-  const allSoulIds: string[] = [
-    'dark_moon_rook_lanhua',
-    'dark_moon_rook_yinghua',
-    'dark_moon_knight_yingzi',
-    'dark_moon_knight_wuying',
-    'dark_moon_cannon_yehua',
-    'dark_moon_cannon_fenghua',
-    'dark_moon_advisor_yeji',
-    'dark_moon_advisor_yingji',
-    'dark_moon_elephant_yueji',
-    'dark_moon_elephant_youji'
-  ]
+  const bases: PieceBase[] = ['king', 'advisor', 'elephant', 'rook', 'knight', 'cannon', 'soldier']
+  const deckByBase: Partial<Record<PieceBase, string[]>> = {}
+  const displayByBase: Partial<Record<PieceBase, string | null>> = {}
+
+  const all = listSoulCards().slice().sort((a, b) => a.id.localeCompare(b.id))
+  for (const b of bases) {
+    deckByBase[b] = all.filter((c) => c.base === b).map((c) => c.id)
+    displayByBase[b] = null
+  }
+
+  // Fill display (one face-up card per base if available)
+  for (const b of bases) {
+    const deck = deckByBase[b] ?? []
+    if (deck.length > 0) {
+      displayByBase[b] = deck.shift() ?? null
+      deckByBase[b] = deck
+    }
+  }
+
+  const itemDeck = listItemDeckIds()
+
+  const itemDisplay: Array<string | null> = [null, null, null]
+  for (let i = 0; i < itemDisplay.length; i++) {
+    itemDisplay[i] = itemDeck.shift() ?? null
+  }
 
   return {
     units,
+    corpsesByPos: {},
+    graveyard: {
+      red: [],
+      black: [],
+    },
+    soulDeckByBase: deckByBase,
+    displayByBase,
+    itemDeck,
+    itemDisplay,
+    itemDiscard: [],
     turn: {
       side: 'red',
       phase: 'buy',
     },
     turnFlags: {
       shotUsed: {},
+      movedThisTurn: {},
+      soulReturnUsedCount: 0,
+      abilityUsed: {},
+      soulBuyUsed: false,
+      buySoulActionsUsed: 0,
+      buyItemActionsUsed: 0,
+      necroActionsUsed: 0,
+      bloodRitualUsed: false,
+      necroBonusActions: 0,
     },
     hands: {
-      red: { souls: [...allSoulIds], items: [] },
-      black: { souls: [...allSoulIds], items: [] },
+      red: { souls: [], items: [] },
+      black: { souls: [], items: [] },
     },
     resources: {
       red: redStart,

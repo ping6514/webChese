@@ -1,0 +1,21 @@
+.DS_Store
+
+# Vite / Vue build outputs
+app/dist/
+
+# Dependencies
+app/node_modules/
+
+# Local env files
+app/.env
+app/.env.*
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# IDE
+.vscode/
+.idea/

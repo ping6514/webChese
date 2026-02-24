@@ -1,5 +1,7 @@
 import type { GameState } from './state'
 import { getUnitAt } from './state'
+import { getEffectHandlers } from './effects'
+import { getSoulCard } from './cards'
 
 function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
   if (pos.x < 3 || pos.x > 5) return false
@@ -90,14 +92,10 @@ function isLegalShootByBase(
       return { ok: true }
     }
     case 'elephant': {
-      // 2-diagonal with eye block, cannot cross river
+      // 2-diagonal with eye block
       const dx = tx - ax
       const dy = ty - ay
       if (Math.abs(dx) !== 2 || Math.abs(dy) !== 2) return { ok: false, error: 'Out of range' }
-
-      // river rule
-      if (attacker.side === 'red' && ty <= 4) return { ok: false, error: 'Out of range' }
-      if (attacker.side === 'black' && ty >= 5) return { ok: false, error: 'Out of range' }
 
       const eye = { x: ax + dx / 2, y: ay + dy / 2 }
       if (getUnitAt(state, eye)) return { ok: false, error: 'Blocked' }
@@ -154,7 +152,17 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
   const r = state.resources[state.turn.side]
   if (r.mana < cost) return { ok: false, error: 'Not enough mana' }
 
-  if (state.turnFlags.shotUsed[attackerId]) return { ok: false, error: 'Already shot this turn' }
+  if (state.turnFlags.shotUsed[attackerId]) {
+    const soulId = attacker.enchant?.soulId
+    const card = soulId ? getSoulCard(soulId) : undefined
+    const ab = card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
+    const perTurn = Number((ab as any)?.perTurn ?? 0)
+    const moved = !!state.turnFlags.movedThisTurn?.[attackerId]
+    const key = `${attackerId}:MOVE_THEN_SHOOT`
+    const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
+    const canExtra = moved && Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
+    if (!canExtra) return { ok: false, error: 'Already shot this turn' }
+  }
 
   // base range/blocking rules
   const baseCheck = isLegalShootByBase(state, attackerId, targetUnitId, rules)
@@ -173,9 +181,29 @@ export function getShootableTargetIds(state: GameState, attackerId: string): str
   if (!attacker) return []
 
   const out: string[] = []
+  const handlers = getEffectHandlers(state)
   for (const t of Object.values(state.units)) {
     if (t.side === attacker.side) continue
-    const check = canShoot(state, attackerId, t.id)
+
+    const shootRules = {
+      ignoreBlockingCount: 0,
+      ignoreBlockingAll: false,
+    }
+
+    let vetoed = false
+
+    for (const h of handlers) {
+      const res = h.onBeforeShootValidate?.({ state, attackerId, targetUnitId: t.id, shootRules })
+      if (res && !res.ok) {
+        // if an effect blocks this shot specifically, treat as not shootable
+        vetoed = true
+        break
+      }
+    }
+
+    if (vetoed) continue
+
+    const check = canShoot(state, attackerId, t.id, shootRules)
     if (check.ok) out.push(t.id)
   }
   return out

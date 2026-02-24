@@ -1,0 +1,315 @@
+import type { GameState } from './state'
+import { getSoulCard } from './cards'
+import { getDefValue } from './stats'
+
+export type ShotPreviewEffect =
+  | {
+      kind: 'DAMAGE_SHARE'
+      byUnitId: string
+      amount: number
+    }
+  | {
+      kind: 'DAMAGE_BONUS'
+      byUnitId: string
+      amount: number
+    }
+  | {
+      kind: 'AURA_DAMAGE_BONUS'
+      byUnitId: string
+      amount: number
+    }
+  | {
+      kind: 'AURA_IGNORE_BLOCKING_COUNT'
+      byUnitId: string
+      count: number
+    }
+  | {
+      kind: 'AURA_IGNORE_BLOCKING_ALL'
+      byUnitId: string
+    }
+  | {
+      kind: 'IGNORE_BLOCKING_COUNT'
+      byUnitId: string
+      count: number
+    }
+  | {
+      kind: 'IGNORE_BLOCKING_ALL'
+      byUnitId: string
+    }
+  | {
+      kind: 'SPLASH'
+      byUnitId: string
+      radius: number
+      targetUnitIds: string[]
+      fixedDamage: number
+    }
+
+export type ShotPreview = {
+  ok: true
+  attackerId: string
+  targetUnitId: string
+  rawDamage: number
+  damageToTarget: number
+  shared: { toUnitId: string; amount: number } | null
+  effects: ShotPreviewEffect[]
+} | { ok: false; error: string }
+
+function crossedRiver(side: 'red' | 'black', y: number): boolean {
+  return side === 'red' ? y <= 4 : y >= 5
+}
+
+function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
+}
+
+function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
+  if (!Number.isFinite(need) || need <= 0) return false
+  const source = state.units[sourceUnitId]
+  if (!source) return false
+  let count = 0
+  for (const u of Object.values(state.units)) {
+    if (u.side !== source.side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const c = getSoulCard(soulId)
+    if (!c) continue
+    if (c.clan !== clan) continue
+    count++
+  }
+  return count >= need
+}
+
+function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
+  if (pos.x < 3 || pos.x > 5) return false
+  if (side === 'red') return pos.y >= 7 && pos.y <= 9
+  return pos.y >= 0 && pos.y <= 2
+}
+
+function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId: string, when: any, clan: string): boolean {
+  const auraUnit = state.units[auraUnitId]
+  const attacker = state.units[attackerId]
+  if (!auraUnit || !attacker) return false
+  if (auraUnit.side !== attacker.side) return false
+
+  const type = String(when?.type ?? '')
+  if (!type) return true
+
+  if (type === 'ATTACKER_IN_PALACE') {
+    return palaceContains(attacker.side, attacker.pos)
+  }
+
+  if (type === 'RESONANCE_ACTIVE') {
+    const soulId = auraUnit.enchant?.soulId
+    const card = soulId ? getSoulCard(soulId) : undefined
+    const res = card?.abilities.find((a) => a.type === 'RESONANCE')
+    const need = Number((res as any)?.need ?? 0)
+    return isResonanceActive(state, auraUnit.id, need, clan)
+  }
+
+  return true
+}
+
+function alliesInPalaceCount(s: GameState, side: 'red' | 'black'): number {
+  let n = 0
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side) continue
+    if (palaceContains(side, u.pos)) n++
+  }
+  return n
+}
+
+function findDamageSharer(s: GameState, targetSide: 'red' | 'black'): { unitId: string; amount: number } | null {
+  const alliesInPalace = alliesInPalaceCount(s, targetSide)
+
+  for (const u of Object.values(s.units).sort((a, b) => a.id.localeCompare(b.id))) {
+    if (u.side !== targetSide) continue
+    if (!palaceContains(targetSide, u.pos)) continue
+
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'DAMAGE_SHARE') continue
+      const amount = Number((ab as any).amount ?? 0)
+      if (!Number.isFinite(amount) || amount <= 0) continue
+      const when = (ab as any).when
+      if (when && when.type === 'ALLIES_IN_PALACE_GTE') {
+        const need = Number(when.count ?? 0)
+        if (alliesInPalace < need) continue
+      }
+      return { unitId: u.id, amount }
+    }
+  }
+
+  return null
+}
+
+export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string): ShotPreview {
+  const attacker = state.units[attackerId]
+  const target = state.units[targetUnitId]
+  if (!attacker) return { ok: false, error: 'Attacker not found' }
+  if (!target) return { ok: false, error: 'Target not found' }
+
+  const effects: ShotPreviewEffect[] = []
+
+  let damageBonus = 0
+  const attackerSoulId = attacker.enchant?.soulId
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
+      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
+
+      if (crossedOk) {
+        for (const ab of card.abilities) {
+          if (ab.type !== 'DAMAGE_BONUS') continue
+          const amount = Number((ab as any).amount ?? 0)
+          if (!Number.isFinite(amount) || amount <= 0) continue
+          damageBonus += amount
+        }
+      }
+
+      if (damageBonus > 0) {
+        effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount: damageBonus })
+      }
+    }
+  }
+
+  // AURA_DAMAGE_BONUS: from allied aura units (e.g. dark_moon_elephant_yueji)
+  for (const u of Object.values(state.units)) {
+    if (u.side !== attacker.side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'AURA_DAMAGE_BONUS') continue
+      if (!auraAppliesToAttacker(state, u.id, attacker.id, (ab as any).when, card.clan)) continue
+
+      const forKey = String((ab as any).for ?? '')
+      if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
+
+      const amount = Number((ab as any).amount ?? 0)
+      if (Number.isFinite(amount) && amount > 0) {
+        damageBonus += amount
+        effects.push({ kind: 'AURA_DAMAGE_BONUS', byUnitId: u.id, amount })
+      }
+    }
+  }
+
+  const defValue = getDefValue(target, attacker.atk.key)
+  const rawDamage = Math.max(1, state.rules.diceFixed + attacker.atk.value + damageBonus - defValue)
+
+  // AURA_IGNORE_BLOCKING: from allied aura units (e.g. dark_moon_advisor_yeji)
+  // This is implemented in effects.ts, so we mirror it here for preview transparency.
+  for (const u of Object.values(state.units)) {
+    if (u.side !== attacker.side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'AURA_IGNORE_BLOCKING') continue
+      if (!auraAppliesToAttacker(state, u.id, attacker.id, (ab as any).when, card.clan)) continue
+
+      const forKey = String((ab as any).for ?? '')
+      if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
+
+      const mode = String((ab as any).mode ?? '')
+      if (mode === 'all') {
+        effects.push({ kind: 'AURA_IGNORE_BLOCKING_ALL', byUnitId: u.id })
+        continue
+      }
+
+      const count = Number((ab as any).count ?? 0)
+      if (Number.isFinite(count) && count > 0) {
+        effects.push({ kind: 'AURA_IGNORE_BLOCKING_COUNT', byUnitId: u.id, count })
+      }
+    }
+  }
+
+  // Note: we only show aura contributions; actual shoot legality uses the max across all effects.
+  // We do NOT recompute legality here; we only expose the stack.
+
+  // SPLASH: add extra instances around the target (enemy only), using fixedDamage equal to main rawDamage.
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
+      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
+      if (crossedOk) {
+        const splashAb = card.abilities.find((a) => a.type === 'SPLASH')
+        const radius = Number((splashAb as any)?.radius ?? 0)
+        if (Number.isFinite(radius) && radius > 0) {
+          const splashTargets = Object.values(state.units)
+            .filter((u) => u.side !== attacker.side)
+            .filter((u) => u.id !== target.id)
+            .filter((u) => chebyshev(u.pos, target.pos) <= radius)
+            .map((u) => u.id)
+            .sort((a, b) => a.localeCompare(b))
+
+          if (splashTargets.length > 0) {
+            effects.push({
+              kind: 'SPLASH',
+              byUnitId: attacker.id,
+              radius,
+              targetUnitIds: splashTargets,
+              fixedDamage: rawDamage,
+            })
+          }
+        }
+      }
+    }
+  }
+
+  // Mirror current shoot validation effects (effects.ts): IGNORE_BLOCKING gated by CROSS_RIVER.
+  // Note: conditional "when" on abilities is currently NOT implemented in effects.ts, so we mirror that behavior.
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
+      if (!hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)) {
+        let ignoreAll = false
+        let ignoreCount = 0
+        for (const ab of card.abilities) {
+          if (ab.type !== 'IGNORE_BLOCKING') continue
+          const mode = String((ab as any).mode ?? '')
+          if (mode === 'all') {
+            ignoreAll = true
+            continue
+          }
+          const count = Number((ab as any).count ?? 0)
+          if (Number.isFinite(count) && count > ignoreCount) ignoreCount = count
+        }
+        if (ignoreAll) effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
+        if (ignoreCount > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count: ignoreCount })
+      }
+    }
+  }
+
+  let shared: { toUnitId: string; amount: number } | null = null
+  const sharer = findDamageSharer(state, target.side)
+  if (sharer && sharer.unitId !== target.id) {
+    const sharedAmount = Math.max(0, Math.min(sharer.amount, rawDamage - 1))
+    if (sharedAmount > 0) {
+      shared = { toUnitId: sharer.unitId, amount: sharedAmount }
+      effects.push({ kind: 'DAMAGE_SHARE', byUnitId: sharer.unitId, amount: sharedAmount })
+    }
+  }
+
+  const damageToTarget = rawDamage - (shared?.amount ?? 0)
+
+  return {
+    ok: true,
+    attackerId,
+    targetUnitId,
+    rawDamage,
+    damageToTarget,
+    shared,
+    effects,
+  }
+}

@@ -2,6 +2,7 @@ import type { GameState, Unit } from './state'
 import type { Pos } from './types'
 import { isOnBoard } from './types'
 import { getUnitAt } from './state'
+import { getSoulCard } from './cards'
 
 function isEmpty(state: GameState, pos: Pos): boolean {
   return !getUnitAt(state, pos)
@@ -40,6 +41,10 @@ function isPathClearOrthogonal(state: GameState, from: Pos, to: Pos): boolean {
 export function getLegalMoves(state: GameState, unitId: string): Pos[] {
   const unit = state.units[unitId]
   if (!unit) return []
+
+  const soulId = unit.enchant?.soulId
+  const card = soulId ? getSoulCard(soulId) : undefined
+  const ignorePathBlockingMove = !!card?.abilities.find((a) => a.type === 'IGNORE_PATH_BLOCKING' && (a as any).for === 'MOVE')
 
   const out: Pos[] = []
   const { x, y } = unit.pos
@@ -82,7 +87,7 @@ export function getLegalMoves(state: GameState, unitId: string): Pos[] {
       for (const c of candidates) {
         if (!isOnBoard(c.to)) continue
         if (!isEmpty(state, c.to)) continue
-        if (getUnitAt(state, c.leg)) continue
+        if (!ignorePathBlockingMove && getUnitAt(state, c.leg)) continue
         out.push(c.to)
       }
       return out
@@ -99,7 +104,7 @@ export function getLegalMoves(state: GameState, unitId: string): Pos[] {
       for (const c of candidates) {
         if (!isOnBoard(c.to)) continue
         if (!isEmpty(state, c.to)) continue
-        if (getUnitAt(state, c.eye)) continue
+        if (!ignorePathBlockingMove && getUnitAt(state, c.eye)) continue
 
         // river rule
         if (unit.side === 'red' && c.to.y <= 4) continue

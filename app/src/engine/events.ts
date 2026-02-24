@@ -53,6 +53,13 @@ export type EnchantedEvent = {
   soulId: string
 }
 
+export type RevivedEvent = {
+  type: 'REVIVED'
+  unitId: string
+  pos: { x: number; y: number }
+  soulId?: string
+}
+
 export type Event =
   | UnitMovedEvent
   | PhaseChangedEvent
@@ -62,3 +69,4 @@ export type Event =
   | DamageDealtEvent
   | UnitKilledEvent
   | EnchantedEvent
+  | RevivedEvent

@@ -1,9 +1,11 @@
 <script lang="ts">
 import { computed, defineComponent, type PropType } from 'vue'
-import { BOARD_HEIGHT, BOARD_WIDTH, type GameState } from '../engine'
+import { BOARD_HEIGHT, BOARD_WIDTH, canEnchant, canMove, getSoulCard, type GameState } from '../engine'
+import BoardCell from './BoardCell.vue'
 
 export default defineComponent({
   name: 'BoardGrid',
+  components: { BoardCell },
   props: {
     state: {
       type: Object as () => GameState,
@@ -21,6 +23,14 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    highlightUnitIds: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
+    enchantDragSoulId: {
+      type: String as PropType<string | null>,
+      default: null,
+    },
   },
   emits: {
     'select-unit': (_unitId: string | null) => true,
@@ -29,15 +39,64 @@ export default defineComponent({
     'enchant-drop': (_payload: { unitId: string; soulId: string }) => true,
   },
   setup(props, { emit }) {
+    function getChineseLabel(side: 'red' | 'black', base: string): string {
+      // red uses traditional xiangqi chars: 帥/仕/相/車/馬/砲/兵
+      // black uses: 將/士/象/車/馬/炮/卒
+      switch (base) {
+        case 'king':
+          return side === 'red' ? '帥' : '將'
+        case 'advisor':
+          return side === 'red' ? '仕' : '士'
+        case 'elephant':
+          return side === 'red' ? '相' : '象'
+        case 'rook':
+          return '車'
+        case 'knight':
+          return '馬'
+        case 'cannon':
+          return side === 'red' ? '砲' : '炮'
+        case 'soldier':
+          return side === 'red' ? '兵' : '卒'
+        default:
+          return base.slice(0, 1)
+      }
+    }
+
     const unitByPos = computed(() => {
-      const map = new Map<string, { id: string; label: string; side: string; sideClass: string }>()
+      const map = new Map<
+        string,
+        {
+          id: string
+          label: string
+          side: 'red' | 'black'
+          sideClass: string
+          hp: number
+          enchantName: string | null
+          enchantImage: string | null
+        }
+      >()
       for (const u of Object.values(props.state.units)) {
+        const soulId = u.enchant?.soulId
+        const soul = soulId ? getSoulCard(soulId) : null
+        const baseLabel = getChineseLabel(u.side, u.base)
+        const displayLabel = soul?.name ? `${baseLabel}-${soul.name}` : baseLabel
         map.set(`${u.pos.x},${u.pos.y}`, {
           id: u.id,
           side: u.side,
-          label: `${u.side.charAt(0).toUpperCase()}-${u.base.slice(0, 2)}`,
+          label: displayLabel,
           sideClass: u.side === 'red' ? 'unit-red' : 'unit-black',
+          hp: u.hpCurrent,
+          enchantName: soul?.name ?? null,
+          enchantImage: soul?.image || null,
         })
+      }
+      return map
+    })
+
+    const corpseCountByPos = computed(() => {
+      const map = new Map<string, number>()
+      for (const [k, arr] of Object.entries(props.state.corpsesByPos)) {
+        if (arr.length > 0) map.set(k, arr.length)
       }
       return map
     })
@@ -50,12 +109,47 @@ export default defineComponent({
 
     const shootableTargetSet = computed(() => new Set(props.shootableTargetIds))
 
+    const highlightUnitSet = computed(() => new Set(props.highlightUnitIds))
+
     const selectedPosKey = computed(() => {
       if (!props.selectedUnitId) return null
       const u = props.state.units[props.selectedUnitId]
       if (!u) return null
       return `${u.pos.x},${u.pos.y}`
     })
+
+    const selectedUnit = computed(() => {
+      if (!props.selectedUnitId) return null
+      return props.state.units[props.selectedUnitId] ?? null
+    })
+
+    function cellInvalidReason(x: number, y: number): string {
+      if (props.state.turn.phase !== 'combat') return ''
+      const u = selectedUnit.value
+      if (!u) return ''
+      if (u.side !== props.state.turn.side) return ''
+
+      const key = `${x},${y}`
+      if (selectedPosKey.value === key) return ''
+      if (unitByPos.value.get(key)) return ''
+
+      const res = canMove(props.state, u.id, { x, y })
+      if (res.ok === true) return ''
+      return res.reason
+    }
+
+    function enchantDragUnitReason(unitId: string): string {
+      const soulId = props.enchantDragSoulId
+      if (!soulId) return ''
+
+      const u = props.state.units[unitId]
+      if (!u) return ''
+      if (u.side !== props.state.turn.side) return 'Enemy unit'
+
+      const g = canEnchant(props.state, unitId, soulId)
+      if (g.ok) return 'Drop to enchant'
+      return g.reason
+    }
 
     function cellClass(x: number, y: number): Record<string, boolean> {
       const key = `${x},${y}`
@@ -64,7 +158,16 @@ export default defineComponent({
         'cell-selected': selectedPosKey.value === key,
         'cell-legal': legalMoveSet.value.has(key),
         'cell-shootable': !!u && shootableTargetSet.value.has(u.id),
+        'cell-enchantable': !!u && highlightUnitSet.value.has(u.id),
+        'cell-invalid-hoverable': !!cellInvalidReason(x, y),
       }
+    }
+
+    function cellTitle(x: number, y: number): string {
+      const key = `${x},${y}`
+      const u = unitByPos.value.get(key)
+      if (u && props.enchantDragSoulId) return enchantDragUnitReason(u.id)
+      return cellInvalidReason(x, y)
     }
 
     function onCellClick(x: number, y: number) {
@@ -78,22 +181,20 @@ export default defineComponent({
       emit('move-to', { x, y })
     }
 
-    function onCellDrop(e: DragEvent, x: number, y: number) {
-      const soulId = e.dataTransfer?.getData('application/x-soul-id') || ''
-      if (!soulId) return
-      const key = `${x},${y}`
-      const u = unitByPos.value.get(key)
-      if (!u) return
-      emit('enchant-drop', { unitId: u.id, soulId })
+    function onDropSoul(payload: { x: number; y: number; unitId: string; soulId: string }) {
+      emit('enchant-drop', { unitId: payload.unitId, soulId: payload.soulId })
     }
 
     return {
       BOARD_WIDTH,
       BOARD_HEIGHT,
       unitByPos,
+      corpseCountByPos,
       cellClass,
+      cellTitle,
+      cellInvalidReason,
       onCellClick,
-      onCellDrop,
+      onDropSoul,
     }
   },
 })
@@ -105,31 +206,26 @@ export default defineComponent({
       Selected: <span class="mono">{{ selectedUnitId ?? 'none' }}</span>
     </div>
 
-    <div class="board" :style="{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, 52px)` }">
-      <button
+    <div class="board" :style="{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)` }">
+      <BoardCell
         v-for="i in BOARD_WIDTH * BOARD_HEIGHT"
         :key="i"
-        class="cell"
-        :class="cellClass((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
-        type="button"
-        @click="onCellClick((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
-        @dragover.prevent
-        @drop="onCellDrop($event, (i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
-      >
-        <span class="coord mono"
-          >{{ (i - 1) % BOARD_WIDTH }},{{ Math.floor((i - 1) / BOARD_WIDTH) }}</span
-        >
-        <span
-          class="unit mono"
-          :class="
-            unitByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`)?.sideClass
-          "
-        >
-          {{
-            unitByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`)?.label ?? ''
-          }}
-        </span>
-      </button>
+        :x="(i - 1) % BOARD_WIDTH"
+        :y="Math.floor((i - 1) / BOARD_WIDTH)"
+        :cell-class="cellClass((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
+        :title-text="cellTitle((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
+        :unit="unitByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ?? null"
+        :corpse-count="corpseCountByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ?? null"
+        :allow-drop="
+          (() => {
+            const key = `${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`
+            const u = unitByPos.get(key)
+            return !!(u && enchantDragSoulId && highlightUnitIds.includes(u.id))
+          })()
+        "
+        @click="onCellClick($event.x, $event.y)"
+        @drop-soul="onDropSoul"
+      />
     </div>
   </div>
 </template>
@@ -147,93 +243,9 @@ export default defineComponent({
 .board {
   display: grid;
   gap: 4px;
-  width: max-content;
+  width: 100%;
+  max-width: 100%;
   overflow: visible;
-}
-
-.cell {
-  height: 52px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.15);
-  color: #eaeaea;
-  text-align: left;
-  padding: 4px 6px;
-  border-radius: 6px;
-  position: relative;
-}
-
-.cell:hover {
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.tip {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  left: 0;
-  top: -6px;
-  transform: translateY(-100%);
-  z-index: 999;
-  background: rgba(0, 0, 0, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  padding: 6px 8px;
-  color: rgba(255, 255, 255, 0.92);
-  min-width: 180px;
-  pointer-events: none;
-  transition: opacity 120ms ease;
-}
-
-.cell:hover .tip {
-  visibility: visible;
-  opacity: 1;
-}
-
-.tipRow {
-  font-size: 11px;
-  line-height: 14px;
-  white-space: nowrap;
-}
-
-.cell-selected {
-  border-color: rgba(145, 202, 255, 0.85);
-  background: rgba(145, 202, 255, 0.12);
-}
-
-.cell-legal {
-  border-color: rgba(82, 196, 26, 0.7);
-  background: rgba(82, 196, 26, 0.12);
-}
-
-.cell-shootable {
-  border-color: rgba(250, 173, 20, 0.9);
-  background: rgba(250, 173, 20, 0.12);
-}
-
-.cell:focus-visible {
-  outline: 2px solid #91caff;
-  outline-offset: 2px;
-}
-
-.coord {
-  display: block;
-  opacity: 0.6;
-  font-size: 10px;
-  line-height: 12px;
-}
-
-.unit {
-  display: block;
-  font-size: 12px;
-  line-height: 16px;
-}
-
-.unit-red {
-  color: #ff4d4f;
-}
-
-.unit-black {
-  color: #52c41a;
 }
 
 .mono {

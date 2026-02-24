@@ -4,7 +4,7 @@
     "clan": "dark_moon",
     "base": "rook",
     "name": "蘭華",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_rook_lanhua.jpg",
     "costGold": 6,
     "stats": {
       "hp": 12,
@@ -34,7 +34,7 @@
     "clan": "dark_moon",
     "base": "rook",
     "name": "影華",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_rook_yinghua.jpg",
     "costGold": 7,
     "stats": {
       "hp": 12,
@@ -55,7 +55,7 @@
     "clan": "dark_moon",
     "base": "knight",
     "name": "櫻紫",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_knight_yingzi.jpg",
     "costGold": 6,
     "stats": {
       "hp": 10,
@@ -76,7 +76,7 @@
     "clan": "dark_moon",
     "base": "knight",
     "name": "舞影",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_knight_wuying.jpg",
     "costGold": 5,
     "stats": {
       "hp": 9,
@@ -97,7 +97,7 @@
     "clan": "dark_moon",
     "base": "cannon",
     "name": "夜華",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_cannon_yehua.jpg",
     "costGold": 6,
     "stats": {
       "hp": 9,
@@ -118,7 +118,7 @@
     "clan": "dark_moon",
     "base": "cannon",
     "name": "風華",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_cannon_fenghua.jpg",
     "costGold": 5,
     "stats": {
       "hp": 9,
@@ -139,10 +139,10 @@
     "clan": "dark_moon",
     "base": "advisor",
     "name": "夜姬",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_advisor_yeji.jpg",
     "costGold": 4,
     "stats": {
-      "hp": 8,
+      "hp": 16,
       "atk": { "key": "phys", "value": 1 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -159,18 +159,18 @@
       },
       {
         "type": "DAMAGE_SHARE",
-        "amount": 1,
+        "amount": 4,
         "when": { "type": "ALLIES_IN_PALACE_GTE", "count": 2 }
       }
     ],
-    "text": "【宮內】：己方單位射擊忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 2，可替受攻擊友軍分擔 1 點傷害。"
+    "text": "【宮內】：己方單位射擊忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 2，可替受攻擊友軍分擔 4 點傷害。"
   },
   {
     "id": "dark_moon_advisor_yingji",
     "clan": "dark_moon",
     "base": "advisor",
     "name": "影姬",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_advisor_yingji.jpg",
     "costGold": 4,
     "stats": {
       "hp": 8,
@@ -190,7 +190,7 @@
     "clan": "dark_moon",
     "base": "elephant",
     "name": "月姬",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_elephant_yueji.jpg",
     "costGold": 4,
     "stats": {
       "hp": 8,
@@ -211,7 +211,7 @@
     "clan": "dark_moon",
     "base": "elephant",
     "name": "幽姬",
-    "image": "",
+    "image": "/assets/cards/dark_moon/dark_moon_elephant_youji.jpg",
     "costGold": 5,
     "stats": {
       "hp": 9,
