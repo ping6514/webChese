@@ -48,9 +48,9 @@ export default defineComponent({
         :key="c.id"
         type="button"
         class="soulBtn handSoulCard"
-        :class="{ selected: selectedSoulId === c.id, disabled: selectedUnit && c.base !== selectedUnit.base }"
-        draggable="true"
-        @dragstart="$emit('dragstart', $event, c.id)"
+        :class="{ selected: selectedSoulId === c.id, disabled: phase === 'necro' && selectedUnit && c.base !== selectedUnit.base }"
+        :draggable="phase === 'necro'"
+        @dragstart="phase === 'necro' && $emit('dragstart', $event, c.id)"
         @dragend="$emit('dragend', $event, c.id)"
         @click="$emit('select', c.id)"
       >
@@ -73,7 +73,7 @@ export default defineComponent({
       </button>
     </div>
 
-    <div class="enchantRow">
+    <!-- <div class="enchantRow">
       <button
         type="button"
         :disabled="!enchantGuard.ok"
@@ -82,7 +82,7 @@ export default defineComponent({
       >
         Enchant selected unit
       </button>
-    </div>
+    </div> -->
   </div>
 </template>
 

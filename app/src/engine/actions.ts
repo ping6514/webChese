@@ -15,6 +15,7 @@ export type ShootAction = {
   type: 'SHOOT'
   attackerId: string
   targetUnitId: string
+  extraTargetUnitId?: string | null
 }
 
 export type EnchantAction = {

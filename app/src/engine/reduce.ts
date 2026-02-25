@@ -294,7 +294,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return { ok: true, state: nextState, events: [] }
     }
     case 'SHOOT': {
-      const planRes = buildShotPlan(state, action.attackerId, action.targetUnitId)
+      const planRes = buildShotPlan(state, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
       if (!planRes.ok) return { ok: false, error: planRes.error }
 
       const execRes = executeShotPlan(state, planRes.plan)

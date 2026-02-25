@@ -72,7 +72,10 @@ export function useSelection(opts: { getState: () => GameState }) {
     ui.setSelectedCell({ x: payload.x, y: payload.y })
 
     const s = opts.getState()
-    if (s.turn.phase !== 'combat') return
+    if (s.turn.phase !== 'combat') {
+      if (!payload.unitId) ui.setSelectedUnitId(null)
+      return
+    }
 
     if (payload.unitId) {
       const clicked = s.units[payload.unitId]
@@ -91,7 +94,12 @@ export function useSelection(opts: { getState: () => GameState }) {
     }
 
     if (!selectedUnit.value) return
-    if (!legalMoves.value.some((p) => p.x === payload.x && p.y === payload.y)) return
+
+    const isLegalMove = legalMoves.value.some((p) => p.x === payload.x && p.y === payload.y)
+    if (!isLegalMove) {
+      ui.setSelectedUnitId(null)
+      return
+    }
   }
 
   return {

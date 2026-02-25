@@ -90,7 +90,7 @@
       { "type": "CROSS_RIVER" },
       { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE" }
     ],
-    "text": "【越境】：執行「移動」時忽略所有路徑阻擋（不被「拐馬腳」）。"
+    "text": "執行「移動」時忽略所有路徑阻擋（永遠不會「拐馬腳」）。"
   },
   {
     "id": "dark_moon_cannon_yehua",

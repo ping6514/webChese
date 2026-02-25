@@ -39,6 +39,7 @@ describe('shooting: elephant can shoot across river', () => {
       },
       turnFlags: {
         shotUsed: {},
+        movedThisTurn: {},
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,

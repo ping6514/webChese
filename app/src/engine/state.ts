@@ -1,7 +1,8 @@
 import type { Phase, PieceBase, Pos, Side } from './types'
 import { listSoulCards } from './cards'
 import { listItemDeckIds } from './items'
-import { DEFAULT_CONFIG, type GameConfig } from './gameConfig'
+import { DEFAULT_CONFIG, type GameConfig, type GameRules } from './gameConfig'
+import { createRngState, shuffle, type RngState } from '../serverSim'
 
 export type StatKey = string
 
@@ -46,6 +47,7 @@ export type GameState = {
   units: Record<string, Unit>
   corpsesByPos: Record<string, CorpseEntry[]>
   graveyard: Record<Side, string[]>
+  rngState: RngState | null
   soulDeckByBase: Partial<Record<PieceBase, string[]>>
   displayByBase: Partial<Record<PieceBase, string | null>>
   itemDeck: string[]
@@ -80,18 +82,7 @@ export type GameState = {
     necroActionsPerTurn: number
     soulReturnPerTurn: number
   }
-  rules: {
-    incomeGold: number
-    incomeMana: number
-    storageToGoldRate: number
-    reviveGoldCost: number
-    buySoulFromDeckGoldCost: number
-    buySoulFromDisplayGoldCost: number
-    buySoulFromEnemyGraveyardGoldCost: number
-    moveManaCost: number
-    shootManaCost: number
-    diceFixed: number
-  }
+  rules: GameRules
 }
 
 export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: number; def: KeyValueStat[] }> = {
@@ -179,6 +170,8 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
 
   const rules = merged.rules
 
+  const rngState: RngState | null = rules.rngMode === 'seeded' ? createRngState(String(rules.matchSeed ?? 'default')) : null
+
   const redStart: Resources = {
     gold: 999,
     mana: 999,
@@ -195,9 +188,15 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
   const deckByBase: Partial<Record<PieceBase, string[]>> = {}
   const displayByBase: Partial<Record<PieceBase, string | null>> = {}
 
-  const all = listSoulCards().slice().sort((a, b) => a.id.localeCompare(b.id))
+  const enabled = Array.isArray((rules as any).enabledClans) ? (rules as any).enabledClans.map(String) : []
+  const enabledSet = enabled.length > 0 ? new Set(enabled) : null
+  const all = listSoulCards()
+    .filter((c) => !enabledSet || enabledSet.has(String((c as any).clan ?? '')))
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
   for (const b of bases) {
-    deckByBase[b] = all.filter((c) => c.base === b).map((c) => c.id)
+    const deck = all.filter((c) => c.base === b).map((c) => c.id)
+    deckByBase[b] = rngState ? shuffle(deck, rngState) : deck
     displayByBase[b] = null
   }
 
@@ -210,7 +209,10 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
     }
   }
 
-  const itemDeck = listItemDeckIds()
+  const itemDeck = (() => {
+    const base = listItemDeckIds()
+    return rngState ? shuffle(base, rngState) : base
+  })()
 
   const itemDisplay: Array<string | null> = [null, null, null]
   for (let i = 0; i < itemDisplay.length; i++) {
@@ -224,6 +226,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       red: [],
       black: [],
     },
+    rngState,
     soulDeckByBase: deckByBase,
     displayByBase,
     itemDeck,

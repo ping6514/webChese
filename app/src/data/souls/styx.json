@@ -1,0 +1,198 @@
+[
+  {
+    "id": "styx_rook_mingyanche",
+    "clan": "styx",
+    "base": "rook",
+    "name": "冥焰車",
+    "image": "/assets/cards/styx/styx_rook_minghua.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 13,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 }],
+    "text": "【貫穿】：射擊路徑上包含目標在內的「前 2 個敵方單位」均受到同等傷害。"
+  },
+  {
+    "id": "styx_rook_feiyan",
+    "clan": "styx",
+    "base": "rook",
+    "name": "緋焰",
+    "image": "/assets/cards/styx/styx_rook_feiyan.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1 }],
+    "text": "【連鎖】：射擊時，可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害（每回合限 1 次）。"
+  },
+  {
+    "id": "styx_knight_yanling",
+    "clan": "styx",
+    "base": "knight",
+    "name": "焰靈",
+    "image": "/assets/cards/styx/styx_knight_yanling.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1 }],
+    "text": "【連鎖】：射擊時，可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害（每回合限 1 次）。"
+  },
+  {
+    "id": "styx_knight_xueyan",
+    "clan": "styx",
+    "base": "knight",
+    "name": "血焰",
+    "image": "/assets/cards/styx/styx_knight_huanyue.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 1 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 1 點 HP（不可超過最大上限）。"
+  },
+  {
+    "id": "styx_cannon_mingleipao",
+    "clan": "styx",
+    "base": "cannon",
+    "name": "冥雷砲",
+    "image": "/assets/cards/styx/styx_cannon_minglei.jpg",
+    "costGold": 8,
+    "stats": {
+      "hp": 11,
+      "atk": { "key": "magic", "value": 4 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [{ "type": "MINGLEI", "magicDefMinus": 1, "bonusDamageIfTargetCrossRiver": 1 }],
+    "text": "【冥雷】：射擊時目標魔防 -1（最低為 0）；且對處於「越境」狀態的敵方額外 +1 傷害。"
+  },
+  {
+    "id": "styx_cannon_baoyan",
+    "clan": "styx",
+    "base": "cannon",
+    "name": "爆焰",
+    "image": "/assets/cards/styx/styx_cannon_baoyan.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [{ "type": "PIERCE", "mode": "CANNON_SCREEN_AND_TARGET" }],
+    "text": "【貫穿】：隔子射擊時，作為砲架（阻擋者）的敵方與目標敵方均受到同等傷害。"
+  },
+  {
+    "id": "styx_elephant_mingleixiang",
+    "clan": "styx",
+    "base": "elephant",
+    "name": "冥雷相",
+    "image": "/assets/cards/styx/styx_elephant_yanling_nv.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [{ "type": "MINGLEI", "magicDefMinus": 1, "bonusDamageIfTargetCrossRiver": 1 }],
+    "text": "【冥雷】：射擊時目標魔防 -1（最低為 0）；且對處於「越境」狀態的敵方額外 +1 傷害。"
+  },
+  {
+    "id": "styx_elephant_mingyanxiang",
+    "clan": "styx",
+    "base": "elephant",
+    "name": "冥焰相",
+    "image": "/assets/cards/styx/styx_elephant_mingyue_wunv.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 1 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 1 點 HP（不可超過最大上限）。"
+  },
+  {
+    "id": "styx_advisor_minghu",
+    "clan": "styx",
+    "base": "advisor",
+    "name": "冥護",
+    "image": "/assets/cards/styx/styx_advisor_minghu.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "magic", "value": 1 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 3 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "AURA_DEF_BONUS",
+        "amount": 1,
+        "key": "phys",
+        "when": { "type": "SOURCE_IN_PALACE" },
+        "for": "ALLIES_IN_PALACE"
+      }
+    ],
+    "text": "【防護(物理)】：當自身處於「宮內」時，所有「宮內」己方單位物防 DEF +1。"
+  },
+  {
+    "id": "styx_advisor_yanshi",
+    "clan": "styx",
+    "base": "advisor",
+    "name": "焰侍",
+    "image": "/assets/cards/styx/styx_advisor_huyan.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 3 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "AURA_DEF_BONUS",
+        "amount": 1,
+        "key": "magic",
+        "when": { "type": "SOURCE_IN_PALACE" },
+        "for": "ALLIES_IN_PALACE"
+      }
+    ],
+    "text": "【防護(魔法)】：當自身處於「宮內」時，所有「宮內」己方單位魔防 DEF +1。"
+  }
+]

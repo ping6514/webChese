@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
 import type { GuardResult, GameState, PieceBase, SoulCard } from '../engine'
 import HandSouls from './HandSouls.vue'
 import HandItems from './HandItems.vue'
@@ -35,12 +35,22 @@ export default defineComponent({
     },
   },
   emits: ['select-soul', 'dragstart-soul', 'dragend-soul', 'enchant', 'return-soul', 'discard-item', 'show-item-detail'],
+  setup() {
+    const tab = ref<'souls' | 'items'>('souls')
+    return { tab }
+  },
 })
 </script>
 
 <template>
   <div class="handBarWrap">
+    <div class="tabs">
+      <button type="button" class="tabBtn" :class="{ active: tab === 'souls' }" @click="tab = 'souls'">Souls</button>
+      <button type="button" class="tabBtn" :class="{ active: tab === 'items' }" @click="tab = 'items'">Items</button>
+    </div>
+
     <HandSouls
+      v-if="tab === 'souls'"
       :phase="phase"
       :cards="soulCards"
       :selected-soul-id="selectedSoulId"
@@ -54,9 +64,8 @@ export default defineComponent({
       @return="$emit('return-soul', $event)"
     />
 
-    <div style="height: 8px"></div>
-
     <HandItems
+      v-else
       :phase="phase"
       :items="items"
       :discard-guards="discardGuards"
@@ -79,5 +88,25 @@ export default defineComponent({
   border-radius: 10px;
   background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(6px);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tabBtn {
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.tabBtn.active {
+  border-color: rgba(145, 202, 255, 0.95);
+  background: rgba(145, 202, 255, 0.12);
 }
 </style>

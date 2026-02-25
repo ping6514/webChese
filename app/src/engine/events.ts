@@ -42,6 +42,14 @@ export type DamageDealtEvent = {
   amount: number
 }
 
+export type UnitHpChangedEvent = {
+  type: 'UNIT_HP_CHANGED'
+  unitId: string
+  from: number
+  to: number
+  reason: string
+}
+
 export type UnitKilledEvent = {
   type: 'UNIT_KILLED'
   unitId: string
@@ -67,6 +75,7 @@ export type Event =
   | ShotFiredEvent
   | DiceRolledEvent
   | DamageDealtEvent
+  | UnitHpChangedEvent
   | UnitKilledEvent
   | EnchantedEvent
   | RevivedEvent

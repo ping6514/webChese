@@ -47,6 +47,7 @@ describe('AURA_IGNORE_BLOCKING', () => {
       },
       turnFlags: {
         shotUsed: {},
+        movedThisTurn: {},
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,

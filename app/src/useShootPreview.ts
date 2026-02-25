@@ -19,8 +19,8 @@ export function useShootPreview(opts: { getState: () => GameState }) {
   const ui = useUiStore()
   const { shootPreview } = storeToRefs(ui)
 
-  function openShootPreview(attackerId: string, targetUnitId: string) {
-    ui.setShootPreview({ attackerId, targetUnitId })
+  function openShootPreview(attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null) {
+    ui.setShootPreview({ attackerId, targetUnitId, extraTargetUnitId: extraTargetUnitId ?? null })
   }
 
   function closeShootPreview() {
@@ -72,22 +72,28 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       type: 'SHOOT',
       attackerId: shootPreview.value.attackerId,
       targetUnitId: shootPreview.value.targetUnitId,
+      extraTargetUnitId: shootPreview.value.extraTargetUnitId ?? null,
     })
   })
 
   const info = computed(() => {
     const s = opts.getState()
     if (!shootPreview.value) return null
-    const res = buildShotPreview(s, shootPreview.value.attackerId, shootPreview.value.targetUnitId)
+    const res = buildShotPreview(
+      s,
+      shootPreview.value.attackerId,
+      shootPreview.value.targetUnitId,
+      shootPreview.value.extraTargetUnitId ?? null,
+    )
     return res.ok ? res : null
   })
 
-  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string }) => void) {
+  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null }) => void) {
     if (!shootPreview.value) return
     if (!guard.value.ok) return
     const a = shootPreview.value
     ui.clearShootPreview()
-    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId })
+    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null })
   }
 
   return {

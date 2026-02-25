@@ -10,7 +10,14 @@ export type ItemCard = {
 
 import rulebookItems from '../data/items/rulebook-items.json'
 
+function normalizePublicAssetUrl(p: string): string {
+  if (!p) return p
+  if (p.startsWith('/')) return `${import.meta.env.BASE_URL}${p.slice(1)}`
+  return p
+}
+
 const allItemCards: ItemCard[] = [...(rulebookItems as ItemCard[])]
+  .map((c) => ({ ...c, image: c.image ? normalizePublicAssetUrl(String(c.image)) : c.image }))
 
 export const itemCardsById: Record<string, ItemCard> = Object.fromEntries(allItemCards.map((c) => [c.id, c]))
 

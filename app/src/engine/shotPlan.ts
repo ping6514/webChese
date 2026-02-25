@@ -1,13 +1,15 @@
 import type { Event } from './events'
-import type { GameState } from './state'
+import { BASE_STATS, type GameState } from './state'
 import { canShoot } from './shooting'
-import { getDefValue } from './stats'
+import { getDefValueInState } from './stats'
 import { getEffectHandlers, type ShotPlan } from './effects'
 import { getSoulCard } from './cards'
+import { computeRawDamage } from './damage'
+import { rollDice, type RngState } from '../serverSim'
 
 export type ShotPlanResult = { ok: true; plan: ShotPlan } | { ok: false; error: string }
 
-export function buildShotPlan(state: GameState, attackerId: string, targetUnitId: string): ShotPlanResult {
+export function buildShotPlan(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): ShotPlanResult {
   const handlers = getEffectHandlers(state)
 
   const shootRules = {
@@ -31,7 +33,7 @@ export function buildShotPlan(state: GameState, attackerId: string, targetUnitId
   }
 
   for (const h of handlers) {
-    h.onAfterShotPlanBuilt?.({ state, attackerId, targetUnitId }, plan)
+    h.onAfterShotPlanBuilt?.({ state, attackerId, targetUnitId, extraTargetUnitId }, plan)
   }
 
   return { ok: true, plan }
@@ -42,6 +44,32 @@ export type ExecuteShotPlanResult = { ok: true; state: GameState; events: Event[
 export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPlanResult {
   const attacker = state.units[plan.attackerId]
   if (!attacker) return { ok: false, error: 'Attacker not found' }
+
+  const instancePriority: Record<string, number> = {
+    direct: 0,
+    chain: 1,
+    splash: 2,
+    pierce: 3,
+    counter: 4,
+  }
+
+  const sortedInstances = [...plan.instances].sort((a, b) => {
+    const ak = String((a as any).kind ?? '')
+    const bk = String((b as any).kind ?? '')
+    const ap = instancePriority[ak] ?? 999
+    const bp = instancePriority[bk] ?? 999
+    if (ap !== bp) return ap - bp
+
+    const asrc = String((a as any).sourceUnitId ?? '')
+    const bsrc = String((b as any).sourceUnitId ?? '')
+    if (asrc !== bsrc) return asrc.localeCompare(bsrc)
+
+    const atgt = String((a as any).targetUnitId ?? '')
+    const btgt = String((b as any).targetUnitId ?? '')
+    if (atgt !== btgt) return atgt.localeCompare(btgt)
+
+    return 0
+  })
 
   if (state.turnFlags.shotUsed[plan.attackerId]) {
     const soulId = attacker.enchant?.soulId
@@ -104,7 +132,46 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
   const events: Event[] = []
 
-  const dice = state.rules.diceFixed
+  const rngState: RngState | null = state.rules.rngMode === 'seeded' ? (state.rngState ? { x: state.rngState.x } : null) : null
+  const dice = rngState ? rollDice(6, rngState) : state.rules.diceFixed
+
+  function maxHpForUnit(s: GameState, unitId: string): number {
+    const u = s.units[unitId]
+    if (!u) return 0
+    const soulId = u.enchant?.soulId
+    if (!soulId) {
+      const base = BASE_STATS[u.base]
+      return base?.hp ?? 0
+    }
+    const card = getSoulCard(soulId)
+    return card?.stats.hp ?? 0
+  }
+
+  function findKingId(s: GameState, side: 'red' | 'black'): string | null {
+    for (const u of Object.values(s.units)) {
+      if (u.side === side && u.base === 'king') return u.id
+    }
+    return null
+  }
+
+  function healKingOnKill(s: GameState, events: Event[], killerUnitId: string, amount: number): GameState {
+    if (!(Number.isFinite(amount) && amount > 0)) return s
+    const killer = s.units[killerUnitId]
+    if (!killer) return s
+
+    const kingId = findKingId(s, killer.side)
+    if (!kingId) return s
+    const king = s.units[kingId]
+    if (!king) return s
+
+    const maxHp = maxHpForUnit(s, kingId)
+    const cappedMax = maxHp > 0 ? maxHp : king.hpCurrent
+    const nextHp = Math.min(cappedMax, king.hpCurrent + Math.floor(amount))
+    if (nextHp === king.hpCurrent) return s
+    s.units[kingId] = { ...king, hpCurrent: nextHp }
+    events.push({ type: 'UNIT_HP_CHANGED', unitId: kingId, from: king.hpCurrent, to: nextHp, reason: 'HEAL_KING_ON_KILL' })
+    return s
+  }
 
   function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
     if (pos.x < 3 || pos.x > 5) return false
@@ -149,67 +216,6 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return null
   }
 
-  function crossedRiver(side: 'red' | 'black', y: number): boolean {
-    return side === 'red' ? y <= 4 : y >= 5
-  }
-
-  function getDamageBonusForAttacker(s: GameState, attackerId: string): number {
-    const u = s.units[attackerId]
-    if (!u) return 0
-    const soulId = u.enchant?.soulId
-    if (!soulId) return 0
-    const card = getSoulCard(soulId)
-    if (!card) return 0
-
-    const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-    if (hasCrossRiver && !crossedRiver(u.side, u.pos.y)) return 0
-
-    let bonus = 0
-    for (const ab of card.abilities) {
-      if (ab.type !== 'DAMAGE_BONUS') continue
-      const amount = Number((ab as any).amount ?? 0)
-      if (Number.isFinite(amount) && amount > 0) bonus += amount
-    }
-
-    // AURA_DAMAGE_BONUS from allied aura units.
-    for (const auraUnit of Object.values(s.units)) {
-      if (auraUnit.side !== u.side) continue
-      const auraSoulId = auraUnit.enchant?.soulId
-      if (!auraSoulId) continue
-      const auraCard = getSoulCard(auraSoulId)
-      if (!auraCard) continue
-
-      for (const ab of auraCard.abilities) {
-        if (ab.type !== 'AURA_DAMAGE_BONUS') continue
-        const when = (ab as any).when
-        if (when && when.type === 'RESONANCE_ACTIVE') {
-          const res = auraCard.abilities.find((a) => a.type === 'RESONANCE')
-          const need = Number((res as any)?.need ?? 0)
-          if (!(Number.isFinite(need) && need > 0)) continue
-          let count = 0
-          for (const uu of Object.values(s.units)) {
-            if (uu.side !== auraUnit.side) continue
-            const sid = uu.enchant?.soulId
-            if (!sid) continue
-            const cc = getSoulCard(sid)
-            if (!cc) continue
-            if (cc.clan !== auraCard.clan) continue
-            count++
-          }
-          if (count < need) continue
-        }
-
-        const forKey = String((ab as any).for ?? '')
-        if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(u.side, u.pos.y)) continue
-
-        const amount = Number((ab as any).amount ?? 0)
-        if (Number.isFinite(amount) && amount > 0) bonus += amount
-      }
-    }
-
-    return bonus
-  }
-
   function applyCounterOnKingDamaged(s: GameState, events: Event[], attackSourceId: string, damagedKingId: string): GameState {
     const king = s.units[damagedKingId]
     const src = s.units[attackSourceId]
@@ -241,7 +247,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       const atkValue = Number(dmg.atkValue ?? 0)
       if (!(Number.isFinite(dice) && dice > 0)) continue
 
-      const defValue = getDefValue(src, atkKey)
+      const defValue = getDefValueInState(s, src, atkKey)
       const raw = Math.max(1, dice + atkValue - defValue)
       const nextHp = src.hpCurrent - raw
       s.units[src.id] = { ...src, hpCurrent: nextHp }
@@ -273,7 +279,29 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return s
   }
 
-  for (const inst of plan.instances) {
+  function killUnit(s: GameState, unitId: string, events: Event[]): GameState {
+    const u = s.units[unitId]
+    if (!u) return s
+
+    const posKey = `${u.pos.x},${u.pos.y}`
+    const corpse = {
+      ownerSide: u.side,
+      base: u.base,
+    }
+    const stack = s.corpsesByPos[posKey] ? [...s.corpsesByPos[posKey]] : []
+    stack.push(corpse)
+    s.corpsesByPos[posKey] = stack
+
+    if (u.enchant?.soulId) {
+      s.graveyard[u.side] = [u.enchant.soulId, ...s.graveyard[u.side]]
+    }
+
+    delete s.units[u.id]
+    events.push({ type: 'UNIT_KILLED', unitId: u.id })
+    return s
+  }
+
+  for (const inst of sortedInstances) {
     const src = nextState.units[inst.sourceUnitId]
     const tgt = nextState.units[inst.targetUnitId]
     if (!src || !tgt) continue
@@ -282,9 +310,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       const fixed = Number((inst as any).fixedDamage ?? 0)
       if (Number.isFinite(fixed) && fixed > 0) return Math.floor(fixed)
 
-      const defValue = getDefValue(tgt, src.atk.key)
-      const bonus = getDamageBonusForAttacker(nextState, src.id)
-      return Math.max(1, dice + src.atk.value + bonus - defValue)
+      return computeRawDamage(nextState, src.id, tgt.id, dice)
     })()
 
     // DAMAGE_SHARE: transfer up to N damage from target to an eligible allied unit.
@@ -305,7 +331,11 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     if (sharedToUnitId && sharedAmount > 0) {
       const shareUnit = nextState.units[sharedToUnitId]
       if (shareUnit) {
-        nextState.units[sharedToUnitId] = { ...shareUnit, hpCurrent: shareUnit.hpCurrent - sharedAmount }
+        const shareNextHp = shareUnit.hpCurrent - sharedAmount
+        nextState.units[sharedToUnitId] = { ...shareUnit, hpCurrent: shareNextHp }
+        if (shareNextHp <= 0) {
+          nextState = killUnit(nextState, sharedToUnitId, events)
+        }
       }
     }
 
@@ -322,21 +352,19 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     }
 
     if (nextHp <= 0) {
-      const posKey = `${tgt.pos.x},${tgt.pos.y}`
-      const corpse = {
-        ownerSide: tgt.side,
-        base: tgt.base,
-      }
-      const stack = nextState.corpsesByPos[posKey] ? [...nextState.corpsesByPos[posKey]] : []
-      stack.push(corpse)
-      nextState.corpsesByPos[posKey] = stack
+      const killedSide = tgt.side
+      nextState = killUnit(nextState, tgt.id, events)
 
-      if (tgt.enchant?.soulId) {
-        nextState.graveyard[tgt.side] = [tgt.enchant.soulId, ...nextState.graveyard[tgt.side]]
+      // HEAL_KING_ON_KILL: if src has the ability and it killed an enemy, heal allied king.
+      if (killedSide !== src.side) {
+        const soulId = src.enchant?.soulId
+        const card = soulId ? getSoulCard(soulId) : undefined
+        const heal = card?.abilities.find((a) => a.type === 'HEAL_KING_ON_KILL')
+        const amount = Number((heal as any)?.amount ?? 0)
+        if (Number.isFinite(amount) && amount > 0) {
+          nextState = healKingOnKill(nextState, events, src.id, amount)
+        }
       }
-
-      delete nextState.units[tgt.id]
-      events.push({ type: 'UNIT_KILLED', unitId: tgt.id })
     }
   }
 
@@ -348,6 +376,13 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     mana: rr.mana,
     storageMana: rr.storageMana,
   })
+
+  if (rngState) {
+    nextState = {
+      ...nextState,
+      rngState: { x: rngState.x },
+    }
+  }
 
   return { ok: true, state: nextState, events }
 }

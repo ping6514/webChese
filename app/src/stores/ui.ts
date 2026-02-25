@@ -10,6 +10,7 @@ type PendingConfirm = {
 type ShootPreview = {
   attackerId: string
   targetUnitId: string
+  extraTargetUnitId?: string | null
 } | null
 
 type DetailModalState = {
@@ -29,10 +30,14 @@ type InteractionMode =
       soulId: string
     }
 
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'lagging'
+
 export const useUiStore = defineStore('ui', {
   state: () => ({
     shopOpen: false,
     allUnitsOpen: false,
+
+    connectionStatus: 'connected' as ConnectionStatus,
 
     selectedUnitId: null as string | null,
     selectedCell: null as Pos | null,
@@ -107,6 +112,16 @@ export const useUiStore = defineStore('ui', {
     },
     clearInteractionMode: function () {
       this.interactionMode = { kind: 'idle' }
+    },
+
+    setConnectionStatus: function (s: ConnectionStatus) {
+      this.connectionStatus = s
+    },
+
+    cycleConnectionStatus: function () {
+      const order: ConnectionStatus[] = ['connected', 'lagging', 'disconnected', 'connecting']
+      const i = order.indexOf(this.connectionStatus)
+      this.connectionStatus = order[(i + 1) % order.length] ?? 'connected'
     },
   },
 })

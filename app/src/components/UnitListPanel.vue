@@ -48,6 +48,8 @@ export default defineComponent({
   background: rgba(0, 0, 0, 0.18);
   display: grid;
   gap: 6px;
+  max-height: 70vh;
+  overflow: auto;
 }
 
 .row {

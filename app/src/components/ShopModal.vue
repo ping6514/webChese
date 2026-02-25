@@ -91,9 +91,9 @@ export default defineComponent({
         <button type="button" class="closeBtn" @click="$emit('close')">Close</button>
       </div>
 
-      <div v-if="phase !== 'buy'" class="muted">Enter buy phase to purchase cards.</div>
+      <div v-if="phase !== 'buy'" class="muted">You can view the shop any time, but only buy phase allows purchases.</div>
 
-      <div v-else class="grid">
+      <div class="grid">
         <section class="panel">
           <div class="panelTitle mono">Souls</div>
           <div class="soulGrid">
@@ -129,7 +129,7 @@ export default defineComponent({
                 <button
                   type="button"
                   @click="$emit('buy-display', b)"
-                  :disabled="!(buyDisplayGuards[b]?.ok ?? false)"
+                  :disabled="phase !== 'buy' || !(buyDisplayGuards[b]?.ok ?? false)"
                   :title="buyDisplayGuards[b]?.ok ? '' : (buyDisplayGuards[b]?.reason ?? '')"
                 >
                   Buy display ({{ buySoulFromDisplayGoldCost }}G)
@@ -137,7 +137,7 @@ export default defineComponent({
                 <button
                   type="button"
                   @click="$emit('buy-deck', b)"
-                  :disabled="!(buyDeckGuards[b]?.ok ?? false)"
+                  :disabled="phase !== 'buy' || !(buyDeckGuards[b]?.ok ?? false)"
                   :title="buyDeckGuards[b]?.ok ? '' : (buyDeckGuards[b]?.reason ?? '')"
                 >
                   Buy deck top ({{ buySoulFromDeckGoldCost }}G)
@@ -180,7 +180,7 @@ export default defineComponent({
                 <button
                   type="button"
                   @click="$emit('buy-item', slot)"
-                  :disabled="!(buyItemGuards[slot]?.ok ?? false)"
+                  :disabled="phase !== 'buy' || !(buyItemGuards[slot]?.ok ?? false)"
                   :title="buyItemGuards[slot]?.ok ? '' : (buyItemGuards[slot]?.reason ?? '')"
                 >
                   Buy item
@@ -210,7 +210,7 @@ export default defineComponent({
               <button
                 type="button"
                 @click="$emit('buy-enemy-graveyard')"
-                :disabled="!buyEnemyGraveGuard.ok"
+                :disabled="phase !== 'buy' || !buyEnemyGraveGuard.ok"
                 :title="buyEnemyGraveGuard.ok ? '' : buyEnemyGraveGuard.reason"
               >
                 Buy enemy grave top ({{ buySoulFromEnemyGraveyardGoldCost }}G)

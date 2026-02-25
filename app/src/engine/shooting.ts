@@ -69,11 +69,11 @@ function isLegalShootByBase(
       const ignoreAll = !!rules?.ignoreBlockingAll
       const ignoreCount = rules?.ignoreBlockingCount ?? 0
       if (ignoreAll || ignoreCount > 0) {
-        // PoC: treat as no-screen cannon shot when ignoring blocking
-        return between === 0 ? { ok: true } : { ok: false, error: 'Blocked' }
+        // When ignoring blocking, cannon can still shoot normally (1 screen) and may also shoot directly (0 screen).
+        return between === 0 || between === 1 ? { ok: true } : { ok: false, error: 'Blocked' }
       }
 
-      return between === 1 ? { ok: true } : { ok: false, error: 'Cannon requires exactly 1 screen' }
+      return between === 1 ? { ok: true } : { ok: false, error: 'Need screen' }
     }
     case 'king': {
       // palace 1 step (orthogonal)
@@ -84,11 +84,10 @@ function isLegalShootByBase(
       return { ok: true }
     }
     case 'advisor': {
-      // palace diagonal 1
+      // diagonal 1
       const dx = Math.abs(tx - ax)
       const dy = Math.abs(ty - ay)
       if (dx !== 1 || dy !== 1) return { ok: false, error: 'Out of range' }
-      if (!palaceContains(attacker.side, target.pos)) return { ok: false, error: 'Out of range' }
       return { ok: true }
     }
     case 'elephant': {

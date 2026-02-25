@@ -34,6 +34,8 @@ import ShootPreviewModal from '../components/ShootPreviewModal.vue'
 import AllUnitsModal from '../components/AllUnitsModal.vue'
 import HandBar from '../components/HandBar.vue'
 import SidePanel from '../components/SidePanel.vue'
+import DebugMenuModal from '../components/DebugMenuModal.vue'
+import EventLogModal from '../components/EventLogModal.vue'
 import { useCardDetailModal } from '../useCardDetailModal'
 import { usePendingConfirm } from '../usePendingConfirm'
 import { useSelection } from '../useSelection'
@@ -43,6 +45,23 @@ import { useUiStore } from '../stores/ui'
 const state = ref<GameState>(createInitialState())
 const lastError = ref<string | null>(null)
 const lastEvents = ref<string[]>([])
+
+type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
+type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
+
+const fxAttackUnitIds = ref<string[]>([])
+const fxHitUnitIds = ref<string[]>([])
+const fxKilledUnitIds = ref<string[]>([])
+const floatTextsByPos = ref<Record<string, FloatText[]>>({})
+const fxBeams = ref<BeamFx[]>([])
+const fxKilledPosKeys = ref<string[]>([])
+const fxRevivedPosKeys = ref<string[]>([])
+const fxEnchantedPosKeys = ref<string[]>([])
+
+const debugOpen = ref(false)
+const eventLogOpen = ref(false)
+const debugMatchSeed = ref<string>(state.value.rules.matchSeed)
+const debugEnabledClans = ref<string[]>(state.value.rules.enabledClans)
 
 const router = useRouter()
 
@@ -83,6 +102,12 @@ watch(
   () => state.value.turn.phase,
   (phase, prev) => {
     if (phase === 'buy' && prev !== 'buy') ui.openShop()
+
+    ui.setSelectedUnitId(null)
+    ui.setSelectedCell(null)
+    ui.clearShootPreview()
+    ui.clearInteractionMode()
+    selectedSoulId.value = ''
   },
 )
 
@@ -117,6 +142,99 @@ const {
   info: shootPreviewInfo,
   confirm: confirmShootPreviewFromComposable,
 } = useShootPreview({ getState: () => state.value })
+
+const shootExtraTargetUnitId = computed(() => shootPreview.value?.extraTargetUnitId ?? null)
+
+const shootPreviewPierceMarks = computed(() => {
+  const info = shootPreviewInfo.value
+  if (!info) return {}
+  const out: Record<string, number> = {}
+  for (const e of info.effects) {
+    if ((e as any).kind !== 'PIERCE') continue
+    const ids = Array.isArray((e as any).targetUnitIds) ? ((e as any).targetUnitIds as string[]) : []
+    for (let i = 1; i < ids.length; i++) {
+      const id = ids[i]
+      if (!id) continue
+      const u = state.value.units[id]
+      if (!u) continue
+      out[`${u.pos.x},${u.pos.y}`] = i + 1
+    }
+  }
+  return out
+})
+
+const shootPreviewSplashPosKeys = computed(() => {
+  const info = shootPreviewInfo.value
+  if (!info) return []
+  const set = new Set<string>()
+  for (const e of info.effects) {
+    if ((e as any).kind !== 'SPLASH') continue
+    const ids = Array.isArray((e as any).targetUnitIds) ? ((e as any).targetUnitIds as string[]) : []
+    for (const id of ids) {
+      if (!id) continue
+      const u = state.value.units[id]
+      if (!u) continue
+      set.add(`${u.pos.x},${u.pos.y}`)
+    }
+  }
+  return [...set]
+})
+
+const shootPreviewChainEligiblePosKeys = computed(() => {
+  const set = new Set<string>()
+  for (const id of shootChainEligibleEnemyIds.value) {
+    const u = state.value.units[id]
+    if (!u) continue
+    set.add(`${u.pos.x},${u.pos.y}`)
+  }
+  return [...set]
+})
+
+const shootPreviewChainSelectedPosKey = computed(() => {
+  const id = shootExtraTargetUnitId.value
+  if (!id) return null
+  const u = state.value.units[id]
+  if (!u) return null
+  return `${u.pos.x},${u.pos.y}`
+})
+
+const shootDetailsOpen = ref(false)
+
+function openShootDetails() {
+  shootDetailsOpen.value = true
+}
+
+function closeShootDetails() {
+  shootDetailsOpen.value = false
+}
+
+function cancelShootPreview() {
+  closeShootDetails()
+  closeShootPreview()
+}
+
+const shootChainEligibleEnemyIds = computed(() => {
+  if (!shootPreview.value) return []
+  const attacker = state.value.units[shootPreview.value.attackerId]
+  const target = state.value.units[shootPreview.value.targetUnitId]
+  if (!attacker || !target) return []
+  const soulId = attacker.enchant?.soulId
+  if (!soulId) return []
+  const card = getSoulCard(soulId)
+  if (!card) return []
+  const chain = card.abilities.find((a) => a.type === 'CHAIN')
+  const radius = Number((chain as any)?.radius ?? 0)
+  if (!(Number.isFinite(radius) && radius > 0)) return []
+  const cheb = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
+  const out: string[] = []
+  for (const u of Object.values(state.value.units)) {
+    if (u.side === attacker.side) continue
+    if (u.id === target.id) continue
+    if (cheb(u.pos, target.pos) <= radius) out.push(u.id)
+  }
+  out.sort((a, b) => a.localeCompare(b))
+  return out
+})
 
 const turnTintClass = computed(() => (currentSide.value === 'red' ? 'turn-red' : 'turn-green'))
 
@@ -157,14 +275,13 @@ const enemySide = computed(() => (state.value.turn.side === 'red' ? 'black' : 'r
 const enemyGraveTop = computed(() => state.value.graveyard[enemySide.value][0] ?? null)
 
 const kingHp = computed(() => {
-  const redKing = Object.values(state.value.units).find((u) => u.side === 'red' && u.base === 'king')
-  const blackKing = Object.values(state.value.units).find((u) => u.side === 'black' && u.base === 'king')
-  return {
-    red: redKing?.hpCurrent ?? null,
-    black: blackKing?.hpCurrent ?? null,
-  }
+  const red = Object.values(state.value.units).find((u) => u.side === 'red' && u.base === 'king')?.hpCurrent ?? null
+  const black = Object.values(state.value.units).find((u) => u.side === 'black' && u.base === 'king')?.hpCurrent ?? null
+  return { red, black }
 })
 
+const necroActionsUsed = computed(() => state.value.turnFlags.necroActionsUsed ?? 0)
+const necroActionsMax = computed(() => state.value.limits.necroActionsPerTurn + (state.value.turnFlags.necroBonusActions ?? 0))
 
 const selectedEnchantSoul = computed(() => {
   const soulId = selectedUnit.value?.enchant?.soulId
@@ -261,6 +378,15 @@ onMounted(() => {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && ui.interactionMode.kind !== 'idle') {
       ui.clearInteractionMode()
+    }
+
+    if (e.key === 'Escape' && shootPreview.value) {
+      closeShootDetails()
+      closeShootPreview()
+    }
+
+    if (e.key === 'Enter' && shootPreview.value) {
+      confirmShootPreview()
     }
   }
   window.addEventListener('keydown', onKeyDown)
@@ -378,6 +504,7 @@ function closeAllUnits() {
 
 
 function dispatch(action: Parameters<typeof reduce>[1]) {
+  const prevState = state.value
   const res = reduce(state.value, action)
   if (res.ok === false) {
     lastError.value = res.error
@@ -385,6 +512,143 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
   }
   lastError.value = null
   state.value = res.state
+
+  const nextState = res.state
+  for (const e of res.events) {
+    if ((e as any).type === 'SHOT_FIRED') {
+      const attackerId = String((e as any).attackerId ?? '')
+      const targetId = String((e as any).targetUnitId ?? '')
+
+      const attacker = attackerId ? nextState.units[attackerId] : null
+      const target = targetId ? nextState.units[targetId] : null
+      if (attacker && target) {
+        const id = `${Date.now()}-${Math.random()}`
+        const beam: BeamFx = { id, from: { ...attacker.pos }, to: { ...target.pos } }
+        fxBeams.value = [...fxBeams.value, beam]
+        window.setTimeout(() => {
+          fxBeams.value = fxBeams.value.filter((b) => b.id !== id)
+        }, 240)
+      }
+
+      if (attackerId) {
+        fxAttackUnitIds.value = [...fxAttackUnitIds.value.filter((id) => id !== attackerId), attackerId]
+        window.setTimeout(() => {
+          fxAttackUnitIds.value = fxAttackUnitIds.value.filter((id) => id !== attackerId)
+        }, 520)
+      }
+      if (targetId) {
+        fxHitUnitIds.value = [...fxHitUnitIds.value.filter((id) => id !== targetId), targetId]
+        window.setTimeout(() => {
+          fxHitUnitIds.value = fxHitUnitIds.value.filter((id) => id !== targetId)
+        }, 620)
+      }
+    }
+
+    if ((e as any).type === 'DAMAGE_DEALT') {
+      const attackerId = String((e as any).attackerId ?? '')
+      const targetId = String((e as any).targetUnitId ?? '')
+      const amount = Number((e as any).amount ?? 0)
+
+      if (attackerId) {
+        fxAttackUnitIds.value = [...fxAttackUnitIds.value.filter((id) => id !== attackerId), attackerId]
+        window.setTimeout(() => {
+          fxAttackUnitIds.value = fxAttackUnitIds.value.filter((id) => id !== attackerId)
+        }, 520)
+      }
+
+      if (targetId) {
+        fxHitUnitIds.value = [...fxHitUnitIds.value.filter((id) => id !== targetId), targetId]
+        window.setTimeout(() => {
+          fxHitUnitIds.value = fxHitUnitIds.value.filter((id) => id !== targetId)
+        }, 620)
+      }
+
+      const u = targetId ? nextState.units[targetId] : null
+      if (u && Number.isFinite(amount) && amount !== 0) {
+        const key = `${u.pos.x},${u.pos.y}`
+        const id = `${Date.now()}-${Math.random()}`
+        const item: FloatText = { id, text: amount > 0 ? `-${amount}` : `${amount}`, kind: 'damage' }
+        const cur = floatTextsByPos.value[key] ?? []
+        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
+        window.setTimeout(() => {
+          const cur2 = floatTextsByPos.value[key] ?? []
+          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
+        }, 780)
+      }
+    }
+
+    if ((e as any).type === 'UNIT_HP_CHANGED') {
+      const unitId = String((e as any).unitId ?? '')
+      const from = Number((e as any).from ?? 0)
+      const to = Number((e as any).to ?? 0)
+      const delta = to - from
+      const u = unitId ? nextState.units[unitId] : null
+      if (u && Number.isFinite(delta) && delta > 0) {
+        const key = `${u.pos.x},${u.pos.y}`
+        const id = `${Date.now()}-${Math.random()}`
+        const item: FloatText = { id, text: `+${delta}`, kind: 'heal' }
+        const cur = floatTextsByPos.value[key] ?? []
+        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
+        window.setTimeout(() => {
+          const cur2 = floatTextsByPos.value[key] ?? []
+          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
+        }, 780)
+      }
+    }
+
+    if ((e as any).type === 'UNIT_KILLED') {
+      const unitId = String((e as any).unitId ?? '')
+      if (unitId) {
+        fxKilledUnitIds.value = [...fxKilledUnitIds.value.filter((id) => id !== unitId), unitId]
+        window.setTimeout(() => {
+          fxKilledUnitIds.value = fxKilledUnitIds.value.filter((id) => id !== unitId)
+        }, 760)
+
+        const pos = prevState.units[unitId]?.pos
+        if (pos) {
+          const key = `${pos.x},${pos.y}`
+          fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
+          window.setTimeout(() => {
+            fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
+          }, 760)
+        }
+      }
+    }
+
+    if ((e as any).type === 'REVIVED') {
+      const pos = (e as any).pos
+      if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+        const key = `${pos.x},${pos.y}`
+        fxRevivedPosKeys.value = [...fxRevivedPosKeys.value.filter((k) => k !== key), key]
+        window.setTimeout(() => {
+          fxRevivedPosKeys.value = fxRevivedPosKeys.value.filter((k) => k !== key)
+        }, 760)
+      }
+    }
+
+    if ((e as any).type === 'ENCHANTED') {
+      const unitId = String((e as any).unitId ?? '')
+      const u = unitId ? nextState.units[unitId] : null
+      if (u) {
+        const key = `${u.pos.x},${u.pos.y}`
+        fxEnchantedPosKeys.value = [...fxEnchantedPosKeys.value.filter((k) => k !== key), key]
+        window.setTimeout(() => {
+          fxEnchantedPosKeys.value = fxEnchantedPosKeys.value.filter((k) => k !== key)
+        }, 820)
+      }
+    }
+  }
+
+  // Fallback: if engine didn't emit UNIT_KILLED but a unit disappeared this dispatch, still show killed FX.
+  for (const [unitId, prevU] of Object.entries(prevState.units)) {
+    if (nextState.units[unitId]) continue
+    const key = `${prevU.pos.x},${prevU.pos.y}`
+    fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
+    window.setTimeout(() => {
+      fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
+    }, 760)
+  }
+
   lastEvents.value = res.events.map((e) => JSON.stringify(e))
 }
 
@@ -422,9 +686,34 @@ function onCellClick(payload: { x: number; y: number; unitId: string | null }) {
 
   const prevSelectedUnit = selectedUnit.value
 
+  // While shoot preview is open, allow selecting a CHAIN extra target by clicking a second eligible enemy.
+  if (shootPreview.value && payload.unitId) {
+    const clicked = state.value.units[payload.unitId]
+    if (clicked && clicked.side !== state.value.turn.side) {
+      const eligible = shootChainEligibleEnemyIds.value
+      if (eligible.includes(clicked.id)) {
+        ui.setShootPreview({
+          attackerId: shootPreview.value.attackerId,
+          targetUnitId: shootPreview.value.targetUnitId,
+          extraTargetUnitId: shootExtraTargetUnitId.value === clicked.id ? null : clicked.id,
+        })
+        return
+      }
+    }
+  }
+
+  // More natural: while shoot preview is active, clicking an empty cell cancels it.
+  if (shootPreview.value && !payload.unitId) {
+    cancelShootPreview()
+    return
+  }
+
   onCellClickSelection(payload, (enemyUnitId: string) => {
     if (!prevSelectedUnit) return
-    openShootPreview(prevSelectedUnit.id, enemyUnitId)
+
+    // Unified flow: always enter shoot preview; never shoot immediately on click.
+    openShootPreview(prevSelectedUnit.id, enemyUnitId, null)
+    shootDetailsOpen.value = false
   })
 
   if (state.value.turn.phase !== 'combat') return
@@ -448,6 +737,7 @@ function cancelPending() {
 }
 
 function confirmShootPreview() {
+  shootDetailsOpen.value = false
   confirmShootPreviewFromComposable((a) => dispatch(a))
 }
 
@@ -511,20 +801,72 @@ function nextPhase() {
   dispatch({ type: 'NEXT_PHASE' })
 }
 
+function cycleConnection() {
+  ;(ui as any).cycleConnectionStatus()
+}
+
+function openMenu() {
+  debugMatchSeed.value = state.value.rules.matchSeed
+  debugEnabledClans.value = [...state.value.rules.enabledClans]
+  debugOpen.value = true
+}
+
+function closeDebugMenu() {
+  debugOpen.value = false
+}
+
+function applyDebugSettings(payload: { matchSeed: string; enabledClans: string[] }) {
+  debugOpen.value = false
+  debugMatchSeed.value = payload.matchSeed
+  debugEnabledClans.value = payload.enabledClans
+
+  state.value = createInitialState({
+    rules: {
+      rngMode: 'seeded',
+      matchSeed: payload.matchSeed,
+      enabledClans: payload.enabledClans,
+    } as any,
+  })
+  lastError.value = null
+  lastEvents.value = []
+}
+
+const eventLogText = computed(() => lastEvents.value.join('\n'))
+
+function openEventLog() {
+  eventLogOpen.value = true
+}
+
+function closeEventLog() {
+  eventLogOpen.value = false
+}
+
+async function copyEventLog() {
+  try {
+    await navigator.clipboard.writeText(eventLogText.value)
+  } catch {
+    // ignore
+  }
+}
+
 </script>
 
 <template>
   <div class="page" :class="turnTintClass">
-    <TopBar
-      title="webChese"
-      :current-side="currentSide"
-      :current-phase="currentPhase"
-      :king-hp="kingHp"
-      :resources="resources"
-      @next-phase="nextPhase"
-      @open-units="openAllUnits"
-      @open-shop="openShop"
-    />
+    <div class="topbarWrap">
+      <TopBar
+        title="webChese"
+        :connection-status="ui.connectionStatus"
+        :current-side="currentSide"
+        :current-phase="currentPhase"
+        :necro-actions-used="necroActionsUsed"
+        :necro-actions-max="necroActionsMax"
+        :king-hp="kingHp"
+        :resources="resources"
+        @cycle-connection="cycleConnection"
+        @open-menu="openMenu"
+      />
+    </div>
 
     <div v-if="enchantMode" class="actionStatusBar">
       <div class="mono">Selecting unit to enchant: {{ enchantModeSoulName ?? '-' }}</div>
@@ -540,9 +882,28 @@ function nextPhase() {
           :shootable-target-ids="shootableTargetIds"
           :highlight-unit-ids="enchantableUnitIds"
           :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
+          :preview-pierce-marks="shootPreviewPierceMarks"
+          :preview-splash-pos-keys="shootPreviewSplashPosKeys"
+          :preview-chain-eligible-pos-keys="shootPreviewChainEligiblePosKeys"
+          :preview-chain-selected-pos-key="shootPreviewChainSelectedPosKey"
+          :shoot-action-pos-key="shootPreviewTarget ? `${shootPreviewTarget.pos.x},${shootPreviewTarget.pos.y}` : null"
+          :shoot-actions-visible="!shootDetailsOpen"
+          :shoot-confirm-disabled="!shootPreviewGuard.ok"
+          :shoot-confirm-title="shootPreviewGuard.ok ? '' : shootPreviewGuard.reason"
+          :fx-attack-unit-ids="fxAttackUnitIds"
+          :fx-hit-unit-ids="fxHitUnitIds"
+          :fx-killed-unit-ids="fxKilledUnitIds"
+          :fx-killed-pos-keys="fxKilledPosKeys"
+          :fx-revived-pos-keys="fxRevivedPosKeys"
+          :fx-enchanted-pos-keys="fxEnchantedPosKeys"
+          :float-texts-by-pos="floatTextsByPos"
+          :fx-beams="fxBeams"
           @select-unit="onSelectUnit"
           @cell-click="onCellClick"
           @enchant-drop="onEnchantDrop"
+          @shoot-confirm="confirmShootPreview"
+          @shoot-cancel="cancelShootPreview"
+          @shoot-details="openShootDetails"
         />
 
         <div v-if="lastError" class="error">{{ lastError }}</div>
@@ -584,6 +945,10 @@ function nextPhase() {
           @show-soul-detail="showSoulDetail"
           @revive="reviveAt"
           @blood-ritual="bloodRitual"
+          @open-shop="openShop"
+          @open-units="openAllUnits"
+          @next-phase="nextPhase"
+          @open-events="openEventLog"
         />
       </aside>
     </main>
@@ -599,7 +964,7 @@ function nextPhase() {
     />
 
     <ShootPreviewModal
-      :open="!!shootPreview"
+      :open="shootDetailsOpen"
       :attacker="shootPreviewAttacker"
       :target="shootPreviewTarget"
       :guard="shootPreviewGuard"
@@ -608,7 +973,7 @@ function nextPhase() {
       :shared="shootPreviewInfo?.shared ?? null"
       :effects="shootPreviewInfo?.effects ?? []"
       @confirm="confirmShootPreview"
-      @cancel="closeShootPreview"
+      @cancel="closeShootDetails"
     />
 
     <AllUnitsModal
@@ -658,6 +1023,17 @@ function nextPhase() {
       @show-item-detail="showItemDetail"
       @show-enemy-grave-top-detail="showEnemyGraveTopDetail"
     />
+
+    <DebugMenuModal
+      :open="debugOpen"
+      :match-seed="debugMatchSeed"
+      :enabled-clans="debugEnabledClans"
+      @close="closeDebugMenu"
+      @apply="applyDebugSettings"
+      @open-events="openEventLog"
+    />
+
+    <EventLogModal :open="eventLogOpen" :text="eventLogText" @close="closeEventLog" @copy="copyEventLog" />
   </div>
 </template>
 
@@ -666,6 +1042,19 @@ function nextPhase() {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.topbarWrap {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 12px;
+  overflow: visible;
 }
 
 .page.turn-red {
@@ -690,7 +1079,7 @@ function nextPhase() {
 
 .sidePanel {
   position: sticky;
-  top: 8px;
+  top: 86px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(0, 0, 0, 0.12);
   border-radius: 10px;

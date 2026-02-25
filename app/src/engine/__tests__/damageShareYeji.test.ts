@@ -31,6 +31,7 @@ describe('DAMAGE_SHARE: dark_moon_advisor_yeji shares damage', () => {
       },
       turnFlags: {
         shotUsed: {},
+        movedThisTurn: {},
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,

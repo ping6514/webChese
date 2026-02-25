@@ -1,6 +1,6 @@
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
-import { getDefValue } from './stats'
+import { computeRawDamage } from './damage'
 
 export type ShotPreviewEffect =
   | {
@@ -43,6 +43,19 @@ export type ShotPreviewEffect =
       targetUnitIds: string[]
       fixedDamage: number
     }
+  | {
+      kind: 'CHAIN'
+      byUnitId: string
+      targetUnitId: string
+      fixedDamage: number
+    }
+  | {
+      kind: 'PIERCE'
+      byUnitId: string
+      mode: 'CANNON_SCREEN_AND_TARGET' | 'LINE_ENEMIES'
+      targetUnitIds: string[]
+      fixedDamage: number
+    }
 
 export type ShotPreview = {
   ok: true
@@ -60,6 +73,13 @@ function crossedRiver(side: 'red' | 'black', y: number): boolean {
 
 function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): number {
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
+}
+
+function getUnitAt(state: GameState, pos: { x: number; y: number }) {
+  for (const u of Object.values(state.units)) {
+    if (u.pos.x === pos.x && u.pos.y === pos.y) return u
+  }
+  return null
 }
 
 function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
@@ -146,7 +166,7 @@ function findDamageSharer(s: GameState, targetSide: 'red' | 'black'): { unitId: 
   return null
 }
 
-export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string): ShotPreview {
+export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): ShotPreview {
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
   if (!attacker) return { ok: false, error: 'Attacker not found' }
@@ -200,8 +220,73 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     }
   }
 
-  const defValue = getDefValue(target, attacker.atk.key)
-  const rawDamage = Math.max(1, state.rules.diceFixed + attacker.atk.value + damageBonus - defValue)
+  const rawDamage = computeRawDamage(state, attacker.id, target.id)
+
+  // PIERCE: mirror effects.ts PIERCE target selection for preview transparency.
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'PIERCE') continue
+
+        const mode = String((ab as any).mode ?? '')
+
+        if (mode === 'CANNON_SCREEN_AND_TARGET') {
+          if (attacker.base !== 'cannon') continue
+          const dx = Math.sign(target.pos.x - attacker.pos.x)
+          const dy = Math.sign(target.pos.y - attacker.pos.y)
+          if (!((dx === 0 && dy !== 0) || (dy === 0 && dx !== 0))) continue
+
+          const between: string[] = []
+          for (let step = 1; step < 20; step++) {
+            const pos = { x: attacker.pos.x + dx * step, y: attacker.pos.y + dy * step }
+            if (pos.x < 0 || pos.x > 8 || pos.y < 0 || pos.y > 9) break
+            if (pos.x === target.pos.x && pos.y === target.pos.y) break
+            const hit = getUnitAt(state, pos)
+            if (!hit) continue
+            between.push(hit.id)
+          }
+
+          if (between.length !== 1) continue
+          const screenId = between[0]
+          const screen = screenId ? state.units[screenId] : null
+          if (!screen) continue
+          if (screen.side === attacker.side) continue
+          effects.push({
+            kind: 'PIERCE',
+            byUnitId: attacker.id,
+            mode: 'CANNON_SCREEN_AND_TARGET',
+            targetUnitIds: [target.id, screen.id],
+            fixedDamage: rawDamage,
+          })
+          continue
+        }
+
+        if (mode === 'LINE_ENEMIES') {
+          const count = Number((ab as any).count ?? 0)
+          if (!(Number.isFinite(count) && count > 1)) continue
+
+          const dx = Math.sign(target.pos.x - attacker.pos.x)
+          const dy = Math.sign(target.pos.y - attacker.pos.y)
+          if (!((dx === 0 && dy !== 0) || (dy === 0 && dx !== 0))) continue
+
+          const enemies: string[] = []
+          for (let step = 1; step < 20; step++) {
+            const pos = { x: attacker.pos.x + dx * step, y: attacker.pos.y + dy * step }
+            if (pos.x < 0 || pos.x > 8 || pos.y < 0 || pos.y > 9) break
+            const hit = getUnitAt(state, pos)
+            if (!hit) continue
+            if (hit.side === attacker.side) continue
+            enemies.push(hit.id)
+            if (enemies.length >= count) break
+          }
+
+          if (!enemies.includes(target.id)) continue
+          effects.push({ kind: 'PIERCE', byUnitId: attacker.id, mode: 'LINE_ENEMIES', targetUnitIds: enemies, fixedDamage: rawDamage })
+        }
+      }
+    }
+  }
 
   // AURA_IGNORE_BLOCKING: from allied aura units (e.g. dark_moon_advisor_yeji)
   // This is implemented in effects.ts, so we mirror it here for preview transparency.
@@ -261,6 +346,22 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
               fixedDamage: rawDamage,
             })
           }
+        }
+      }
+    }
+  }
+
+  // CHAIN: optionally add a single extra target chosen by UI, within radius of the main target.
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const chainAb = card.abilities.find((a) => a.type === 'CHAIN')
+      const radius = Number((chainAb as any)?.radius ?? 0)
+      const extraId = extraTargetUnitId ?? null
+      if (extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
+        const extra = state.units[extraId]
+        if (extra && extra.side !== attacker.side && chebyshev(extra.pos, target.pos) <= radius) {
+          effects.push({ kind: 'CHAIN', byUnitId: attacker.id, targetUnitId: extra.id, fixedDamage: rawDamage })
         }
       }
     }

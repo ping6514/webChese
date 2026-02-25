@@ -17,6 +17,7 @@ describe('DAMAGE_BONUS: cross river gating', () => {
       turn: { side: 'red' as const, phase: 'combat' as const },
       turnFlags: {
         shotUsed: {},
+        movedThisTurn: {},
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,

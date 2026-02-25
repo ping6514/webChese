@@ -41,6 +41,7 @@ describe('shooting ignore blocking', () => {
       },
       turnFlags: {
         shotUsed: {},
+        movedThisTurn: {},
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,

@@ -17,6 +17,9 @@ export type GameRules = {
   moveManaCost: number
   shootManaCost: number
   diceFixed: number
+  rngMode: 'fixed' | 'seeded'
+  matchSeed: string
+  enabledClans: string[]
 }
 
 export type PhaseActionLimits = {
@@ -51,12 +54,15 @@ export const DEFAULT_RULES: GameRules = {
   moveManaCost: 1,
   shootManaCost: 1,
   diceFixed: 3,
+  rngMode: 'seeded',
+  matchSeed: 'default',
+  enabledClans: ['dark_moon', 'styx'],
 }
 
 export const DEFAULT_PHASE_ACTION_LIMITS: PhaseActionLimits = {
   buySoulActionsPerTurn: 1,
   buyItemActionsPerTurn: 1,
-  necroActionsPerTurn: 1,
+  necroActionsPerTurn: 2,
   soulReturnPerTurn: 1,
 }
 

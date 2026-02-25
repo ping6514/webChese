@@ -47,6 +47,16 @@ export default defineComponent({
         const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds.join(',') : ''
         return `SPLASH r${(e as any).radius}: [${ids}] dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
       }
+      if (e.kind === 'CHAIN') {
+        return `CHAIN -> ${(e as any).targetUnitId} dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
+      }
+      if (e.kind === 'PIERCE') {
+        const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds : []
+        const main = ids[0] ? `main=${ids[0]}` : 'main=?'
+        const collateral = ids.slice(1)
+        const colText = collateral.length > 0 ? ` collateral=[${collateral.join(',')}]` : ''
+        return `PIERCE ${String((e as any).mode ?? '')}: ${main}${colText} dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
+      }
       return 'UNKNOWN'
     },
   },
@@ -114,7 +124,7 @@ export default defineComponent({
 
       <div class="btnRow">
         <button type="button" @click="$emit('confirm')" :disabled="!guard.ok" :title="guard.ok ? '' : guard.reason">
-          Shoot
+          Confirm Shoot
         </button>
         <button type="button" @click="$emit('cancel')">Cancel</button>
       </div>

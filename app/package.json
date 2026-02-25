@@ -8,20 +8,47 @@
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "electron:dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite --port 5173\" \"wait-on http://127.0.0.1:5173 && electron .\"",
+    "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
     "pinia": "^3.0.3",
     "vue": "^3.5.25",
-    "vue-router": "^4.6.4"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "@vue/tsconfig": "^0.8.1",
+    "concurrently": "^9.1.2",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
     "vitest": "^4.0.18",
-    "vue-tsc": "^3.1.5"
+    "vue-tsc": "^3.1.5",
+    "wait-on": "^8.0.2"
+  },
+  "main": "electron/main.cjs",
+  "engines": {
+    "node": "22.12.x"
+  },
+  "build": {
+    "appId": "com.webchess.app",
+    "productName": "WebChess",
+    "files": [
+      "dist/**",
+      "electron/**",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    }
   }
 }

@@ -47,12 +47,18 @@ export default defineComponent({
     bloodRitualGuard: { type: Object as () => GuardResult, required: true },
     lastEvents: { type: Array as () => string[], required: true },
   },
-  emits: ['show-soul-detail', 'revive', 'blood-ritual'],
+  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'next-phase', 'open-events'],
 })
 </script>
 
 <template>
   <div>
+    <div class="quickActions">
+      <button type="button" @click="$emit('open-shop')">Shop</button>
+      <button type="button" @click="$emit('open-units')">Units</button>
+      <button type="button" @click="$emit('next-phase')">Next</button>
+    </div>
+
     <div class="unitCard" v-if="phase === 'necro'">
       <div class="muted">Necro actions</div>
       <div style="height: 8px"></div>
@@ -66,7 +72,12 @@ export default defineComponent({
       </button>
     </div>
 
-    <UnitInfoPanel :unit="selectedUnit" :enchant-soul="selectedEnchantSoul" @show-soul-detail="$emit('show-soul-detail', $event)" />
+    <UnitInfoPanel
+      v-if="selectedUnit"
+      :unit="selectedUnit"
+      :enchant-soul="selectedEnchantSoul"
+      @show-soul-detail="$emit('show-soul-detail', $event)"
+    />
 
     <CellInfoPanel
       :phase="phase"
@@ -85,6 +96,41 @@ export default defineComponent({
     />
 
     <h2>Last events</h2>
-    <pre class="events">{{ lastEvents.join('\n') }}</pre>
+    <textarea class="events" readonly :value="lastEvents.join('\n')" @click="$emit('open-events')" />
   </div>
 </template>
+
+<style scoped>
+.quickActions {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.quickActions > button {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+.events {
+  width: 100%;
+  min-height: 160px;
+  max-height: 320px;
+  resize: vertical;
+  overflow: auto;
+  box-sizing: border-box;
+  white-space: pre;
+  background: rgba(0, 0, 0, 0.18);
+  color: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+</style>
