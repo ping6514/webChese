@@ -61,6 +61,14 @@ export type EnchantedEvent = {
   soulId: string
 }
 
+export type AbilityTriggeredEvent = {
+  type: 'ABILITY_TRIGGERED'
+  unitId: string
+  abilityType: string
+  targetUnitIds?: string[]
+  text?: string
+}
+
 export type RevivedEvent = {
   type: 'REVIVED'
   unitId: string
@@ -79,3 +87,4 @@ export type Event =
   | UnitKilledEvent
   | EnchantedEvent
   | RevivedEvent
+  | AbilityTriggeredEvent

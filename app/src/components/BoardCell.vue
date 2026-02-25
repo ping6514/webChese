@@ -227,6 +227,21 @@ export default defineComponent({
   animation: fxAttack 520ms ease-out 1;
 }
 
+.cell-fx-ability {
+  animation: fxAbility 520ms ease-out 1;
+}
+
+.cell-fx-ability::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(186, 85, 211, 0.22) 0%, rgba(186, 85, 211, 0.0) 58%);
+  animation: abilityFlash 520ms ease-out 1;
+}
+
 .cell-fx-attack::before {
   content: '';
   position: absolute;
@@ -323,6 +338,45 @@ export default defineComponent({
   );
   filter: drop-shadow(0 0 10px rgba(145, 202, 255, 0.35));
   animation: enchantDrop 820ms ease-out 1;
+}
+
+@keyframes fxAbility {
+  0% {
+    box-shadow: 0 0 0 0 rgba(186, 85, 211, 0.0);
+    border-color: rgba(186, 85, 211, 0.7);
+    background: rgba(186, 85, 211, 0.04);
+    transform: scale(1);
+  }
+  18% {
+    box-shadow: 0 0 0 7px rgba(186, 85, 211, 0.3), 0 0 22px 6px rgba(145, 202, 255, 0.18);
+    border-color: rgba(240, 200, 255, 0.95);
+    background: rgba(186, 85, 211, 0.14);
+    transform: scale(1.04);
+  }
+  45% {
+    box-shadow: 0 0 0 5px rgba(186, 85, 211, 0.2), 0 0 16px 4px rgba(145, 202, 255, 0.12);
+    border-color: rgba(220, 160, 255, 0.9);
+    background: rgba(186, 85, 211, 0.1);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(186, 85, 211, 0.0);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: rgba(0, 0, 0, 0.15);
+    transform: scale(1);
+  }
+}
+
+@keyframes abilityFlash {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 @keyframes fxAttack {

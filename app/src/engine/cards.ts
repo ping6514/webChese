@@ -1,5 +1,6 @@
 import darkMoon from '../data/souls/dark-moon.json'
 import styx from '../data/souls/styx.json'
+import eternalNight from '../data/souls/eternal-night.json'
 import type { PieceBase } from './types'
 
 export type SoulAbility = {
@@ -29,7 +30,7 @@ function normalizePublicAssetUrl(p: string): string {
   return p
 }
 
-const allSoulCards: SoulCard[] = [...(darkMoon as SoulCard[]), ...(styx as SoulCard[])]
+const allSoulCards: SoulCard[] = [...(darkMoon as SoulCard[]), ...(styx as SoulCard[]), ...(eternalNight as SoulCard[])]
   .map((c) => ({ ...c, image: normalizePublicAssetUrl(String((c as any).image ?? '')) }))
 
 export const soulCardsById: Record<string, SoulCard> = Object.fromEntries(allSoulCards.map((c) => [c.id, c]))

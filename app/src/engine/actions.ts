@@ -63,12 +63,20 @@ export type BloodRitualAction = {
   type: 'BLOOD_RITUAL'
 }
 
+export type SacrificeAction = {
+  type: 'SACRIFICE'
+  sourceUnitId: string
+  targetUnitId: string
+  range?: number
+}
+
 export type Action =
   | MoveAction
   | ShootAction
   | EnchantAction
   | ReviveAction
   | BloodRitualAction
+  | SacrificeAction
   | BuySoulFromDeckAction
   | BuySoulFromDisplayAction
   | BuySoulFromEnemyGraveyardAction

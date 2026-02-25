@@ -56,13 +56,13 @@ export const DEFAULT_RULES: GameRules = {
   diceFixed: 3,
   rngMode: 'seeded',
   matchSeed: 'default',
-  enabledClans: ['dark_moon', 'styx'],
+  enabledClans: ['dark_moon', 'styx', 'eternal_night'],
 }
 
 export const DEFAULT_PHASE_ACTION_LIMITS: PhaseActionLimits = {
   buySoulActionsPerTurn: 1,
   buyItemActionsPerTurn: 1,
-  necroActionsPerTurn: 2,
+  necroActionsPerTurn: 1,
   soulReturnPerTurn: 1,
 }
 

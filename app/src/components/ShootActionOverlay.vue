@@ -5,9 +5,14 @@ export default defineComponent({
   name: 'ShootActionOverlay',
   props: {
     show: { type: Boolean, required: false, default: false },
+    title: { type: String as PropType<string>, required: false, default: '射擊選單' },
     styleObj: { type: Object as PropType<Record<string, string>>, required: false, default: () => ({}) },
     confirmDisabled: { type: Boolean, required: false, default: false },
     confirmTitle: { type: String as PropType<string>, required: false, default: '' },
+    confirmLabel: { type: String as PropType<string>, required: false, default: '射擊 (Enter)' },
+    cancelLabel: { type: String as PropType<string>, required: false, default: '取消 (Esc)' },
+    detailsLabel: { type: String as PropType<string>, required: false, default: '射擊預覽' },
+    showDetails: { type: Boolean, required: false, default: true },
     offset: {
       type: Object as PropType<{ x: number; y: number }>,
       required: false,
@@ -95,13 +100,13 @@ export default defineComponent({
     @pointercancel="onPointerUp"
     @click.stop
   >
-    <div class="shootActionsTitle"><span>射擊選單</span> <span @click="onCancel">關閉</span></div>
+    <div class="shootActionsTitle"><span>{{ title }}</span> <button type="button" @click="onCancel">Ｘ</button></div>
     <div class="shootActionsButtons">
       <button type="button" class="shootBtn" :disabled="confirmDisabled" :title="confirmDisabled ? confirmTitle : ''" @click="onConfirm">
-        Shoot (Enter)
+        {{ confirmLabel }}
       </button>
-      <button type="button" class="shootBtn" @click="onCancel">Cancel (Esc)</button>
-      <button type="button" class="shootBtn" @click="onDetails">Shoot Preview</button>
+      <button type="button" class="shootBtn" @click="onCancel">{{ cancelLabel }}</button>
+      <button v-if="showDetails" type="button" class="shootBtn" @click="onDetails">{{ detailsLabel }}</button>
     </div>
   </div>
 </template>
@@ -137,7 +142,7 @@ export default defineComponent({
   border: 1px solid rgba(255, 255, 255, 0.14);
   color: rgba(245, 245, 245, 0.92);
   padding: 8px 14px;
-  border-radius: 999px;
+  border-radius: 15px;
   font-weight: 800;
   font-size: 12px;
   cursor: pointer;

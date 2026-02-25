@@ -2,6 +2,7 @@ import type { GameState } from './state'
 import { getUnitAt } from './state'
 import { getEffectHandlers } from './effects'
 import { getSoulCard } from './cards'
+import { countCorpses } from './corpses'
 
 function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
   if (pos.x < 3 || pos.x > 5) return false
@@ -14,6 +15,7 @@ export type ShootCheckOk = { ok: true }
 export type ShootRulesOverride = {
   ignoreBlockingCount?: number
   ignoreBlockingAll?: boolean
+  manaCostOverride?: number
 }
 
 function countBetweenOrthogonal(state: GameState, a: { x: number; y: number }, b: { x: number; y: number }): number | null {
@@ -147,7 +149,7 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
   if (attacker.side !== state.turn.side) return { ok: false, error: 'Not your turn' }
   if (target.side === attacker.side) return { ok: false, error: 'Cannot target ally' }
 
-  const cost = state.rules.shootManaCost
+  const cost = Number.isFinite(rules?.manaCostOverride as any) ? Math.max(0, Math.floor(rules?.manaCostOverride as number)) : state.rules.shootManaCost
   const r = state.resources[state.turn.side]
   if (r.mana < cost) return { ok: false, error: 'Not enough mana' }
 
@@ -155,6 +157,14 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
     const soulId = attacker.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
     const ab = card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
+    const when = (ab as any)?.when
+    if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+      const need = Number(when.count ?? 0)
+      if (Number.isFinite(need) && need > 0) {
+        const corpses = countCorpses(state, attacker.side)
+        if (corpses < need) return { ok: false, error: 'Already shot this turn' }
+      }
+    }
     const perTurn = Number((ab as any)?.perTurn ?? 0)
     const moved = !!state.turnFlags.movedThisTurn?.[attackerId]
     const key = `${attackerId}:MOVE_THEN_SHOOT`
@@ -187,6 +197,7 @@ export function getShootableTargetIds(state: GameState, attackerId: string): str
     const shootRules = {
       ignoreBlockingCount: 0,
       ignoreBlockingAll: false,
+      manaCostOverride: undefined,
     }
 
     let vetoed = false

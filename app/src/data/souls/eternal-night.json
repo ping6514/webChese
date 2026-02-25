@@ -1,0 +1,298 @@
+[
+  {
+    "id": "eternal_night_rook_guhua",
+    "clan": "eternal_night",
+    "base": "rook",
+    "name": "骨華",
+    "image": "/assets/cards/eternal_night/eternal_night_rook_guhua.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "PIERCE",
+        "mode": "LINE_ENEMIES",
+        "count": 2,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
+      },
+      {
+        "type": "DAMAGE_BONUS",
+        "amount": 2,
+        "when": { "type": "CORPSES_GTE", "count": 6 }
+      }
+    ],
+    "text": "【屍氣】（依我方屍骸數）：≥3 時，射擊對同一直線上的前 2 名敵方造成傷害（含目標）。≥6 時，射擊傷害額外 +2。"
+  },
+  {
+    "id": "eternal_night_rook_minggouche",
+    "clan": "eternal_night",
+    "base": "rook",
+    "name": "冥骨車",
+    "image": "/assets/cards/eternal_night/eternal_night_rook_minggouche.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 0 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "SACRIFICE_SHOT_BUFF",
+        "range": 1,
+        "target": "ally",
+        "requiresMovedThisTurn": false,
+        "buff": { "ignoreBlockingAll": true, "damageBonusPerCorpsesCap": 4 }
+      }
+    ],
+    "text": "【獻祭】（射擊前）：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合未射擊時才能使用）。你的下一次射擊獲得【無視阻擋（全部）】，且傷害依我方屍骸數 +1（上限 +4）；射擊後此加成消失。"
+  },
+  {
+    "id": "eternal_night_knight_hunling",
+    "clan": "eternal_night",
+    "base": "knight",
+    "name": "魂靈",
+    "image": "/assets/cards/eternal_night/eternal_night_knight_hunling.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "SACRIFICE_SHOT_BUFF",
+        "range": 1,
+        "target": "ally",
+        "requiresMovedThisTurn": true,
+        "buff": { "chainRadius": 1 }
+      }
+    ],
+    "text": "【獻祭】（移動後）：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合需已移動且未射擊時才能使用）。你的下一次射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害）；射擊後此加成消失。"
+  },
+  {
+    "id": "eternal_night_knight_xuegu",
+    "clan": "eternal_night",
+    "base": "knight",
+    "name": "血骨",
+    "image": "/assets/cards/eternal_night/eternal_night_knight_xuegu.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "MOVE_THEN_SHOOT",
+        "perTurn": 1,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
+      },
+      {
+        "type": "ON_DEATH_FIXED_DAMAGE",
+        "amount": 3,
+        "radius": 1,
+        "targets": "enemies",
+        "ignoreDef": true
+      }
+    ],
+    "text": "【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
+  },
+  {
+    "id": "eternal_night_cannon_suigu",
+    "clan": "eternal_night",
+    "base": "cannon",
+    "name": "碎骨",
+    "image": "/assets/cards/eternal_night/eternal_night_cannon_suigu.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "CHAIN",
+        "radius": 1,
+        "perTurn": 1,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
+      },
+      {
+        "type": "ON_DEATH_FIXED_DAMAGE",
+        "amount": 3,
+        "radius": 1,
+        "targets": "enemies",
+        "ignoreDef": true
+      }
+    ],
+    "text": "【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
+  },
+  {
+    "id": "eternal_night_cannon_minggupao",
+    "clan": "eternal_night",
+    "base": "cannon",
+    "name": "冥骨砲",
+    "image": "/assets/cards/eternal_night/eternal_night_cannon_minggupao.jpg",
+    "costGold": 8,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 4 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "DAMAGE_BONUS",
+        "amount": 1,
+        "when": { "type": "CORPSES_GTE", "count": 4 }
+      },
+      {
+        "type": "TARGET_DEF_MINUS",
+        "key": "magic",
+        "per": { "type": "CORPSES_PER", "count": 2 },
+        "amountPer": 1,
+        "minDef": 0,
+        "onlyIfAtkKey": "magic"
+      }
+    ],
+    "text": "【屍氣】（依我方屍骸數）：≥4 時射擊傷害 +1。若本次為魔法攻擊，射擊目標魔防 DEF 下降 floor(屍骸數/2)（最低為 0），並反映於本次傷害計算。"
+  },
+  {
+    "id": "eternal_night_advisor_guhu",
+    "clan": "eternal_night",
+    "base": "advisor",
+    "name": "骨護",
+    "image": "/assets/cards/eternal_night/eternal_night_advisor_guhu.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 1 },
+      "def": [
+        { "key": "phys", "value": 2 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "AURA_DEF_BONUS",
+        "amount": 1,
+        "key": "phys",
+        "when": { "type": "CORPSES_GTE", "count": 3 },
+        "for": "CLAN",
+        "clan": "eternal_night",
+        "excludeBase": "king"
+      }
+    ],
+    "text": "【永夜血脈（物防）】：屍氣 ≥3 時，我方所有永夜單位（不含帥）物防 +1。\n【獻祭】：摧毀自身，使我方帥進入【無敵】直到我方下一回合開始（完全免疫所有傷害，包含冥土歸還等固定傷害）。"
+  },
+  {
+    "id": "eternal_night_advisor_hunshi",
+    "clan": "eternal_night",
+    "base": "advisor",
+    "name": "魂侍",
+    "image": "/assets/cards/eternal_night/eternal_night_advisor_hunshi.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "AURA_DEF_BONUS",
+        "amount": 1,
+        "key": "magic",
+        "when": { "type": "CORPSES_GTE", "count": 3 },
+        "for": "CLAN",
+        "clan": "eternal_night",
+        "excludeBase": "king"
+      }
+    ],
+    "text": "【永夜血脈（魔防）】：屍氣 ≥3 時，我方所有永夜單位（不含帥）魔防 +1。\n【獻祭】：摧毀自身，使我方帥進入【無敵】直到我方下一回合開始（完全免疫所有傷害，包含冥土歸還等固定傷害）。"
+  },
+  {
+    "id": "eternal_night_elephant_gulingxiang",
+    "clan": "eternal_night",
+    "base": "elephant",
+    "name": "骨靈相",
+    "image": "/assets/cards/eternal_night/eternal_night_elephant_gulingxiang.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 3 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "IGNORE_BLOCKING",
+        "count": 1,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
+      },
+      {
+        "type": "FREE_SHOOT",
+        "perTurn": 1,
+        "when": { "type": "CORPSES_GTE", "count": 5 }
+      }
+    ],
+    "text": "【屍氣】（依我方屍骸數）：≥3 時射擊獲得【無視阻擋】1 個。≥5 時，你的射擊變為【免費】（每回合限 1 次）。"
+  },
+  {
+    "id": "eternal_night_elephant_mingguxiang",
+    "clan": "eternal_night",
+    "base": "elephant",
+    "name": "冥骨相",
+    "image": "/assets/cards/eternal_night/eternal_night_elephant_mingguxiang.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      {
+        "type": "ON_DEATH_FIXED_DAMAGE",
+        "amount": 3,
+        "radius": 1,
+        "targets": "enemies",
+        "ignoreDef": true
+      },
+      {
+        "type": "AURA_DAMAGE_BONUS",
+        "for": "CLAN",
+        "clan": "eternal_night",
+        "excludeBase": "king",
+        "per": { "type": "CORPSES_PER", "count": 2 },
+        "amountPer": 1
+      }
+    ],
+    "text": "【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。\n【永夜血脈（攻）】：每 2 具我方屍骸，使我方所有永夜單位（不含帥）造成的傷害 +1（不限物理/魔法）。"
+  }
+]

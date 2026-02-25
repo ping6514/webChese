@@ -19,6 +19,33 @@ export function useShootPreview(opts: { getState: () => GameState }) {
   const ui = useUiStore()
   const { shootPreview } = storeToRefs(ui)
 
+  function translateGuardReason(reason: string): string {
+    const r = String(reason ?? '')
+    if (!r) return ''
+
+    const map: Record<string, string> = {
+      'No target': '未選擇目標',
+      'Not in combat phase': '不在戰鬥階段',
+      'Unit not found': '找不到單位',
+      'Attacker not found': '找不到攻擊方',
+      'Target not found': '找不到目標',
+      'Not your turn': '不是你的回合',
+      'Cannot target ally': '不能以友軍為目標',
+      'Not enough mana': '魔力不足',
+      'Already shot this turn': '此單位本回合已射擊',
+      'Out of range': '超出射程',
+      Blocked: '射線被阻擋',
+      'Kings not in line': '帥對帥必須同一路徑且無阻擋',
+    }
+
+    return map[r] ?? r
+  }
+
+  function translateGuard(g: GuardResult): GuardResult {
+    if (g.ok) return g
+    return { ok: false as const, reason: translateGuardReason((g as any).reason ?? '') }
+  }
+
   function openShootPreview(attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null) {
     ui.setShootPreview({ attackerId, targetUnitId, extraTargetUnitId: extraTargetUnitId ?? null })
   }
@@ -67,13 +94,14 @@ export function useShootPreview(opts: { getState: () => GameState }) {
 
   const guard = computed<GuardResult>(() => {
     const s = opts.getState()
-    if (!shootPreview.value) return { ok: false as const, reason: 'No target' }
-    return canDispatch(s, {
+    if (!shootPreview.value) return { ok: false as const, reason: '未選擇目標' }
+    const res = canDispatch(s, {
       type: 'SHOOT',
       attackerId: shootPreview.value.attackerId,
       targetUnitId: shootPreview.value.targetUnitId,
       extraTargetUnitId: shootPreview.value.extraTargetUnitId ?? null,
     })
+    return translateGuard(res)
   })
 
   const info = computed(() => {

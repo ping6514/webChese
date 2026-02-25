@@ -10,6 +10,53 @@ import { getItemCard } from './items'
 
 export type GuardResult = { ok: true } | { ok: false; reason: string }
 
+const EN_SACRIFICE_SELF_SOUL_IDS = new Set(['eternal_night_advisor_guhu', 'eternal_night_advisor_hunshi'])
+
+export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitId: string, range?: number): GuardResult {
+  if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+
+  const src = state.units[sourceUnitId]
+  const tgt = state.units[targetUnitId]
+  if (!src || !tgt) return fail('Unit not found')
+  const srcSoulId = src.enchant?.soulId ?? null
+  const srcCard = srcSoulId ? getSoulCard(srcSoulId) : null
+  if (!srcSoulId || !srcCard) return fail('Source has no sacrifice ability')
+  if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('Source has no sacrifice ability')
+  const sacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
+  const hasSacrifice = !!sacAb || EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)
+  if (!hasSacrifice) return fail('Source has no sacrifice ability')
+
+  if (state.turnFlags.shotUsed?.[src.id]) return fail('Already shot this turn')
+  if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('Must move before sacrifice')
+
+  // Advisors: sacrifice self only.
+  if (EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)) {
+    if (src.id !== tgt.id) return fail('Must sacrifice self')
+  }
+
+  // Rook/Knight: sacrifice allied unit (not self).
+  if (sacAb) {
+    if (src.id === tgt.id) return fail('Cannot sacrifice self')
+  }
+  if (src.side !== state.turn.side) return fail('Not your turn')
+  if (tgt.side !== state.turn.side) return fail('Cannot sacrifice enemy')
+  if (tgt.base === 'king') return fail('Cannot sacrifice king')
+
+  const r = (() => {
+    const r0 = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : null
+    if (r0 != null) return r0
+    if (sacAb) {
+      const rr = Number((sacAb as any).range ?? 0)
+      if (Number.isFinite(rr) && rr > 0) return Math.floor(rr)
+    }
+    return 1
+  })()
+  const dist = Math.max(Math.abs(src.pos.x - tgt.pos.x), Math.abs(src.pos.y - tgt.pos.y))
+  if (dist > r) return fail('Out of range')
+
+  return ok()
+}
+
 export function canBuyItemFromDisplay(state: GameState, slot: number): GuardResult {
   if (state.turn.phase !== 'buy') return fail('Not in buy phase')
   if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('No item buy actions left this turn')
@@ -76,6 +123,8 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
       return canBuyItemFromDisplay(state, action.slot)
     case 'DISCARD_ITEM_FROM_HAND':
       return canDiscardItemFromHand(state, action.itemId)
+    case 'SACRIFICE':
+      return canSacrifice(state, action.sourceUnitId, action.targetUnitId, action.range)
     case 'NEXT_PHASE':
       return ok()
     default: {

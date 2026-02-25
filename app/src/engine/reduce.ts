@@ -9,6 +9,8 @@ import { isLegalMove } from './legalMoves'
 import { buildShotPlan, executeShotPlan } from './shotPlan'
 import { getSoulCard } from './cards'
 import { getItemCard } from './items'
+import { killUnit } from './kill'
+import { canSacrifice } from './guards'
 
 export type ReduceOk = {
   ok: true
@@ -298,9 +300,75 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (!planRes.ok) return { ok: false, error: planRes.error }
 
       const execRes = executeShotPlan(state, planRes.plan)
-      if (!execRes.ok) return { ok: false, error: execRes.error }
+      if (!execRes.ok) return execRes
 
-      return { ok: true, state: execRes.state, events: execRes.events }
+      const buildEvents = Array.isArray((planRes.plan as any).__buildEvents) ? ((planRes.plan as any).__buildEvents as any[]) : []
+      return { ok: true, state: execRes.state, events: [...buildEvents, ...execRes.events] }
+    }
+
+    case 'SACRIFICE': {
+      if (state.turn.phase !== 'combat') return { ok: false, error: 'Not in combat phase' }
+
+      const src = state.units[action.sourceUnitId]
+      const tgt = state.units[action.targetUnitId]
+      if (!src || !tgt) return { ok: false, error: 'Unit not found' }
+
+      const g = canSacrifice(state, src.id, tgt.id, action.range)
+      if (!g.ok) return { ok: false, error: g.reason }
+
+      const nextState0: GameState = {
+        ...state,
+        units: { ...state.units },
+        corpsesByPos: { ...state.corpsesByPos },
+        graveyard: {
+          red: [...state.graveyard.red],
+          black: [...state.graveyard.black],
+        },
+      }
+
+      let nextState: GameState = nextState0
+      const events: Event[] = []
+
+      // Eternal Night advisors: self sacrifice grants allied king invincibility for one full enemy turn.
+      const soulId = src.enchant?.soulId ?? null
+      if ((soulId === 'eternal_night_advisor_guhu' || soulId === 'eternal_night_advisor_hunshi') && src.id === tgt.id) {
+        nextState = {
+          ...nextState,
+          status: {
+            ...nextState.status,
+            kingInvincibleSide: src.side,
+          },
+        }
+      }
+
+      if (src.id !== tgt.id && soulId) {
+        const card = getSoulCard(soulId)
+        const ab = card?.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
+        const buff = (ab as any)?.buff
+        if (buff) {
+          const nextBuff = {
+            ignoreBlockingAll: (buff as any).ignoreBlockingAll ? (true as const) : undefined,
+            chainRadius: Number.isFinite((buff as any).chainRadius as any) ? Math.max(0, Math.floor(Number((buff as any).chainRadius))) : undefined,
+            damageBonusPerCorpsesCap: Number.isFinite((buff as any).damageBonusPerCorpsesCap as any)
+              ? Math.max(0, Math.floor(Number((buff as any).damageBonusPerCorpsesCap)))
+              : undefined,
+          }
+
+          nextState = {
+            ...nextState,
+            status: {
+              ...nextState.status,
+              sacrificeBuffByUnitId: {
+                ...nextState.status.sacrificeBuffByUnitId,
+                [src.id]: nextBuff,
+              },
+            },
+          }
+        }
+      }
+
+      nextState = killUnit(nextState, tgt.id, events)
+      return { ok: true, state: nextState, events }
     }
     case 'ENCHANT': {
       if (state.turn.phase !== 'necro') return { ok: false, error: 'Not in necro phase' }
@@ -716,6 +784,10 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           turn: {
             ...nextState.turn,
             side: nextSide,
+          },
+          status: {
+            ...nextState.status,
+            kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
           },
           turnFlags: {
             ...nextState.turnFlags,

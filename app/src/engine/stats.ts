@@ -1,5 +1,6 @@
 import type { GameState, Unit } from './state'
 import { getSoulCard } from './cards'
+import { countCorpses } from './corpses'
 
 export function getDefValue(unit: Unit, atkKey: string): number {
   const found = unit.def.find((d) => d.key === atkKey)
@@ -36,8 +37,27 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
       const whenType = String(when?.type ?? '')
       if (whenType === 'SOURCE_IN_PALACE' && !palaceContains(auraUnit.side, auraUnit.pos)) continue
 
+      if (whenType === 'CORPSES_GTE') {
+        const need = Number(when?.count ?? 0)
+        if (!(Number.isFinite(need) && need > 0)) continue
+        const corpses = countCorpses(state, auraUnit.side)
+        if (corpses < need) continue
+      }
+
       const forKey = String((ab as any).for ?? '')
       if (forKey === 'ALLIES_IN_PALACE' && !palaceContains(unit.side, unit.pos)) continue
+
+      if (forKey === 'CLAN') {
+        const clan = String((ab as any).clan ?? '')
+        if (!clan) continue
+        const soulId = unit.enchant?.soulId
+        const card = soulId ? getSoulCard(soulId) : undefined
+        if (!card) continue
+        if (String(card.clan ?? '') !== clan) continue
+
+        const excludeBase = String((ab as any).excludeBase ?? '')
+        if (excludeBase && unit.base === excludeBase) continue
+      }
 
       defValue += amount
     }

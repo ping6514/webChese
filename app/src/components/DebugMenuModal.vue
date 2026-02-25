@@ -65,6 +65,10 @@ export default defineComponent({
           <input type="checkbox" :checked="clans.has('styx')" @change="toggleClan('styx')" />
           styx
         </label>
+        <label class="check mono">
+          <input type="checkbox" :checked="clans.has('eternal_night')" @change="toggleClan('eternal_night')" />
+          eternal_night
+        </label>
       </div>
 
       <div class="btnRow">

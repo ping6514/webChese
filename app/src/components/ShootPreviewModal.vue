@@ -37,25 +37,32 @@ export default defineComponent({
   emits: ['confirm', 'cancel'],
   methods: {
     effectText(e: ShotPreviewEffect): string {
-      if (e.kind === 'DAMAGE_SHARE') return `DAMAGE_SHARE: ${e.amount} (by ${e.byUnitId})`
-      if (e.kind === 'DAMAGE_BONUS') return `DAMAGE_BONUS: + ${e.amount} (by ${e.byUnitId})`
-      if (e.kind === 'AURA_IGNORE_BLOCKING_ALL') return `AURA_IGNORE_BLOCKING: all (by ${e.byUnitId})`
-      if (e.kind === 'AURA_IGNORE_BLOCKING_COUNT') return `AURA_IGNORE_BLOCKING: ${(e as any).count} (by ${e.byUnitId})`
-      if (e.kind === 'IGNORE_BLOCKING_ALL') return `IGNORE_BLOCKING: all (by ${e.byUnitId})`
-      if (e.kind === 'IGNORE_BLOCKING_COUNT') return `IGNORE_BLOCKING: ${(e as any).count} (by ${e.byUnitId})`
+      if (e.kind === 'DAMAGE_SHARE') return `傷害分攤：${e.amount}（由 ${e.byUnitId} 承擔）`
+      if (e.kind === 'DAMAGE_BONUS') return `傷害加成：+${e.amount}（來源 ${e.byUnitId}）`
+      if (e.kind === 'AURA_IGNORE_BLOCKING_ALL') return `光環：無視阻擋（全部）（來源 ${e.byUnitId}）`
+      if (e.kind === 'AURA_IGNORE_BLOCKING_COUNT') return `光環：無視阻擋（${(e as any).count} 個）（來源 ${e.byUnitId}）`
+      if (e.kind === 'IGNORE_BLOCKING_ALL') return `無視阻擋（全部）（來源 ${e.byUnitId}）`
+      if (e.kind === 'IGNORE_BLOCKING_COUNT') return `無視阻擋（${(e as any).count} 個）（來源 ${e.byUnitId}）`
+      if (e.kind === 'TARGET_DEF_MINUS') {
+        const key = String((e as any).key ?? '')
+        const keyText = key === 'magic' ? '魔防' : key === 'phys' ? '物防' : key
+        return `目標${keyText}降低：-${(e as any).amount}（來源 ${e.byUnitId}）`
+      }
       if (e.kind === 'SPLASH') {
         const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds.join(',') : ''
-        return `SPLASH r${(e as any).radius}: [${ids}] dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
+        return `波及（半徑 ${(e as any).radius}）：[${ids}] 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
       }
       if (e.kind === 'CHAIN') {
-        return `CHAIN -> ${(e as any).targetUnitId} dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
+        return `連鎖：追加目標 ${(e as any).targetUnitId} 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
       }
       if (e.kind === 'PIERCE') {
         const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds : []
-        const main = ids[0] ? `main=${ids[0]}` : 'main=?'
+        const main = ids[0] ? `主目標=${ids[0]}` : '主目標=?'
         const collateral = ids.slice(1)
-        const colText = collateral.length > 0 ? ` collateral=[${collateral.join(',')}]` : ''
-        return `PIERCE ${String((e as any).mode ?? '')}: ${main}${colText} dmg=${(e as any).fixedDamage} (by ${e.byUnitId})`
+        const colText = collateral.length > 0 ? ` 連帶=[${collateral.join(',')}]` : ''
+        const mode = String((e as any).mode ?? '')
+        const modeText = mode === 'CANNON_SCREEN_AND_TARGET' ? '隔子（砲架與目標）' : mode === 'LINE_ENEMIES' ? '直線前 N 名敵方' : mode
+        return `貫通（${modeText}）：${main}${colText} 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
       }
       return 'UNKNOWN'
     },
@@ -67,15 +74,15 @@ export default defineComponent({
   <div v-if="open" class="modalOverlay" @click.self="$emit('cancel')">
     <div class="modal">
       <div class="modalHead">
-        <div class="modalTitle">Confirm Shoot</div>
-        <button type="button" class="closeBtn" @click="$emit('cancel')">Close</button>
+        <div class="modalTitle">射擊預覽</div>
+        <button type="button" class="closeBtn" @click="$emit('cancel')">關閉</button>
       </div>
 
       <div class="effects">
-        <div class="colTitle">Effects</div>
-        <div v-if="rawDamage != null" class="mono small">raw damage: {{ rawDamage }}</div>
-        <div v-if="damageToTarget != null" class="mono small">to target: {{ damageToTarget }}</div>
-        <div v-if="shared" class="mono small">shared: {{ shared.amount }} -> {{ shared.toUnitId }}</div>
+        <div class="colTitle">效果</div>
+        <div v-if="rawDamage != null" class="mono small">原始傷害：{{ rawDamage }}</div>
+        <div v-if="damageToTarget != null" class="mono small">對主目標：{{ damageToTarget }}</div>
+        <div v-if="shared" class="mono small">分攤：{{ shared.amount }} -> {{ shared.toUnitId }}</div>
         <div v-if="effects.length === 0" class="muted">(none)</div>
         <div v-for="(e, idx) in effects" :key="idx" class="mono small">
           <span>{{ effectText(e) }}</span>
@@ -84,18 +91,18 @@ export default defineComponent({
 
       <div class="grid">
         <div class="col">
-          <div class="colTitle">Attacker</div>
+          <div class="colTitle">攻擊方</div>
           <div v-if="attacker" class="unitCard">
             <div class="row">
               <img v-if="attacker.image" class="img" :src="attacker.image" alt="" />
               <div v-else class="noImg mono">no img</div>
               <div class="meta">
                 <div class="name">{{ attacker.name }}</div>
-                <div class="mono small">{{ attacker.side }} | {{ attacker.base }} | hp {{ attacker.hpCurrent }}</div>
-                <div class="mono small">atk {{ attacker.atk.key }} {{ attacker.atk.value }}</div>
-                <div class="mono small">def {{ attacker.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
-                <div class="mono small">pos ({{ attacker.pos.x }},{{ attacker.pos.y }})</div>
-                <div class="mono small">id {{ attacker.id }}</div>
+                <div class="mono small">{{ attacker.side }} | {{ attacker.base }} | HP {{ attacker.hpCurrent }}</div>
+                <div class="mono small">ATK {{ attacker.atk.key }} {{ attacker.atk.value }}</div>
+                <div class="mono small">DEF {{ attacker.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
+                <div class="mono small">座標 ({{ attacker.pos.x }},{{ attacker.pos.y }})</div>
+                <div class="mono small">ID {{ attacker.id }}</div>
               </div>
             </div>
           </div>
@@ -103,18 +110,18 @@ export default defineComponent({
         </div>
 
         <div class="col">
-          <div class="colTitle">Target</div>
+          <div class="colTitle">目標</div>
           <div v-if="target" class="unitCard">
             <div class="row">
               <img v-if="target.image" class="img" :src="target.image" alt="" />
               <div v-else class="noImg mono">no img</div>
               <div class="meta">
                 <div class="name">{{ target.name }}</div>
-                <div class="mono small">{{ target.side }} | {{ target.base }} | hp {{ target.hpCurrent }}</div>
-                <div class="mono small">atk {{ target.atk.key }} {{ target.atk.value }}</div>
-                <div class="mono small">def {{ target.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
-                <div class="mono small">pos ({{ target.pos.x }},{{ target.pos.y }})</div>
-                <div class="mono small">id {{ target.id }}</div>
+                <div class="mono small">{{ target.side }} | {{ target.base }} | HP {{ target.hpCurrent }}</div>
+                <div class="mono small">ATK {{ target.atk.key }} {{ target.atk.value }}</div>
+                <div class="mono small">DEF {{ target.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
+                <div class="mono small">座標 ({{ target.pos.x }},{{ target.pos.y }})</div>
+                <div class="mono small">ID {{ target.id }}</div>
               </div>
             </div>
           </div>
@@ -124,9 +131,9 @@ export default defineComponent({
 
       <div class="btnRow">
         <button type="button" @click="$emit('confirm')" :disabled="!guard.ok" :title="guard.ok ? '' : guard.reason">
-          Confirm Shoot
+          確認射擊
         </button>
-        <button type="button" @click="$emit('cancel')">Cancel</button>
+        <button type="button" @click="$emit('cancel')">取消</button>
       </div>
     </div>
   </div>

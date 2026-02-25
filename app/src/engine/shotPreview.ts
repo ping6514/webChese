@@ -1,6 +1,7 @@
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
 import { computeRawDamage } from './damage'
+import { countCorpses } from './corpses'
 
 export type ShotPreviewEffect =
   | {
@@ -55,6 +56,12 @@ export type ShotPreviewEffect =
       mode: 'CANNON_SCREEN_AND_TARGET' | 'LINE_ENEMIES'
       targetUnitIds: string[]
       fixedDamage: number
+    }
+  | {
+      kind: 'TARGET_DEF_MINUS'
+      byUnitId: string
+      key: 'phys' | 'magic'
+      amount: number
     }
 
 export type ShotPreview = {
@@ -174,24 +181,53 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
 
   const effects: ShotPreviewEffect[] = []
 
+  const sacrificeBuff = state.status.sacrificeBuffByUnitId?.[attacker.id] ?? null
+
   let damageBonus = 0
   const attackerSoulId = attacker.enchant?.soulId
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
+      // Eternal Night: card-specific corpse thresholds (MVP)
+      if (attackerSoulId === 'eternal_night_rook_guhua') {
+        const corpses = countCorpses(state, attacker.side)
+        if (corpses >= 6) {
+          damageBonus += 2
+          effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount: 2 })
+        }
+      }
+      if (attackerSoulId === 'eternal_night_cannon_minggupao') {
+        const corpses = countCorpses(state, attacker.side)
+        if (corpses >= 4) {
+          damageBonus += 1
+          effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount: 1 })
+        }
+      }
+
       const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
       const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
 
       if (crossedOk) {
         for (const ab of card.abilities) {
           if (ab.type !== 'DAMAGE_BONUS') continue
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (Number.isFinite(need) && need > 0) {
+              const corpses = countCorpses(state, attacker.side)
+              if (corpses < need) continue
+            }
+          }
           const amount = Number((ab as any).amount ?? 0)
           if (!Number.isFinite(amount) || amount <= 0) continue
           damageBonus += amount
         }
       }
 
-      if (damageBonus > 0) {
+      // NOTE: we already pushed individual DAMAGE_BONUS effects above; here we keep the existing
+      // behavior for generic DAMAGE_BONUS abilities by adding one aggregate line for attacker-sourced bonus.
+      const attackerSourced = card.abilities.some((a) => a.type === 'DAMAGE_BONUS')
+      if (attackerSourced && damageBonus > 0) {
         effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount: damageBonus })
       }
     }
@@ -212,6 +248,31 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       const forKey = String((ab as any).for ?? '')
       if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
 
+      if (forKey === 'CLAN') {
+        const clan = String((ab as any).clan ?? '')
+        if (!clan) continue
+        const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
+        if (!attackerCard) continue
+        if (String(attackerCard.clan ?? '') !== clan) continue
+
+        const excludeBase = String((ab as any).excludeBase ?? '')
+        if (excludeBase && attacker.base === excludeBase) continue
+      }
+
+      const per = (ab as any).per
+      if (per && String(per.type ?? '') === 'CORPSES_PER') {
+        const perCount = Number(per.count ?? 0)
+        const amountPer = Number((ab as any).amountPer ?? 0)
+        if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
+        const corpses = countCorpses(state, attacker.side)
+        const amount = Math.floor(corpses / perCount) * amountPer
+        if (amount > 0) {
+          damageBonus += amount
+          effects.push({ kind: 'AURA_DAMAGE_BONUS', byUnitId: u.id, amount })
+        }
+        continue
+      }
+
       const amount = Number((ab as any).amount ?? 0)
       if (Number.isFinite(amount) && amount > 0) {
         damageBonus += amount
@@ -222,12 +283,56 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
 
   const rawDamage = computeRawDamage(state, attacker.id, target.id)
 
+  // Eternal Night: Sacrifice buffs (B)
+  if (sacrificeBuff?.ignoreBlockingAll) {
+    effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
+  }
+  const cap = Number((sacrificeBuff as any)?.damageBonusPerCorpsesCap ?? 0)
+  if (Number.isFinite(cap) && cap > 0) {
+    const corpses = countCorpses(state, attacker.side)
+    const amount = Math.min(cap, Math.max(0, Math.floor(corpses)))
+    if (amount > 0) effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount })
+  }
+
+  // TARGET_DEF_MINUS: preview transparency
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (String((ab as any).type ?? '') !== 'TARGET_DEF_MINUS') continue
+        const onlyIfAtkKey = String((ab as any).onlyIfAtkKey ?? '')
+        if (onlyIfAtkKey && onlyIfAtkKey !== attacker.atk.key) continue
+        const key = String((ab as any).key ?? '')
+        if (key !== 'phys' && key !== 'magic') continue
+        const per = (ab as any).per
+        if (!(per && String(per.type ?? '') === 'CORPSES_PER')) continue
+        const perCount = Number(per.count ?? 0)
+        const amountPer = Number((ab as any).amountPer ?? 0)
+        if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
+        const corpses = countCorpses(state, attacker.side)
+        const amount = Math.floor(corpses / perCount) * amountPer
+        if (amount > 0) {
+          effects.push({ kind: 'TARGET_DEF_MINUS', byUnitId: attacker.id, key: key as 'magic' | 'phys', amount })
+        }
+      }
+    }
+  }
+
   // PIERCE: mirror effects.ts PIERCE target selection for preview transparency.
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
       for (const ab of card.abilities) {
         if (ab.type !== 'PIERCE') continue
+
+        const when = (ab as any).when
+        if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+          const need = Number(when.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            const corpses = countCorpses(state, attacker.side)
+            if (corpses < need) continue
+          }
+        }
 
         const mode = String((ab as any).mode ?? '')
 
@@ -356,9 +461,23 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     const card = getSoulCard(attackerSoulId)
     if (card) {
       const chainAb = card.abilities.find((a) => a.type === 'CHAIN')
-      const radius = Number((chainAb as any)?.radius ?? 0)
+      const radius0 = Number((chainAb as any)?.radius ?? 0)
+      const sbRadius = Number((sacrificeBuff as any)?.chainRadius ?? 0)
+      const radius = Number.isFinite(sbRadius) && sbRadius > 0 ? sbRadius : radius0
+
+      const when = (chainAb as any)?.when
+      const chainActive = (() => {
+        if (!when) return true
+        if (Number.isFinite(sbRadius) && sbRadius > 0) return true
+        if (String(when.type ?? '') !== 'CORPSES_GTE') return true
+        const need = Number(when.count ?? 0)
+        if (!(Number.isFinite(need) && need > 0)) return true
+        const corpses = countCorpses(state, attacker.side)
+        return corpses >= need
+      })()
+
       const extraId = extraTargetUnitId ?? null
-      if (extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
+      if (chainActive && extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
         const extra = state.units[extraId]
         if (extra && extra.side !== attacker.side && chebyshev(extra.pos, target.pos) <= radius) {
           effects.push({ kind: 'CHAIN', byUnitId: attacker.id, targetUnitId: extra.id, fixedDamage: rawDamage })
@@ -368,7 +487,6 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   }
 
   // Mirror current shoot validation effects (effects.ts): IGNORE_BLOCKING gated by CROSS_RIVER.
-  // Note: conditional "when" on abilities is currently NOT implemented in effects.ts, so we mirror that behavior.
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
@@ -378,13 +496,21 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
         let ignoreCount = 0
         for (const ab of card.abilities) {
           if (ab.type !== 'IGNORE_BLOCKING') continue
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (Number.isFinite(need) && need > 0) {
+              const corpses = countCorpses(state, attacker.side)
+              if (corpses < need) continue
+            }
+          }
           const mode = String((ab as any).mode ?? '')
           if (mode === 'all') {
             ignoreAll = true
-            continue
+          } else {
+            const count = Number((ab as any).count ?? 0)
+            if (Number.isFinite(count) && count > ignoreCount) ignoreCount = count
           }
-          const count = Number((ab as any).count ?? 0)
-          if (Number.isFinite(count) && count > ignoreCount) ignoreCount = count
         }
         if (ignoreAll) effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
         if (ignoreCount > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count: ignoreCount })

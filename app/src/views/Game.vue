@@ -15,6 +15,7 @@ import {
   canDiscardItemFromHand,
   canReturnSoulToDeckBottom,
   canEnchant,
+  canSacrifice,
   canBloodRitual,
   canRevive,
   createInitialState,
@@ -41,6 +42,7 @@ import { usePendingConfirm } from '../usePendingConfirm'
 import { useSelection } from '../useSelection'
 import { useShootPreview } from '../useShootPreview'
 import { useUiStore } from '../stores/ui'
+import { countCorpses } from '../engine/corpses'
 
 const state = ref<GameState>(createInitialState())
 const lastError = ref<string | null>(null)
@@ -52,6 +54,7 @@ type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: 
 const fxAttackUnitIds = ref<string[]>([])
 const fxHitUnitIds = ref<string[]>([])
 const fxKilledUnitIds = ref<string[]>([])
+const fxAbilityUnitIds = ref<string[]>([])
 const floatTextsByPos = ref<Record<string, FloatText[]>>({})
 const fxBeams = ref<BeamFx[]>([])
 const fxKilledPosKeys = ref<string[]>([])
@@ -223,7 +226,18 @@ const shootChainEligibleEnemyIds = computed(() => {
   const card = getSoulCard(soulId)
   if (!card) return []
   const chain = card.abilities.find((a) => a.type === 'CHAIN')
-  const radius = Number((chain as any)?.radius ?? 0)
+  const radius0 = Number((chain as any)?.radius ?? 0)
+  const sb = state.value.status.sacrificeBuffByUnitId?.[attacker.id] ?? null
+  const radius = Number.isFinite(sb?.chainRadius as any) && Number((sb as any).chainRadius) > 0 ? Number((sb as any).chainRadius) : radius0
+
+  const when = (chain as any)?.when
+  if (when && !(Number.isFinite(sb?.chainRadius as any) && Number((sb as any).chainRadius) > 0) && String((when as any).type ?? '') === 'CORPSES_GTE') {
+    const need = Number((when as any).count ?? 0)
+    if (Number.isFinite(need) && need > 0) {
+      const corpses = countCorpses(state.value, attacker.side)
+      if (corpses < need) return []
+    }
+  }
   if (!(Number.isFinite(radius) && radius > 0)) return []
   const cheb = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
   const out: string[] = []
@@ -374,6 +388,80 @@ function cancelEnchantMode() {
   ui.clearInteractionMode()
 }
 
+const sacrificeMode = computed(() => ui.interactionMode.kind === 'sacrifice_select_target')
+
+const sacrificeSourceUnitId = computed(() => (ui.interactionMode.kind === 'sacrifice_select_target' ? ui.interactionMode.sourceUnitId : null))
+
+const sacrificeRange = computed(() => (ui.interactionMode.kind === 'sacrifice_select_target' ? ui.interactionMode.range : 1))
+
+const sacrificeTargetableUnitIds = computed(() => {
+  if (state.value.turn.phase !== 'combat') return []
+  if (ui.interactionMode.kind !== 'sacrifice_select_target') return []
+  const srcId = ui.interactionMode.sourceUnitId
+  const range = ui.interactionMode.range
+  const out: string[] = []
+  for (const u of Object.values(state.value.units)) {
+    if (u.side !== state.value.turn.side) continue
+    const g = canSacrifice(state.value, srcId, u.id, range)
+    if (g.ok) out.push(u.id)
+  }
+  return out
+})
+
+const canStartSacrificeMode = computed(() => {
+  if (state.value.turn.phase !== 'combat') return { ok: false as const, reason: 'Not in combat phase' }
+  if (!selectedUnit.value) return { ok: false as const, reason: 'Select a unit' }
+  if (selectedUnit.value.side !== state.value.turn.side) return { ok: false as const, reason: 'Not your turn' }
+
+  for (const u of Object.values(state.value.units)) {
+    if (u.side !== state.value.turn.side) continue
+    const g = canSacrifice(state.value, selectedUnit.value.id, u.id, 1)
+    if (g.ok) return { ok: true as const }
+  }
+
+  return { ok: false as const, reason: 'No valid sacrifice target' }
+})
+
+const sacrificeOverlayVisible = computed(() => {
+  if (state.value.turn.phase !== 'combat') return false
+  if (!selectedUnit.value) return false
+  if (selectedUnit.value.side !== state.value.turn.side) return false
+  if (!canStartSacrificeMode.value.ok) return false
+  if (shootPreview.value) return false
+  if (pending.value) return false
+  if (ui.interactionMode.kind !== 'idle') return false
+  return true
+})
+
+function confirmSacrificeOverlay() {
+  if (!selectedUnit.value) return
+  if (!canStartSacrificeMode.value.ok) return
+  startSacrificeMode(selectedUnit.value.id, 1)
+}
+
+function cancelSacrificeOverlay() {
+  ui.setSelectedUnitId(null)
+}
+
+function startSacrificeMode(sourceUnitId: string, range?: number) {
+  if (state.value.turn.phase !== 'combat') return
+  const src = state.value.units[sourceUnitId]
+  const soulId = src?.enchant?.soulId ?? null
+  if (soulId === 'eternal_night_advisor_guhu' || soulId === 'eternal_night_advisor_hunshi') {
+    setPending({
+      action: { type: 'SACRIFICE', sourceUnitId, targetUnitId: sourceUnitId, range: 0 },
+      title: 'Confirm Sacrifice',
+      detail: [`${sourceUnitId} -> sacrifice self`, 'range: 0'].join('\n'),
+    })
+    return
+  }
+  ui.startSacrificeSelectTarget(sourceUnitId, range)
+}
+
+function cancelSacrificeMode() {
+  ui.clearInteractionMode()
+}
+
 onMounted(() => {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && ui.interactionMode.kind !== 'idle') {
@@ -510,11 +598,37 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
     lastError.value = res.error
     return
   }
+
   lastError.value = null
   state.value = res.state
 
   const nextState = res.state
+
   for (const e of res.events) {
+    if ((e as any).type === 'ABILITY_TRIGGERED') {
+      const unitId = String((e as any).unitId ?? '')
+      const text = String((e as any).text ?? (e as any).abilityType ?? '')
+      const u = unitId ? nextState.units[unitId] : null
+      if (u && text) {
+        // B: highlight
+        fxAbilityUnitIds.value = [...fxAbilityUnitIds.value.filter((id) => id !== unitId), unitId]
+        window.setTimeout(() => {
+          fxAbilityUnitIds.value = fxAbilityUnitIds.value.filter((id) => id !== unitId)
+        }, 520)
+
+        // A: float text
+        const key = `${u.pos.x},${u.pos.y}`
+        const id = `${Date.now()}-${Math.random()}`
+        const item: FloatText = { id, text, kind: 'heal' }
+        const cur = floatTextsByPos.value[key] ?? []
+        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
+        window.setTimeout(() => {
+          const cur2 = floatTextsByPos.value[key] ?? []
+          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
+        }, 780)
+      }
+    }
+
     if ((e as any).type === 'SHOT_FIRED') {
       const attackerId = String((e as any).attackerId ?? '')
       const targetId = String((e as any).targetUnitId ?? '')
@@ -677,6 +791,23 @@ function onCellClick(payload: { x: number; y: number; unitId: string | null }) {
         action: { type: 'ENCHANT', unitId, soulId },
         title: 'Confirm Enchant',
         detail: [`${card?.name ?? soulId} -> ${unitId}`, `base: ${card?.base ?? '-'}`, `cost: ${card?.costGold ?? '-'}G`].join('\n'),
+      })
+      ui.clearInteractionMode()
+      return
+    }
+    return
+  }
+
+  if (ui.interactionMode.kind === 'sacrifice_select_target') {
+    ui.setSelectedCell({ x: payload.x, y: payload.y })
+    const targetUnitId = payload.unitId
+    const sourceUnitId = ui.interactionMode.sourceUnitId
+    const range = ui.interactionMode.range
+    if (targetUnitId && sacrificeTargetableUnitIds.value.includes(targetUnitId)) {
+      setPending({
+        action: { type: 'SACRIFICE', sourceUnitId, targetUnitId, range },
+        title: 'Confirm Sacrifice',
+        detail: [`${sourceUnitId} -> sacrifice ${targetUnitId}`, `range: ${range}`].join('\n'),
       })
       ui.clearInteractionMode()
       return
@@ -873,6 +1004,11 @@ async function copyEventLog() {
       <button type="button" @click="cancelEnchantMode">Cancel (Esc)</button>
     </div>
 
+    <div v-if="sacrificeMode" class="actionStatusBar">
+      <div class="mono">Selecting unit to sacrifice (range {{ sacrificeRange }}): {{ sacrificeSourceUnitId ?? '-' }}</div>
+      <button type="button" @click="cancelSacrificeMode">Cancel (Esc)</button>
+    </div>
+
     <main class="main">
       <section class="boardArea">
         <BoardGrid
@@ -880,7 +1016,7 @@ async function copyEventLog() {
           :selected-unit-id="selectedUnitId"
           :legal-moves="legalMoves"
           :shootable-target-ids="shootableTargetIds"
-          :highlight-unit-ids="enchantableUnitIds"
+          :highlight-unit-ids="enchantMode ? enchantableUnitIds : sacrificeMode ? sacrificeTargetableUnitIds : []"
           :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
           :preview-pierce-marks="shootPreviewPierceMarks"
           :preview-splash-pos-keys="shootPreviewSplashPosKeys"
@@ -890,9 +1026,16 @@ async function copyEventLog() {
           :shoot-actions-visible="!shootDetailsOpen"
           :shoot-confirm-disabled="!shootPreviewGuard.ok"
           :shoot-confirm-title="shootPreviewGuard.ok ? '' : shootPreviewGuard.reason"
+
+          :sacrifice-action-pos-key="sacrificeOverlayVisible && selectedUnit ? `${selectedUnit.pos.x},${selectedUnit.pos.y}` : null"
+          :sacrifice-actions-visible="sacrificeOverlayVisible"
+          :sacrifice-confirm-disabled="!canStartSacrificeMode.ok"
+          :sacrifice-confirm-title="canStartSacrificeMode.ok ? '' : canStartSacrificeMode.reason"
+
           :fx-attack-unit-ids="fxAttackUnitIds"
           :fx-hit-unit-ids="fxHitUnitIds"
           :fx-killed-unit-ids="fxKilledUnitIds"
+          :fx-ability-unit-ids="fxAbilityUnitIds"
           :fx-killed-pos-keys="fxKilledPosKeys"
           :fx-revived-pos-keys="fxRevivedPosKeys"
           :fx-enchanted-pos-keys="fxEnchantedPosKeys"
@@ -904,6 +1047,8 @@ async function copyEventLog() {
           @shoot-confirm="confirmShootPreview"
           @shoot-cancel="cancelShootPreview"
           @shoot-details="openShootDetails"
+          @sacrifice-confirm="confirmSacrificeOverlay"
+          @sacrifice-cancel="cancelSacrificeOverlay"
         />
 
         <div v-if="lastError" class="error">{{ lastError }}</div>

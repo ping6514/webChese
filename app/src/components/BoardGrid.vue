@@ -73,6 +73,26 @@ export default defineComponent({
       default: true,
     },
 
+    sacrificeActionPosKey: {
+      type: String as PropType<string | null>,
+      default: null,
+    },
+
+    sacrificeConfirmDisabled: {
+      type: Boolean,
+      default: false,
+    },
+
+    sacrificeConfirmTitle: {
+      type: String as PropType<string>,
+      default: '',
+    },
+
+    sacrificeActionsVisible: {
+      type: Boolean,
+      default: true,
+    },
+
     fxAttackUnitIds: {
       type: Array as PropType<string[]>,
       default: () => [],
@@ -82,6 +102,10 @@ export default defineComponent({
       default: () => [],
     },
     fxKilledUnitIds: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
+    fxAbilityUnitIds: {
       type: Array as PropType<string[]>,
       default: () => [],
     },
@@ -115,6 +139,8 @@ export default defineComponent({
     'shoot-confirm': () => true,
     'shoot-cancel': () => true,
     'shoot-details': () => true,
+    'sacrifice-confirm': () => true,
+    'sacrifice-cancel': () => true,
   },
   setup(props, { emit }) {
     function getChineseLabel(side: 'red' | 'black', base: string): string {
@@ -192,6 +218,7 @@ export default defineComponent({
     const fxAttackSet = computed(() => new Set(props.fxAttackUnitIds))
     const fxHitSet = computed(() => new Set(props.fxHitUnitIds))
     const fxKilledSet = computed(() => new Set(props.fxKilledUnitIds))
+    const fxAbilitySet = computed(() => new Set(props.fxAbilityUnitIds))
     const fxKilledPosSet = computed(() => new Set(props.fxKilledPosKeys))
     const fxRevivedPosSet = computed(() => new Set(props.fxRevivedPosKeys))
     const fxEnchantedPosSet = computed(() => new Set(props.fxEnchantedPosKeys))
@@ -273,6 +300,7 @@ export default defineComponent({
         'cell-fx-attack': !!u && fxAttackSet.value.has(u.id),
         'cell-fx-hit': !!u && fxHitSet.value.has(u.id),
         'cell-fx-killed': fxKilledPosSet.value.has(key) || (!!u && fxKilledSet.value.has(u.id)),
+        'cell-fx-ability': !!u && fxAbilitySet.value.has(u.id),
         'cell-fx-revived': fxRevivedPosSet.value.has(key),
         'cell-fx-enchanted': fxEnchantedPosSet.value.has(key),
 
@@ -320,11 +348,27 @@ export default defineComponent({
       emit('shoot-details')
     }
 
+    function onSacrificeConfirm() {
+      emit('sacrifice-confirm')
+    }
+
+    function onSacrificeCancel() {
+      emit('sacrifice-cancel')
+    }
+
     const overlayOffset = ref<{ x: number; y: number }>({ x: 0, y: 0 })
     watch(
       () => props.shootActionPosKey,
       () => {
         overlayOffset.value = { x: 0, y: 0 }
+      },
+    )
+
+    const sacrificeOverlayOffset = ref<{ x: number; y: number }>({ x: 0, y: 0 })
+    watch(
+      () => props.sacrificeActionPosKey,
+      () => {
+        sacrificeOverlayOffset.value = { x: 0, y: 0 }
       },
     )
 
@@ -348,16 +392,64 @@ export default defineComponent({
       }
 
       const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
-      const topPct = (y / BOARD_HEIGHT) * 100
+      const topPct = ((y + 0.5) / BOARD_HEIGHT) * 100
+
+      const baseTransformX = (() => {
+        // Prevent overlay from being clipped by the board container near edges.
+        if (x <= 1) return 'translate(0%, -110%)'
+        if (x >= BOARD_WIDTH - 2) return 'translate(-100%, -110%)'
+        return 'translate(-50%, -110%)'
+      })()
+
       return {
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        transform: `translate(-50%, -110%) translate(${overlayOffset.value.x}px, ${overlayOffset.value.y}px)`,
+        transform: `${baseTransformX} translate(${overlayOffset.value.x}px, ${overlayOffset.value.y}px)`,
+      }
+    })
+
+    const sacrificeOverlayStyle = computed<Record<string, string>>(() => {
+      if (!props.sacrificeActionPosKey) {
+        return {
+          left: '0%',
+          top: '0%',
+          transform: 'translate(-50%, -110%)',
+        }
+      }
+      const [xs, ys] = String(props.sacrificeActionPosKey).split(',')
+      const x = Number(xs)
+      const y = Number(ys)
+      if (!(Number.isFinite(x) && Number.isFinite(y))) {
+        return {
+          left: '0%',
+          top: '0%',
+          transform: 'translate(-50%, -110%)',
+        }
+      }
+
+      const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
+      const topPct = ((y + 0.5) / BOARD_HEIGHT) * 100
+
+      const baseTransformX = (() => {
+        // Prevent overlay from being clipped by the board container near edges.
+        if (x <= 1) return 'translate(0%, -110%)'
+        if (x >= BOARD_WIDTH - 2) return 'translate(-100%, -110%)'
+        return 'translate(-50%, -110%)'
+      })()
+
+      return {
+        left: `${leftPct}%`,
+        top: `${topPct}%`,
+        transform: `${baseTransformX} translate(${sacrificeOverlayOffset.value.x}px, ${sacrificeOverlayOffset.value.y}px)`,
       }
     })
 
     function setOverlayOffset(v: { x: number; y: number }) {
       overlayOffset.value = v
+    }
+
+    function setSacrificeOverlayOffset(v: { x: number; y: number }) {
+      sacrificeOverlayOffset.value = v
     }
 
     return {
@@ -366,6 +458,9 @@ export default defineComponent({
       overlayOffset,
       shootOverlayStyle,
       setOverlayOffset,
+      sacrificeOverlayOffset,
+      sacrificeOverlayStyle,
+      setSacrificeOverlayOffset,
       unitByPos,
       corpseCountByPos,
       cellClass,
@@ -376,6 +471,8 @@ export default defineComponent({
       onShootConfirm,
       onShootCancel,
       onShootDetails,
+      onSacrificeConfirm,
+      onSacrificeCancel,
     }
   },
 })
@@ -398,6 +495,21 @@ export default defineComponent({
         @confirm="onShootConfirm"
         @cancel="onShootCancel"
         @details="onShootDetails"
+      />
+
+      <ShootActionOverlay
+        :show="!!sacrificeActionPosKey && sacrificeActionsVisible"
+        title="獻祭選單"
+        :style-obj="sacrificeOverlayStyle"
+        :confirm-disabled="sacrificeConfirmDisabled"
+        :confirm-title="sacrificeConfirmTitle"
+        confirm-label="獻祭"
+        cancel-label="取消"
+        :show-details="false"
+        :offset="sacrificeOverlayOffset"
+        @update:offset="setSacrificeOverlayOffset"
+        @confirm="onSacrificeConfirm"
+        @cancel="onSacrificeCancel"
       />
 
       <svg v-if="fxBeams.length > 0" class="fxOverlay" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">

@@ -1,13 +1,17 @@
 import type { GameState } from './state'
+import type { Event } from './events'
 import { getSoulCard } from './cards'
+import { countCorpses } from './corpses'
 
 export type ShootValidateContext = {
   state: GameState
   attackerId: string
   targetUnitId: string
+  events?: Event[]
   shootRules: {
     ignoreBlockingCount: number
     ignoreBlockingAll: boolean
+    manaCostOverride?: number
   }
 }
 
@@ -16,6 +20,7 @@ export type ShootPlanContext = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  events?: Event[]
 }
 
 export type ShootValidationResult = { ok: true } | { ok: false; error: string }
@@ -169,6 +174,42 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
 
     const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
 
+    // Eternal Night: corpse-threshold abilities (MVP)
+    if (card.clan === 'eternal_night') {
+      // Eternal Night: Sacrifice buffs (B)
+      handlers.push({
+        onBeforeShootValidate: (ctx) => {
+          if (ctx.attackerId !== u.id) return
+          const buff = ctx.state.status.sacrificeBuffByUnitId?.[u.id]
+          if (!buff) return
+          if (buff.ignoreBlockingAll) {
+            ctx.shootRules.ignoreBlockingAll = true
+          }
+        },
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+          const buff = ctx.state.status.sacrificeBuffByUnitId?.[u.id]
+          if (!buff) return
+
+          const radius = Number(buff.chainRadius ?? 0)
+          if (!(Number.isFinite(radius) && radius > 0)) return
+
+          // Allow chain shot if extra target is provided (radius around main target).
+          const extraId = ctx.extraTargetUnitId
+          if (!extraId) return
+          if (extraId === ctx.targetUnitId) return
+          const mainTarget = ctx.state.units[ctx.targetUnitId]
+          const extraTarget = ctx.state.units[extraId]
+          const attacker = ctx.state.units[ctx.attackerId]
+          if (!mainTarget || !extraTarget || !attacker) return
+          if (extraTarget.side === attacker.side) return
+          if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
+          plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
+        },
+      })
+
+    }
+
     for (const ab of card.abilities) {
       if (ab.type !== 'IGNORE_BLOCKING') continue
 
@@ -189,14 +230,71 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (!(Number.isFinite(range) && range > 0 && Number.isFinite(count) && count > 0)) return
             if (!enemiesWithinRangeGte(ctx.state, u.id, range, count)) return
           }
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
           if (mode === 'all') {
             ctx.shootRules.ignoreBlockingAll = true
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
             return
           }
           const count = Number((ab as any).count ?? 0)
           if (Number.isFinite(count) && count > 0) {
             ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, count)
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
           }
+        },
+      })
+    }
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'FREE_SHOOT') continue
+
+      handlers.push({
+        onBeforeShootValidate: (ctx) => {
+          if (ctx.attackerId !== u.id) return
+
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
+
+          const perTurn = Number((ab as any).perTurn ?? 0)
+          if (!(Number.isFinite(perTurn) && perTurn > 0)) return
+          const key = abilityUseKey(u.id, 'FREE_SHOOT')
+          const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
+          if (used >= perTurn) return
+
+          ctx.shootRules.manaCostOverride = 0
+          ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'FREE_SHOOT', text: '免費射擊' })
+        },
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
+
+          const perTurn = Number((ab as any).perTurn ?? 0)
+          if (!(Number.isFinite(perTurn) && perTurn > 0)) return
+          const key = abilityUseKey(u.id, 'FREE_SHOOT')
+          const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
+          if (used >= perTurn) return
+
+          plan.cost = 0
+          const next = plan.abilityUses ? [...plan.abilityUses] : []
+          next.push({ key })
+          plan.abilityUses = next
         },
       })
     }
@@ -226,6 +324,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           const mode = String((ab as any).mode ?? '')
           if (mode === 'all') {
             ctx.shootRules.ignoreBlockingAll = true
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'AURA_IGNORE_BLOCKING', text: '無視阻擋' })
             return
           }
 
@@ -304,6 +403,15 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
 
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (Number.isFinite(need) && need > 0) {
+              const corpses = countCorpses(ctx.state, u.side)
+              if (corpses < need) return
+            }
+          }
+
           const perTurn = Number((ab as any).perTurn ?? 0)
           if (Number.isFinite(perTurn) && perTurn > 0) {
             const used = abilityUsedCount(ctx.state, u.id, 'CHAIN')
@@ -359,6 +467,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (screen.side === attacker.side) return
 
             plan.instances.push({ kind: 'pierce', sourceUnitId: attacker.id, targetUnitId: screen.id })
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'PIERCE', targetUnitIds: [target.id, screen.id], text: '貫穿' })
             return
           }
 
@@ -385,6 +494,9 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             for (const id of enemies) {
               if (id === target.id) continue
               plan.instances.push({ kind: 'pierce', sourceUnitId: attacker.id, targetUnitId: id })
+            }
+            if (enemies.length > 1) {
+              ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'PIERCE', targetUnitIds: enemies.slice(0, count), text: '貫穿' })
             }
           }
         },

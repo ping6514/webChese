@@ -29,6 +29,11 @@ type InteractionMode =
       kind: 'enchant_select_unit'
       soulId: string
     }
+  | {
+      kind: 'sacrifice_select_target'
+      sourceUnitId: string
+      range: number
+    }
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'lagging'
 
@@ -109,6 +114,11 @@ export const useUiStore = defineStore('ui', {
 
     startEnchantSelectUnit: function (soulId: string) {
       this.interactionMode = { kind: 'enchant_select_unit', soulId }
+    },
+
+    startSacrificeSelectTarget: function (sourceUnitId: string, range?: number) {
+      const r = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : 1
+      this.interactionMode = { kind: 'sacrifice_select_target', sourceUnitId, range: r }
     },
     clearInteractionMode: function () {
       this.interactionMode = { kind: 'idle' }

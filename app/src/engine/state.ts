@@ -57,6 +57,17 @@ export type GameState = {
     side: Side
     phase: Phase
   }
+  status: {
+    kingInvincibleSide: Side | null
+    sacrificeBuffByUnitId: Record<
+      string,
+      {
+        ignoreBlockingAll?: true
+        chainRadius?: number
+        damageBonusPerCorpsesCap?: number
+      }
+    >
+  }
   turnFlags: {
     shotUsed: Record<string, true>
     movedThisTurn: Record<string, true>
@@ -235,6 +246,10 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
     turn: {
       side: 'red',
       phase: 'buy',
+    },
+    status: {
+      kingInvincibleSide: null,
+      sacrificeBuffByUnitId: {},
     },
     turnFlags: {
       shotUsed: {},
