@@ -22,6 +22,10 @@
 - [x] Unified shoot flow: click target enters preview; explicit confirm/cancel
 - [x] Multi-target shooting preview is visualized on board (貫/濺/連)
 - [x] Draggable shoot action overlay near target (Shoot/Cancel/Shoot Preview)
+- [x] Sacrifice action uses a draggable board overlay (disabled + reason), not SidePanel
+- [x] Sacrifice overlay auto-hides when a confirm modal is open
+- [x] Graveyard panel uses collapsible dropdown lists to avoid overflow
+- [x] Ability activation FX: engine emits `ABILITY_TRIGGERED`, UI shows float text + distinct highlight
 - [ ] Show shoot feasibility/invalid reason with the same UX pattern
 
 ## UI Refactor / State Management

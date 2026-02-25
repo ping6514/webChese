@@ -88,6 +88,7 @@ Examples:
 - `DAMAGE_DEALT { attackerId, targetId, amount }`
 - `UNIT_KILLED { unitId, pos }`
 - `SOUL_DETACHED { unitId, soulId, to: "graveyardTop" }`
+- `ABILITY_TRIGGERED { unitId, abilityType, targetUnitIds?, text? }`
 
 ## Hooks (Timing Points)
 Effects attach to these hooks.
@@ -190,6 +191,11 @@ Examples:
 - `CHAIN { hops: 1, perTurn: 1 }`
 - `PIERCE { count: 2 }`
 - `AURA_THRESHOLD { metric: "corpses"|"soldiers"|"clanCount", tiers: [...] }`
+
+Implementation note (current direction):
+
+- Abilities are defined on soul cards as data (`abilities` array) and resolved by engine effect handlers.
+- UI FX should be driven by engine events (e.g. `ABILITY_TRIGGERED`) to keep client/server replay deterministic.
 
 ## RNG Strategy (Deferred in single-machine MVP)
 MVP can use:
