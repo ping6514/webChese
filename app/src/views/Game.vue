@@ -7,6 +7,8 @@ export default {
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { decideActions, type BotContext } from '../sim/balanceBot'
+import { useGameSetup } from '../stores/gameSetup'
 import {
   canBuySoulFromDeck,
   canBuySoulFromDisplay,
@@ -44,7 +46,14 @@ import { useShootPreview } from '../useShootPreview'
 import { useUiStore } from '../stores/ui'
 import { countCorpses } from '../engine/corpses'
 
-const state = ref<GameState>(createInitialState())
+// ── NPC / Game setup ──────────────────────────────────────────────────────────
+const setup = useGameSetup()
+
+function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) }
+
+const state = ref<GameState>(createInitialState({
+  rules: { firstSide: setup.resolvedFirstPlayer } as any,
+}))
 const lastError = ref<string | null>(null)
 const lastEvents = ref<string[]>([])
 
@@ -101,10 +110,43 @@ watch(
   { immediate: true },
 )
 
+// ── NPC computed & watcher ────────────────────────────────────────────────────
+const npcSide = computed<'red' | 'black' | null>(() => {
+  if (setup.mode !== 'pve') return null
+  return setup.resolvedPlayerSide === 'red' ? 'black' : 'red'
+})
+
+const isNpcTurn = computed(() =>
+  npcSide.value !== null && state.value.turn.side === npcSide.value,
+)
+
+const botRunning = ref(false)
+let botSeed = Date.now()
+
+watch(
+  () => [state.value.turn.side, state.value.turn.phase] as const,
+  async ([side, phase]) => {
+    if (!npcSide.value || side !== npcSide.value || botRunning.value) return
+    if (phase === 'turnStart') return  // engine auto-advances; no action needed
+    botRunning.value = true
+    await sleep(350)
+
+    const weightsMode = setup.difficulty === 'easy' ? 'base' : 'blend'
+    const ctx: BotContext = { seed: botSeed++, epsilon: 0, weightsMode }
+    const result = decideActions(state.value, side as 'red' | 'black', ctx)
+
+    for (const action of result.actions) {
+      dispatch(action)
+      if (action.type !== 'NEXT_PHASE') await sleep(180)
+    }
+    botRunning.value = false
+  },
+)
+
 watch(
   () => state.value.turn.phase,
   (phase, prev) => {
-    if (phase === 'buy' && prev !== 'buy') ui.openShop()
+    if (phase === 'buy' && prev !== 'buy' && !isNpcTurn.value) ui.openShop()
 
     if (phase === 'combat') ui.setHandCollapsedOverride(true)
     else ui.setHandCollapsedOverride(null)
@@ -987,6 +1029,9 @@ async function copyEventLog() {
 
 <template>
   <div class="page" :class="turnTintClass">
+    <!-- NPC 回合鎖定：防止玩家誤點 -->
+    <div v-if="isNpcTurn" class="npc-overlay" />
+
     <div class="topbarWrap">
       <TopBar
         title="webChese"
@@ -1283,5 +1328,12 @@ async function copyEventLog() {
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+.npc-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  cursor: wait;
 }
 </style>

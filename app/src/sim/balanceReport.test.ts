@@ -78,9 +78,16 @@ describe('sim: balance report + history', () => {
     // 並行跑 N 場
     const tasks = Array.from({ length: N }, (_, i) => async () => {
       const enchantedBySide: Record<Side, string[]> = { red: [], black: [] }
+      // SIM_RED_MODE / SIM_BLACK_MODE 控制各方 bot 使用的權重
+      // 訓練時：兩方都用 'blend'（預設）
+      // 驗證時：red='blend' vs black='base'，驗證訓練是否真的提升
+      const redMode = (env.SIM_RED_MODE ?? 'blend') as BotContext['weightsMode']
+      const blackMode = (env.SIM_BLACK_MODE ?? 'blend') as BotContext['weightsMode']
+      const redEps = Number(env.SIM_RED_EPSILON ?? 0.2)
+      const blackEps = Number(env.SIM_BLACK_EPSILON ?? 0.2)
       const ctxBySide: Record<Side, BotContext> = {
-        red: { seed: 1000 + i * 2 },
-        black: { seed: 1001 + i * 2 },
+        red:   { seed: 1000 + i * 2, weightsMode: redMode,   epsilon: redEps },
+        black: { seed: 1001 + i * 2, weightsMode: blackMode, epsilon: blackEps },
       }
 
       const keyEvents: MatchHistory['keyEvents'] = []
@@ -182,6 +189,7 @@ describe('sim: balance report + history', () => {
           const defM = card?.stats.def.find((d) => d.key === 'magic')?.value ?? 0
           const statBudget = hp + (card?.stats.atk.value ?? 0) * 3 + (defP + defM) * 2
           return {
+            id: soulId,
             clan: card?.clan ?? '?',
             name: card?.name ?? soulId,
             base: card?.base ?? '?',
@@ -242,7 +250,7 @@ describe('sim: balance report + history', () => {
         .sort((a, b) => b.winRate - a.winRate)
 
       // JSON 輸出
-      console.log(JSON.stringify({
+      const jsonOutput = {
         meta: {
           matches: N,
           maxSteps: MAX_STEPS,
@@ -254,7 +262,20 @@ describe('sim: balance report + history', () => {
         cards: cardRowsWithDelta,
         clans: clanRows,
         historiesSample: histories.slice(0, 20)  // 只取前20場，避免檔案太大
-      }, null, 2))
+      }
+
+      const OUTPUT_FILE = env.SIM_OUTPUT_FILE
+      if (OUTPUT_FILE) {
+        // 寫入檔案（供自動化訓練腳本讀取）
+        const fsModule = await import('fs/promises')
+        const pathModule = await import('path')
+        const fullPath = pathModule.join(process.cwd(), OUTPUT_FILE)
+        await fsModule.writeFile(fullPath, JSON.stringify(jsonOutput, null, 2) + '\n')
+        process.stdout.write(`[sim] Report written: ${fullPath}\n`)
+      } else {
+        // 無檔案路徑時，輸出到 stdout
+        console.log(JSON.stringify(jsonOutput, null, 2))
+      }
     } else {
       // 非 JSON 模式 → 保持你原本的 console.table 輸出（這裡省略，可直接用你舊版的輸出部分）
       console.log('\n=== Balance Sim Report (enhanced) ===')
