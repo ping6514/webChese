@@ -35,6 +35,7 @@ export default defineComponent({
 
     selectedUnit: { type: Object as () => UnitLite | null, required: true },
     selectedEnchantSoul: { type: Object as () => EnchantSoulLite | null, required: true },
+    selectedUnitBaseImage: { type: String as () => string | undefined, required: false, default: undefined },
 
     selectedCell: { type: Object as () => Pos | null, required: true },
     selectedCellUnit: { type: Object as () => UnitLite | null, required: true },
@@ -47,26 +48,37 @@ export default defineComponent({
     bloodRitualGuard: { type: Object as () => GuardResult, required: true },
     lastEvents: { type: Array as () => string[], required: true },
   },
-  emits: ['show-soul-detail', 'revive', 'blood-ritual'],
+  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'next-phase', 'open-events'],
 })
 </script>
 
 <template>
-  <div>
-    <div class="unitCard" v-if="phase === 'necro'">
-      <div class="muted">Necro actions</div>
-      <div style="height: 8px"></div>
+  <div class="sidePanel">
+    <!-- Quick actions -->
+    <div class="quickActions">
+      <button type="button" class="actionBtn" @click="$emit('open-shop')">🛒 商店</button>
+      <button type="button" class="actionBtn" @click="$emit('open-units')">📋 單位</button>
+    </div>
+
+    <!-- Blood ritual (necro only) -->
+    <div v-if="phase === 'necro'" class="ritualBlock">
       <button
         type="button"
+        class="ritualBtn"
         @click="$emit('blood-ritual')"
         :disabled="!bloodRitualGuard.ok"
         :title="bloodRitualGuard.ok ? '' : bloodRitualGuard.reason"
       >
-        Blood Ritual (King -3 HP, Necro +1)
+        🩸 血液祭儀（帥 -3 HP，死靈術 +1）
       </button>
     </div>
 
-    <UnitInfoPanel :unit="selectedUnit" :enchant-soul="selectedEnchantSoul" @show-soul-detail="$emit('show-soul-detail', $event)" />
+    <UnitInfoPanel
+      :unit="selectedUnit"
+      :enchant-soul="selectedEnchantSoul"
+      :base-image="selectedUnitBaseImage"
+      @show-soul-detail="$emit('show-soul-detail', $event)"
+    />
 
     <CellInfoPanel
       :phase="phase"
@@ -84,7 +96,115 @@ export default defineComponent({
       @show-soul-detail="$emit('show-soul-detail', $event)"
     />
 
-    <h2>Last events</h2>
-    <pre class="events">{{ lastEvents.join('\n') }}</pre>
+    <!-- Event log -->
+    <div class="eventsBlock">
+      <div class="eventsHead">
+        <span class="eventsTitle">📜 最近事件</span>
+        <button type="button" class="eventsOpenBtn" @click="$emit('open-events')">展開</button>
+      </div>
+      <textarea class="eventsArea" readonly :value="lastEvents.slice(-20).join('\n')" />
+    </div>
   </div>
 </template>
+
+<style scoped>
+.sidePanel {
+  display: grid;
+  gap: 12px;
+}
+
+/* ── Quick actions ───────────────────────────────────────────────────── */
+.quickActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.actionBtn {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* ── Blood ritual ────────────────────────────────────────────────────── */
+.ritualBlock {
+  padding: 8px;
+  border: 1px solid rgba(255, 77, 79, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 77, 79, 0.06);
+}
+
+.ritualBtn {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid rgba(255, 77, 79, 0.4);
+  background: rgba(255, 77, 79, 0.14);
+  color: #ff9c9e;
+  transition: background 0.15s;
+  text-align: left;
+}
+.ritualBtn:not(:disabled):hover { background: rgba(255, 77, 79, 0.25); }
+.ritualBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Event log ───────────────────────────────────────────────────────── */
+.eventsBlock {
+  display: grid;
+  gap: 6px;
+}
+
+.eventsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.eventsTitle {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.65;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.eventsOpenBtn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+}
+.eventsOpenBtn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.eventsArea {
+  width: 100%;
+  height: 100px;
+  resize: none;
+  overflow: auto;
+  box-sizing: border-box;
+  white-space: pre;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+</style>

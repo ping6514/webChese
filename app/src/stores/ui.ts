@@ -10,6 +10,7 @@ type PendingConfirm = {
 type ShootPreview = {
   attackerId: string
   targetUnitId: string
+  extraTargetUnitId?: string | null
 } | null
 
 type DetailModalState = {
@@ -28,11 +29,29 @@ type InteractionMode =
       kind: 'enchant_select_unit'
       soulId: string
     }
+  | {
+      kind: 'sacrifice_select_target'
+      sourceUnitId: string
+      range: number
+    }
+  | {
+      kind: 'use_item_target_unit'
+      itemId: string
+      validUnitIds: string[]
+    }
+  | {
+      kind: 'use_item_target_corpse'
+      itemId: string
+    }
+
+type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'lagging'
 
 export const useUiStore = defineStore('ui', {
   state: () => ({
     shopOpen: false,
     allUnitsOpen: false,
+
+    connectionStatus: 'connected' as ConnectionStatus,
 
     selectedUnitId: null as string | null,
     selectedCell: null as Pos | null,
@@ -51,6 +70,9 @@ export const useUiStore = defineStore('ui', {
     } as DetailModalState,
 
     interactionMode: { kind: 'idle' } as InteractionMode,
+
+    handCollapsedUser: false as boolean,
+    handCollapsedOverride: null as boolean | null,
   }),
   actions: {
     openShop: function () {
@@ -105,8 +127,41 @@ export const useUiStore = defineStore('ui', {
     startEnchantSelectUnit: function (soulId: string) {
       this.interactionMode = { kind: 'enchant_select_unit', soulId }
     },
+
+    startSacrificeSelectTarget: function (sourceUnitId: string, range?: number) {
+      const r = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : 1
+      this.interactionMode = { kind: 'sacrifice_select_target', sourceUnitId, range: r }
+    },
+
+    startUseItemTargetUnit: function (itemId: string, validUnitIds: string[]) {
+      this.interactionMode = { kind: 'use_item_target_unit', itemId, validUnitIds }
+    },
+    startUseItemTargetCorpse: function (itemId: string) {
+      this.interactionMode = { kind: 'use_item_target_corpse', itemId }
+    },
+
     clearInteractionMode: function () {
       this.interactionMode = { kind: 'idle' }
+    },
+
+    setConnectionStatus: function (s: ConnectionStatus) {
+      this.connectionStatus = s
+    },
+
+    cycleConnectionStatus: function () {
+      const order: ConnectionStatus[] = ['connected', 'lagging', 'disconnected', 'connecting']
+      const i = order.indexOf(this.connectionStatus)
+      this.connectionStatus = order[(i + 1) % order.length] ?? 'connected'
+    },
+
+    setHandCollapsedUser: function (next: boolean) {
+      this.handCollapsedUser = !!next
+    },
+    toggleHandCollapsedUser: function () {
+      this.handCollapsedUser = !this.handCollapsedUser
+    },
+    setHandCollapsedOverride: function (next: boolean | null) {
+      this.handCollapsedOverride = next == null ? null : !!next
     },
   },
 })

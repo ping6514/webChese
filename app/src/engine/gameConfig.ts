@@ -10,6 +10,12 @@ export type GameRules = {
   incomeGold: number
   incomeMana: number
   storageToGoldRate: number
+
+  firstSide: 'red' | 'black'
+  startGoldFirst: number
+  startGoldSecond: number
+  startMana: number
+
   reviveGoldCost: number
   buySoulFromDeckGoldCost: number
   buySoulFromDisplayGoldCost: number
@@ -17,6 +23,9 @@ export type GameRules = {
   moveManaCost: number
   shootManaCost: number
   diceFixed: number
+  rngMode: 'fixed' | 'seeded'
+  matchSeed: string
+  enabledClans: string[]
 }
 
 export type PhaseActionLimits = {
@@ -44,6 +53,12 @@ export const DEFAULT_RULES: GameRules = {
   incomeGold: 4,
   incomeMana: 3,
   storageToGoldRate: 2,
+
+  firstSide: 'red',
+  startGoldFirst: 4,
+  startGoldSecond: 7,
+  startMana: 3,
+
   reviveGoldCost: 3,
   buySoulFromDeckGoldCost: 1,
   buySoulFromDisplayGoldCost: 2,
@@ -51,6 +66,9 @@ export const DEFAULT_RULES: GameRules = {
   moveManaCost: 1,
   shootManaCost: 1,
   diceFixed: 3,
+  rngMode: 'seeded',
+  matchSeed: 'default',
+  enabledClans: ['dark_moon', 'styx', 'eternal_night'],
 }
 
 export const DEFAULT_PHASE_ACTION_LIMITS: PhaseActionLimits = {

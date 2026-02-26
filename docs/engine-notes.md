@@ -102,12 +102,35 @@ Shooting execution uses a "plan" pattern:
   - enchanted soul (if any) goes to `graveyard` top
   - unit removed from `units`
 
+UI preview / confirmation (current UX):
+
+- Clicking a shootable enemy **enters shoot preview** (does not immediately dispatch `SHOOT`).
+- A draggable, inline overlay menu is rendered near the target cell:
+  - `Shoot (Enter)`
+  - `Cancel (Esc)`
+  - `Shoot Preview` (opens the large modal)
+- Multi-target effects are visualized directly on the board during preview:
+  - `貫N`: PIERCE collateral hit index
+  - `濺`: SPLASH collateral
+  - `連?` / `連`: CHAIN eligible/selected extra target
+- Clicking an empty cell during preview cancels the preview.
+
+Additional combat UX (implemented):
+
+- Sacrifice uses a **draggable board overlay** (confirm/cancel) and enters a target-selection mode.
+- The sacrifice overlay **auto-hides** while a confirm modal is open.
+
 ## 5) Effect system (souls/abilities)
 
 - Soul cards live as JSON and are loaded into a registry.
 - Effects map card abilities to effect handlers.
 - Example implemented ability:
   - `IGNORE_BLOCKING`: can override shooting line-of-sight checks for UI legality and execution.
+
+Notes (current implementation):
+
+- Several Eternal Night mechanics have been migrated from hardcoded soulId checks to ability-driven logic.
+- The engine can emit `ABILITY_TRIGGERED` events when an ability actually activates; UI uses it for ability FX.
 
 ## 6) Economy / shop / acquisition
 
@@ -141,6 +164,8 @@ All purchases push the acquired soul id into `hands[currentSide].souls`.
 - Components
   - `TopBar.vue`
   - `BoardGrid.vue`
+  - `ShootActionOverlay.vue` (draggable inline shoot confirm/cancel menu)
+  - (reused) `ShootActionOverlay.vue` is also used for sacrifice menu
   - `HandBar.vue` (wraps HandSouls + HandItems)
   - `ShopModal.vue`
   - `SidePanel.vue` (wraps UnitInfo/CellInfo/Graveyard + last events)
@@ -168,7 +193,7 @@ All purchases push the acquired soul id into `hands[currentSide].souls`.
   - shooting legality (with/without IGNORE_BLOCKING)
   - per-turn/per-unit attack limits
   - shop purchase + refill logic
-- Expand Pinia UI store to cover all UI-only state (selection/detail modals/pending confirms/shoot preview), keeping engine `GameState` deterministic.
+- Keep Pinia UI store as the home for UI-only state (selection/detail modals/pending confirms/shoot preview), keeping engine `GameState` deterministic.
 
 ## 10) Development progress (log)
 
@@ -201,6 +226,21 @@ All purchases push the acquired soul id into `hands[currentSide].souls`.
   - `ShopModal.vue` buy buttons use engine guard results.
   - `HandSouls.vue` enchant button uses engine guard result.
   - `CellInfoPanel.vue` revive button uses engine guard result.
+
+### 10.5 Shooting UX (preview + multi-target visualization)
+
+- Unified shoot interaction is now preview-first (explicit confirm/cancel).
+- Added on-board multi-target visualization for PIERCE/SPLASH/CHAIN with Chinese badges.
+- Added `ShootActionOverlay.vue` as a draggable inline menu near the target cell.
+
+### 10.6 Sacrifice UX (board overlay)
+
+- Sacrifice action is presented as a draggable overlay and uses engine guards for disabled + reason.
+
+### 10.7 Ability-triggered FX
+
+- Engine emits `ABILITY_TRIGGERED` for activations (e.g. FREE_SHOOT / IGNORE_BLOCKING / PIERCE).
+- UI renders float text + distinct purple/blue cell highlight for ability triggers.
 
 ### 10.4 Pinia UI state (UI-only single source of truth)
 

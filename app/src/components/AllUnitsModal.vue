@@ -10,6 +10,8 @@ type UnitRow = {
   hpCurrent: number
   name: string
   image?: string
+  pos: { x: number; y: number }
+  dead?: boolean
 }
 
 export default defineComponent({
@@ -22,7 +24,7 @@ export default defineComponent({
     myUnits: { type: Array as () => UnitRow[], required: true },
     enemyUnits: { type: Array as () => UnitRow[], required: true },
   },
-  emits: ['close', 'show-unit-detail'],
+  emits: ['close', 'show-unit-detail', 'select-cell'],
 })
 </script>
 
@@ -30,13 +32,23 @@ export default defineComponent({
   <div v-if="open" class="modalOverlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modalHead">
-        <div class="modalTitle">Units</div>
-        <button type="button" class="closeBtn" @click="$emit('close')">Close</button>
+        <div class="modalTitle">⚔️ 所有單位</div>
+        <button type="button" class="closeBtn" @click="$emit('close')">✕ 關閉</button>
       </div>
 
       <div class="grid">
-        <UnitListPanel :title="myTitle" :units="myUnits" @show-unit-detail="$emit('show-unit-detail', $event)" />
-        <UnitListPanel :title="enemyTitle" :units="enemyUnits" @show-unit-detail="$emit('show-unit-detail', $event)" />
+        <UnitListPanel
+          :title="myTitle"
+          :units="myUnits"
+          @show-unit-detail="$emit('show-unit-detail', $event)"
+          @select-cell="$emit('select-cell', $event)"
+        />
+        <UnitListPanel
+          :title="enemyTitle"
+          :units="enemyUnits"
+          @show-unit-detail="$emit('show-unit-detail', $event)"
+          @select-cell="$emit('select-cell', $event)"
+        />
       </div>
     </div>
   </div>
@@ -46,42 +58,56 @@ export default defineComponent({
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.55);
   display: grid;
   place-items: center;
   padding: 24px;
   z-index: 50;
+  backdrop-filter: blur(3px);
 }
 
 .modal {
   width: min(1000px, 96vw);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.92);
-  padding: 16px;
+  max-height: min(90vh, 860px);
+  overflow: auto;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(16, 18, 32, 0.98);
+  padding: 20px;
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6);
 }
 
 .modalHead {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .modalTitle {
-  font-weight: 700;
-  font-size: 16px;
+  font-weight: 900;
+  font-size: 20px;
 }
 
 .closeBtn {
-  padding: 6px 10px;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.15s;
 }
+.closeBtn:hover { background: rgba(255, 255, 255, 0.15); }
 
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 20px;
   align-items: start;
 }
 </style>

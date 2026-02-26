@@ -48,6 +48,12 @@ describe('shooting: elephant can shoot across river', () => {
         necroActionsUsed: 0,
         bloodRitualUsed: false,
         necroBonusActions: 0,
+        freeShootBonus: 0,
+        enchantGoldDiscount: 0,
+        itemNecroBonus: 0,
+        lastStandContractBonus: 0,
+        lastStandNoEnchantUnitIds: [],
+        darkMoonScopeActive: false,
       },
       resources: {
         ...s0.resources,

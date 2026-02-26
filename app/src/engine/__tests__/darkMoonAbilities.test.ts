@@ -21,7 +21,7 @@ function enchantUnit(s: GameState, unitId: string, soulId: string) {
 
 describe('dark moon missing abilities', () => {
   test('IGNORE_PATH_BLOCKING(for MOVE) allows knight to move even if leg is blocked', () => {
-    const base = createInitialState({ rules: { diceFixed: 3 } as any })
+    const base = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
     base.turn.phase = 'combat'
     base.turn.side = 'red'
 
@@ -42,7 +42,7 @@ describe('dark moon missing abilities', () => {
   })
 
   test('MOVE_THEN_SHOOT allows one extra shot after moving (perTurn=1)', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -91,7 +91,7 @@ describe('dark moon missing abilities', () => {
   })
 
   test('COUNTER_ON_KING_DAMAGED damages attacker when king takes damage', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 

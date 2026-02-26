@@ -1,7 +1,8 @@
 import type { Phase, PieceBase, Pos, Side } from './types'
 import { listSoulCards } from './cards'
 import { listItemDeckIds } from './items'
-import { DEFAULT_CONFIG, type GameConfig } from './gameConfig'
+import { DEFAULT_CONFIG, type GameConfig, type GameRules } from './gameConfig'
+import { createRngState, shuffle, type RngState } from '../serverSim'
 
 export type StatKey = string
 
@@ -46,6 +47,7 @@ export type GameState = {
   units: Record<string, Unit>
   corpsesByPos: Record<string, CorpseEntry[]>
   graveyard: Record<Side, string[]>
+  rngState: RngState | null
   soulDeckByBase: Partial<Record<PieceBase, string[]>>
   displayByBase: Partial<Record<PieceBase, string | null>>
   itemDeck: string[]
@@ -54,6 +56,17 @@ export type GameState = {
   turn: {
     side: Side
     phase: Phase
+  }
+  status: {
+    kingInvincibleSide: Side | null
+    sacrificeBuffByUnitId: Record<
+      string,
+      {
+        ignoreBlockingAll?: true
+        chainRadius?: number
+        damageBonusPerCorpsesCap?: number
+      }
+    >
   }
   turnFlags: {
     shotUsed: Record<string, true>
@@ -66,6 +79,12 @@ export type GameState = {
     necroActionsUsed: number
     bloodRitualUsed: boolean
     necroBonusActions: number
+    freeShootBonus: number
+    enchantGoldDiscount: number
+    itemNecroBonus: number
+    lastStandContractBonus: number
+    lastStandNoEnchantUnitIds: string[]
+    darkMoonScopeActive: boolean
   }
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
@@ -80,18 +99,7 @@ export type GameState = {
     necroActionsPerTurn: number
     soulReturnPerTurn: number
   }
-  rules: {
-    incomeGold: number
-    incomeMana: number
-    storageToGoldRate: number
-    reviveGoldCost: number
-    buySoulFromDeckGoldCost: number
-    buySoulFromDisplayGoldCost: number
-    buySoulFromEnemyGraveyardGoldCost: number
-    moveManaCost: number
-    shootManaCost: number
-    diceFixed: number
-  }
+  rules: GameRules
 }
 
 export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: number; def: KeyValueStat[] }> = {
@@ -102,6 +110,20 @@ export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: n
   knight: { hp: 10, atkKey: 'phys', atk: 2, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }] },
   cannon: { hp: 10, atkKey: 'phys', atk: 2, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 1 }] },
   soldier: { hp: 8, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
+}
+
+export const REVIVE_GOLD_COST_BY_BASE: Record<PieceBase, number> = {
+  king: 999,
+  advisor: 3,
+  elephant: 3,
+  rook: 5,
+  knight: 4,
+  cannon: 5,
+  soldier: 2,
+}
+
+export function getReviveGoldCost(base: PieceBase): number {
+  return REVIVE_GOLD_COST_BY_BASE[base] ?? 3
 }
 
 function makeUnitId(side: Side, base: PieceBase, index: number): string {
@@ -179,25 +201,38 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
 
   const rules = merged.rules
 
-  const redStart: Resources = {
-    gold: 999,
-    mana: 999,
+  const rngState: RngState | null = rules.rngMode === 'seeded' ? createRngState(String(rules.matchSeed ?? 'default')) : null
+
+  const firstSide: Side = rules.firstSide === 'black' ? 'black' : 'red'
+
+  const firstStart: Resources = {
+    gold: rules.startGoldFirst,
+    mana: rules.startMana,
     storageMana: 0,
   }
 
-  const blackStart: Resources = {
-    gold: 999,
-    mana: 999,
+  const secondStart: Resources = {
+    gold: rules.startGoldSecond,
+    mana: rules.startMana,
     storageMana: 0,
   }
+
+  const redStart: Resources = firstSide === 'red' ? firstStart : secondStart
+  const blackStart: Resources = firstSide === 'black' ? firstStart : secondStart
 
   const bases: PieceBase[] = ['king', 'advisor', 'elephant', 'rook', 'knight', 'cannon', 'soldier']
   const deckByBase: Partial<Record<PieceBase, string[]>> = {}
   const displayByBase: Partial<Record<PieceBase, string | null>> = {}
 
-  const all = listSoulCards().slice().sort((a, b) => a.id.localeCompare(b.id))
+  const enabled = Array.isArray((rules as any).enabledClans) ? (rules as any).enabledClans.map(String) : []
+  const enabledSet = enabled.length > 0 ? new Set(enabled) : null
+  const all = listSoulCards()
+    .filter((c) => !enabledSet || enabledSet.has(String((c as any).clan ?? '')))
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
   for (const b of bases) {
-    deckByBase[b] = all.filter((c) => c.base === b).map((c) => c.id)
+    const deck = all.filter((c) => c.base === b).map((c) => c.id)
+    deckByBase[b] = rngState ? shuffle(deck, rngState) : deck
     displayByBase[b] = null
   }
 
@@ -210,7 +245,10 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
     }
   }
 
-  const itemDeck = listItemDeckIds()
+  const itemDeck = (() => {
+    const base = listItemDeckIds()
+    return rngState ? shuffle(base, rngState) : base
+  })()
 
   const itemDisplay: Array<string | null> = [null, null, null]
   for (let i = 0; i < itemDisplay.length; i++) {
@@ -224,14 +262,19 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       red: [],
       black: [],
     },
+    rngState,
     soulDeckByBase: deckByBase,
     displayByBase,
     itemDeck,
     itemDisplay,
     itemDiscard: [],
     turn: {
-      side: 'red',
+      side: firstSide,
       phase: 'buy',
+    },
+    status: {
+      kingInvincibleSide: null,
+      sacrificeBuffByUnitId: {},
     },
     turnFlags: {
       shotUsed: {},
@@ -244,6 +287,12 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       necroActionsUsed: 0,
       bloodRitualUsed: false,
       necroBonusActions: 0,
+      freeShootBonus: 0,
+      enchantGoldDiscount: 0,
+      itemNecroBonus: 0,
+      lastStandContractBonus: 0,
+      lastStandNoEnchantUnitIds: [],
+      darkMoonScopeActive: false,
     },
     hands: {
       red: { souls: [], items: [] },

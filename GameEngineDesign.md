@@ -5,7 +5,7 @@ Implement a deterministic, testable game engine for Dead NecroChess that is UI/n
 
 - The UI (Vue/Pinia) never mutates game state directly.
 - All changes happen via `dispatch(action)` into the engine.
-- The engine returns `{ nextState, events }`.
+- The engine reducer returns `{ ok, state, events }` (or `{ ok: false, error }`).
 
 ## Layering
 ### Layer 0: Board + Units
@@ -65,7 +65,7 @@ All player intents are Actions; engine validates legality.
 
 Minimal set:
 - `MOVE { unitId, to }`
-- `SHOOT { unitId, target }` (target can be a cell or a direction; decide in implementation)
+- `SHOOT { attackerId, targetUnitId, extraTargetUnitId?: string | null }`
 - `END_PHASE {}` / `END_TURN {}`
 
 Later:
@@ -74,7 +74,7 @@ Later:
 - `BUY_*`, `USE_ITEM_*`
 
 ## Engine API
-- `reduce(state, action, deps) -> { state, events } | { error }`
+- `reduce(state, action) -> { ok, state, events } | { ok: false, error }`
 
 `deps` includes deterministic services:
 - `rng` (optional in MVP)
@@ -88,6 +88,7 @@ Examples:
 - `DAMAGE_DEALT { attackerId, targetId, amount }`
 - `UNIT_KILLED { unitId, pos }`
 - `SOUL_DETACHED { unitId, soulId, to: "graveyardTop" }`
+- `ABILITY_TRIGGERED { unitId, abilityType, targetUnitIds?, text? }`
 
 ## Hooks (Timing Points)
 Effects attach to these hooks.
@@ -112,7 +113,7 @@ To avoid hardcoding `canShoot` for every new clan/item, model shooting as a pipe
 
 ### Suggested Types
 - `ShootIntent`
-  - `{ attackerId, targetUnitId }` (current)
+  - `{ attackerId, targetUnitId, extraTargetUnitId?: string | null }` (current)
   - later: `{ attackerId, targetPos }` / `{ attackerId, ray }`
 
 - `ShootContext`
@@ -133,6 +134,11 @@ To avoid hardcoding `canShoot` for every new clan/item, model shooting as a pipe
   - `targetUnitId`
   - `damageProfile: { atkKey, atkValue, dice }` (or ref to attacker stats)
   - `meta` (e.g. hopIndex, pierceIndex)
+
+Implementation note (current codebase):
+
+- `buildShotPlan(...)` constructs a plan and effect handlers can expand it.
+- A separate `buildShotPreview(...)` mirrors the plan/effect intent for UI preview (damage + multi-target ids).
 
 ### Pipeline Hooks
 These hooks should be called in order for each shooting action.
@@ -185,6 +191,11 @@ Examples:
 - `CHAIN { hops: 1, perTurn: 1 }`
 - `PIERCE { count: 2 }`
 - `AURA_THRESHOLD { metric: "corpses"|"soldiers"|"clanCount", tiers: [...] }`
+
+Implementation note (current direction):
+
+- Abilities are defined on soul cards as data (`abilities` array) and resolved by engine effect handlers.
+- UI FX should be driven by engine events (e.g. `ABILITY_TRIGGERED`) to keep client/server replay deterministic.
 
 ## RNG Strategy (Deferred in single-machine MVP)
 MVP can use:

@@ -9,6 +9,12 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sim:balance": "vitest run src/sim/balanceReport.test.ts",
+    "sim:balance:json": "SIM_OUTPUT=json vitest run src/sim/balanceReport.test.ts",
+    "sim:update": "node src/sim/updateDynamicWeights.js report_auto.json src/sim/botWeights.ts",
+    "train": "node scripts/train.mjs",
+    "train:3": "node scripts/train.mjs 3",
+    "train:5": "node scripts/train.mjs 5",
     "electron:dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite --port 5173\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder"
   },

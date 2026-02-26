@@ -1,6 +1,7 @@
 import type { Action } from './actions'
 import type { GameState } from './state'
 import { getUnitAt } from './state'
+import { getReviveGoldCost } from './state'
 import type { PieceBase, Pos } from './types'
 import { isOnBoard } from './types'
 import { isLegalMove } from './legalMoves'
@@ -9,6 +10,53 @@ import { buildShotPlan } from './shotPlan'
 import { getItemCard } from './items'
 
 export type GuardResult = { ok: true } | { ok: false; reason: string }
+
+const EN_SACRIFICE_SELF_SOUL_IDS = new Set(['eternal_night_advisor_guhu', 'eternal_night_advisor_hunshi'])
+
+export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitId: string, range?: number): GuardResult {
+  if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+
+  const src = state.units[sourceUnitId]
+  const tgt = state.units[targetUnitId]
+  if (!src || !tgt) return fail('Unit not found')
+  const srcSoulId = src.enchant?.soulId ?? null
+  const srcCard = srcSoulId ? getSoulCard(srcSoulId) : null
+  if (!srcSoulId || !srcCard) return fail('Source has no sacrifice ability')
+  if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('Source has no sacrifice ability')
+  const sacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
+  const hasSacrifice = !!sacAb || EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)
+  if (!hasSacrifice) return fail('Source has no sacrifice ability')
+
+  if (state.turnFlags.shotUsed?.[src.id]) return fail('Already shot this turn')
+  if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('Must move before sacrifice')
+
+  // Advisors: sacrifice self only.
+  if (EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)) {
+    if (src.id !== tgt.id) return fail('Must sacrifice self')
+  }
+
+  // Rook/Knight: sacrifice allied unit (not self).
+  if (sacAb) {
+    if (src.id === tgt.id) return fail('Cannot sacrifice self')
+  }
+  if (src.side !== state.turn.side) return fail('Not your turn')
+  if (tgt.side !== state.turn.side) return fail('Cannot sacrifice enemy')
+  if (tgt.base === 'king') return fail('Cannot sacrifice king')
+
+  const r = (() => {
+    const r0 = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : null
+    if (r0 != null) return r0
+    if (sacAb) {
+      const rr = Number((sacAb as any).range ?? 0)
+      if (Number.isFinite(rr) && rr > 0) return Math.floor(rr)
+    }
+    return 1
+  })()
+  const dist = Math.max(Math.abs(src.pos.x - tgt.pos.x), Math.abs(src.pos.y - tgt.pos.y))
+  if (dist > r) return fail('Out of range')
+
+  return ok()
+}
 
 export function canBuyItemFromDisplay(state: GameState, slot: number): GuardResult {
   if (state.turn.phase !== 'buy') return fail('Not in buy phase')
@@ -57,7 +105,7 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
     case 'MOVE':
       return canMove(state, action.unitId, action.to)
     case 'SHOOT':
-      return canShootAction(state, action.attackerId, action.targetUnitId)
+      return canShootAction(state, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
     case 'ENCHANT':
       return canEnchant(state, action.unitId, action.soulId)
     case 'REVIVE':
@@ -76,6 +124,10 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
       return canBuyItemFromDisplay(state, action.slot)
     case 'DISCARD_ITEM_FROM_HAND':
       return canDiscardItemFromHand(state, action.itemId)
+    case 'USE_ITEM_FROM_HAND':
+      return canUseItemFromHand(state, action.itemId)
+    case 'SACRIFICE':
+      return canSacrifice(state, action.sourceUnitId, action.targetUnitId, action.range)
     case 'NEXT_PHASE':
       return ok()
     default: {
@@ -86,7 +138,19 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
 }
 
 function necroActionsPerTurn(state: GameState): number {
-  return state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0)
+  return state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0) + (state.turnFlags.itemNecroBonus ?? 0)
+}
+
+export function canUseItemFromHand(state: GameState, itemId: string): GuardResult {
+  const hand = state.hands[state.turn.side].items
+  if (!hand.includes(itemId)) return fail('Item not in hand')
+  const item = getItemCard(itemId)
+  if (!item) return fail('Item not found')
+  const timing = item.timing
+  if (timing === 'buy' && state.turn.phase !== 'buy') return fail('Must be in buy phase')
+  if (timing === 'necro' && state.turn.phase !== 'necro') return fail('Must be in necro phase')
+  if (timing === 'combat' && state.turn.phase !== 'combat') return fail('Must be in combat phase')
+  return ok()
 }
 
 export function canMove(state: GameState, unitId: string, to: Pos): GuardResult {
@@ -104,7 +168,7 @@ export function canMove(state: GameState, unitId: string, to: Pos): GuardResult 
   return ok()
 }
 
-export function canShootAction(state: GameState, attackerId: string, targetUnitId: string): GuardResult {
+export function canShootAction(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): GuardResult {
   if (state.turn.phase !== 'combat') return fail('Not in combat phase')
 
   const attacker = state.units[attackerId]
@@ -112,7 +176,19 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
   if (!attacker || !target) return fail('Unit not found')
   if (attacker.side !== state.turn.side) return fail('Not your turn')
 
-  const planRes = buildShotPlan(state, attackerId, targetUnitId)
+  // 魂能超載: 若有免費射擊，暫時提升魔力以通過消耗檢查
+  const stateForCheck = (state.turnFlags.freeShootBonus ?? 0) > 0 ? {
+    ...state,
+    resources: {
+      ...state.resources,
+      [state.turn.side]: {
+        ...state.resources[state.turn.side],
+        mana: Math.max(state.resources[state.turn.side].mana, 9999),
+      },
+    },
+  } : state
+
+  const planRes = buildShotPlan(stateForCheck, attackerId, targetUnitId, extraTargetUnitId)
   return planRes.ok ? ok() : fail(planRes.error)
 }
 
@@ -125,12 +201,20 @@ export function canEnchant(state: GameState, unitId: string, soulId: string): Gu
   if (unit.side !== state.turn.side) return fail('Not your turn')
   if (unit.enchant) return fail('Unit already enchanted')
 
+  // 死戰契約：本回合由契約復活的單位不可附魔
+  if ((state.turnFlags.lastStandNoEnchantUnitIds ?? []).includes(unitId)) {
+    return fail('此單位本回合不可附魔（死戰契約）')
+  }
+
   const card = getSoulCard(soulId)
   if (!card) return fail('Soul card not found')
   if (card.base !== unit.base) return fail('Soul base mismatch')
 
   const r = state.resources[state.turn.side]
-  if (r.gold < card.costGold) return fail('Not enough gold')
+  // 冥魂灌注：附魔成本折扣
+  const discount = state.turnFlags.enchantGoldDiscount ?? 0
+  const effectiveCost = Math.max(0, card.costGold - discount)
+  if (r.gold < effectiveCost) return fail('Not enough gold')
 
   const hand = state.hands[state.turn.side].souls
   if (!hand.includes(soulId)) return fail('Soul not in hand')
@@ -140,18 +224,21 @@ export function canEnchant(state: GameState, unitId: string, soulId: string): Gu
 
 export function canRevive(state: GameState, pos: Pos): GuardResult {
   if (state.turn.phase !== 'necro') return fail('Not in necro phase')
-  if (state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) return fail('No necro actions left this turn')
+  // 死戰契約：若有額外復活次數，不受死靈術次數限制
+  const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
+  if (!usingContract && state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) return fail('No necro actions left this turn')
   const posKey = `${pos.x},${pos.y}`
   const stack = state.corpsesByPos[posKey]
   if (!stack || stack.length === 0) return fail('No corpses here')
   if (getUnitAt(state, pos)) return fail('Target position occupied')
 
-  const r = state.resources[state.turn.side]
-  if (r.gold < state.rules.reviveGoldCost) return fail('Not enough gold')
-
   const corpse = stack[stack.length - 1]
   if (!corpse) return fail('No corpses here')
   if (corpse.ownerSide !== state.turn.side) return fail('Not your corpse')
+
+  const cost = getReviveGoldCost(corpse.base)
+  const r = state.resources[state.turn.side]
+  if (r.gold < cost) return fail('Not enough gold')
 
   return ok()
 }

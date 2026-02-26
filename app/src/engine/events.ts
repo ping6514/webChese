@@ -42,6 +42,14 @@ export type DamageDealtEvent = {
   amount: number
 }
 
+export type UnitHpChangedEvent = {
+  type: 'UNIT_HP_CHANGED'
+  unitId: string
+  from: number
+  to: number
+  reason: string
+}
+
 export type UnitKilledEvent = {
   type: 'UNIT_KILLED'
   unitId: string
@@ -53,11 +61,27 @@ export type EnchantedEvent = {
   soulId: string
 }
 
+export type AbilityTriggeredEvent = {
+  type: 'ABILITY_TRIGGERED'
+  unitId: string
+  abilityType: string
+  targetUnitIds?: string[]
+  text?: string
+}
+
 export type RevivedEvent = {
   type: 'REVIVED'
   unitId: string
   pos: { x: number; y: number }
   soulId?: string
+}
+
+export type ItemUsedEvent = {
+  type: 'ITEM_USED'
+  side: string
+  itemId: string
+  itemName: string
+  targetUnitId?: string
 }
 
 export type Event =
@@ -67,6 +91,9 @@ export type Event =
   | ShotFiredEvent
   | DiceRolledEvent
   | DamageDealtEvent
+  | UnitHpChangedEvent
   | UnitKilledEvent
   | EnchantedEvent
   | RevivedEvent
+  | AbilityTriggeredEvent
+  | ItemUsedEvent

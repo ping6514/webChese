@@ -1,14 +1,15 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
-import type { GameState } from '../engine'
-import type { PieceBase } from '../engine'
-import type { SoulCard } from '../engine'
-import type { GuardResult } from '../engine'
+import type { GameState, PieceBase, SoulCard, GuardResult } from '../engine'
 
 type UnitLite = {
   id: string
   side: 'red' | 'black'
   base: PieceBase
+}
+
+const BASE_LABEL: Record<string, string> = {
+  king: '帥', advisor: '仕', elephant: '象', rook: '車', knight: '馬', cannon: '砲', soldier: '卒',
 }
 
 export default defineComponent({
@@ -19,20 +20,18 @@ export default defineComponent({
     selectedSoulId: { type: String, required: true },
     selectedUnit: { type: Object as () => UnitLite | null, required: true },
     enchantGuard: { type: Object as () => GuardResult, required: true },
-    returnGuards: {
-      type: Object as () => Partial<Record<string, GuardResult>>,
-      required: true,
-    },
-    // Drag uses this mime type in BoardGrid drop handler.
+    returnGuards: { type: Object as () => Partial<Record<string, GuardResult>>, required: true },
     dragMime: { type: String, required: false, default: 'application/x-soul-id' },
   },
   emits: ['select', 'dragstart', 'dragend', 'enchant', 'return'],
   methods: {
-    getReturnTitle(soulId: string): string {
+    baseLabel(b: string) { return BASE_LABEL[b] ?? b },
+    returnTitle(soulId: string) {
       const g = this.returnGuards[soulId]
-      if (!g) return ''
-      if (g.ok) return ''
-      return g.reason
+      return g && !g.ok ? g.reason : ''
+    },
+    isDisabled(c: SoulCard) {
+      return this.phase === 'necro' && this.selectedUnit && c.base !== this.selectedUnit.base
     },
   },
 })
@@ -40,173 +39,172 @@ export default defineComponent({
 
 <template>
   <div class="handBlock">
-    <div class="handTitle">Souls hand</div>
-    <div class="handSoulBar">
-      <div v-if="cards.length === 0" class="handEmpty muted">(empty)</div>
-      <button
+    <div v-if="cards.length === 0" class="handEmpty">手牌為空</div>
+    <div v-else class="cardRow">
+      <div
         v-for="c in cards"
         :key="c.id"
-        type="button"
-        class="soulBtn handSoulCard"
-        :class="{ selected: selectedSoulId === c.id, disabled: selectedUnit && c.base !== selectedUnit.base }"
-        draggable="true"
-        @dragstart="$emit('dragstart', $event, c.id)"
+        class="soulCard"
+        :class="{ selected: selectedSoulId === c.id, dimmed: isDisabled(c) }"
+        :draggable="phase === 'necro'"
+        @dragstart="phase === 'necro' && $emit('dragstart', $event, c.id)"
         @dragend="$emit('dragend', $event, c.id)"
         @click="$emit('select', c.id)"
       >
-        <div class="metaTop mono">{{ c.base }} | cost {{ c.costGold }}G</div>
-        <div class="soulName">{{ c.name }}</div>
-        <img v-if="c.image" class="thumb" :src="c.image" alt="" />
-        <div v-else class="thumbNo mono">no img</div>
+        <!-- Top meta chips -->
+        <div class="metaRow">
+          <span class="baseChip">{{ baseLabel(c.base) }}</span>
+          <span class="costChip">{{ c.costGold }}G</span>
+        </div>
 
-        <div v-if="phase === 'buy'" class="soulActions" @click.stop>
+        <!-- Image -->
+        <img v-if="c.image" class="cardImg" :src="c.image" alt="" />
+        <div v-else class="cardImgEmpty">🃏</div>
+
+        <!-- Name -->
+        <div class="cardName">{{ c.name }}</div>
+
+        <!-- Return action (buy phase) -->
+        <div v-if="phase === 'buy'" class="actions" @click.stop>
           <button
             type="button"
-            class="miniBtn"
+            class="returnBtn"
             :disabled="!(returnGuards[c.id]?.ok ?? false)"
-            :title="getReturnTitle(c.id)"
+            :title="returnTitle(c.id)"
             @click="$emit('return', c.id)"
-          >
-            Return
-          </button>
+          >↩ 歸還</button>
         </div>
-      </button>
-    </div>
-
-    <div class="enchantRow">
-      <button
-        type="button"
-        :disabled="!enchantGuard.ok"
-        :title="enchantGuard.ok ? '' : enchantGuard.reason"
-        @click="$emit('enchant')"
-      >
-        Enchant selected unit
-      </button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .handBlock {
-  display: grid;
-  gap: 8px;
+  min-height: 40px;
 }
 
-.handTitle {
-  font-size: 12px;
-  opacity: 0.85;
+.handEmpty {
+  font-size: 13px;
+  opacity: 0.4;
+  padding: 12px 0;
+  text-align: center;
 }
 
-.handSoulBar {
+/* ── Card row ────────────────────────────────────────────────────────── */
+.cardRow {
   display: flex;
   gap: 10px;
   overflow-x: auto;
-  padding-bottom: 6px;
+  padding-bottom: 4px;
 }
 
-.handSoulCard {
+.soulCard {
   flex: 0 0 auto;
-  min-width: 180px;
+  width: 150px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  display: grid;
+  gap: 7px;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
 }
 
-.metaTop {
-  font-size: 12px;
-  opacity: 0.85;
+.soulCard:hover {
+  border-color: rgba(145, 202, 255, 0.5);
+  background: rgba(145, 202, 255, 0.08);
 }
 
-.thumb {
+.soulCard.selected {
+  border-color: rgba(145, 202, 255, 0.95);
+  background: rgba(145, 202, 255, 0.14);
+  box-shadow: 0 0 12px rgba(145, 202, 255, 0.25);
+}
+
+.soulCard.dimmed {
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+/* ── Meta row ────────────────────────────────────────────────────────── */
+.metaRow {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.baseChip {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.costChip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(232, 208, 112, 0.15);
+  border: 1px solid rgba(232, 208, 112, 0.3);
+  color: #e8d070;
+  margin-left: auto;
+}
+
+/* ── Image ───────────────────────────────────────────────────────────── */
+.cardImg {
   width: 100%;
-  height: 140px;
+  height: 130px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.thumbNo {
+.cardImgEmpty {
   width: 100%;
-  height: 140px;
+  height: 130px;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
   display: grid;
   place-items: center;
-  opacity: 0.8;
-  font-size: 11px;
+  font-size: 32px;
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.soulBtn {
-  text-align: left;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.22);
+/* ── Name ────────────────────────────────────────────────────────────── */
+.cardName {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-all;
   color: rgba(255, 255, 255, 0.92);
 }
 
-.soulBtn:hover {
-  border-color: rgba(145, 202, 255, 0.55);
+/* ── Actions ─────────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
-.soulBtn.selected {
-  border-color: rgba(145, 202, 255, 0.95);
-  background: rgba(145, 202, 255, 0.12);
-}
-
-.soulBtn.disabled {
-  opacity: 0.5;
-}
-
-.soulTop {
-  display: grid;
-  gap: 2px;
-  margin-bottom: 6px;
-}
-
-.soulName {
+.returnBtn {
+  font-size: 11px;
   font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.12s;
 }
-
-.soulMeta {
-  opacity: 0.85;
-  font-size: 12px;
+.returnBtn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.95);
 }
-
-.soulStats {
-  font-size: 12px;
-  opacity: 0.95;
-  margin-bottom: 6px;
-}
-
-.soulText {
-  font-size: 12px;
-  line-height: 1.35;
-  opacity: 0.85;
-}
-
-.soulActions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 8px;
-}
-
-.miniBtn {
-  padding: 6px 10px;
-  font-size: 12px;
-}
-
-.enchantRow {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.handEmpty {
-  font-size: 12px;
-}
-
-.muted {
-  opacity: 0.75;
-}
-
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-}
+.returnBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 </style>

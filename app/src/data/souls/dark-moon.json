@@ -90,7 +90,7 @@
       { "type": "CROSS_RIVER" },
       { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE" }
     ],
-    "text": "【越境】：執行「移動」時忽略所有路徑阻擋（不被「拐馬腳」）。"
+    "text": "執行「移動」時忽略所有路徑阻擋（永遠不會「拐馬腳」）。"
   },
   {
     "id": "dark_moon_cannon_yehua",
@@ -130,9 +130,9 @@
     },
     "abilities": [
       { "type": "CROSS_RIVER" },
-      { "type": "DAMAGE_BONUS", "amount": 1 }
+      { "type": "DAMAGE_BONUS", "amount": 2 }
     ],
-    "text": "【越境】：射擊傷害 +1。"
+    "text": "【越境】：射擊傷害 +2。"
   },
   {
     "id": "dark_moon_advisor_yeji",
@@ -181,7 +181,7 @@
       ]
     },
     "abilities": [
-      { "type": "COUNTER_ON_KING_DAMAGED", "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 } , "perTurn": 1 }
+      { "type": "COUNTER_ON_KING_DAMAGED", "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 }, "perTurn": 1 }
     ],
     "text": "【反擊】：若「帥」受到傷害，影姬立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。"
   },
@@ -201,10 +201,15 @@
       ]
     },
     "abilities": [
-      { "type": "RESONANCE", "need": 4 },
-      { "type": "AURA_DAMAGE_BONUS", "amount": 1, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" }
+      { "type": "RESONANCE", "need": 3 },
+      { "type": "AURA_DAMAGE_BONUS", "amount": 1, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" },
+      {
+        "type": "AURA_HP_REGEN_ON_KILL",
+        "amount": 1,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
+      }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 4，所有己方「越境」單位傷害 +1。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +1。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 1 點 HP。"
   },
   {
     "id": "dark_moon_elephant_youji",
@@ -222,7 +227,7 @@
       ]
     },
     "abilities": [
-      { "type": "RESONANCE", "need": 4 },
+      { "type": "RESONANCE", "need": 3 },
       {
         "type": "AURA_IGNORE_BLOCKING",
         "count": 1,
@@ -230,6 +235,6 @@
         "when": { "type": "RESONANCE_ACTIVE" }
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 4，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。"
   }
 ]

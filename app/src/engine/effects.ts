@@ -1,14 +1,17 @@
 import type { GameState } from './state'
+import type { Event } from './events'
 import { getSoulCard } from './cards'
-import { getDefValue } from './stats'
+import { countCorpses } from './corpses'
 
 export type ShootValidateContext = {
   state: GameState
   attackerId: string
   targetUnitId: string
+  events?: Event[]
   shootRules: {
     ignoreBlockingCount: number
     ignoreBlockingAll: boolean
+    manaCostOverride?: number
   }
 }
 
@@ -16,6 +19,8 @@ export type ShootPlanContext = {
   state: GameState
   attackerId: string
   targetUnitId: string
+  extraTargetUnitId?: string | null
+  events?: Event[]
 }
 
 export type ShootValidationResult = { ok: true } | { ok: false; error: string }
@@ -57,6 +62,54 @@ function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): nu
   return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
 }
 
+function countBetweenOrthogonal(state: GameState, a: { x: number; y: number }, b: { x: number; y: number }): number | null {
+  if (a.x !== b.x && a.y !== b.y) return null
+  let count = 0
+  if (a.x === b.x) {
+    const x = a.x
+    const y1 = Math.min(a.y, b.y)
+    const y2 = Math.max(a.y, b.y)
+    for (let y = y1 + 1; y <= y2 - 1; y++) {
+      if (Object.values(state.units).some((u) => u.pos.x === x && u.pos.y === y)) count++
+    }
+  } else {
+    const y = a.y
+    const x1 = Math.min(a.x, b.x)
+    const x2 = Math.max(a.x, b.x)
+    for (let x = x1 + 1; x <= x2 - 1; x++) {
+      if (Object.values(state.units).some((u) => u.pos.x === x && u.pos.y === y)) count++
+    }
+  }
+  return count
+}
+
+function firstUnitBetweenOrthogonal(state: GameState, a: { x: number; y: number }, b: { x: number; y: number }): string | null {
+  if (a.x !== b.x && a.y !== b.y) return null
+  if (a.x === b.x) {
+    const x = a.x
+    const y1 = Math.min(a.y, b.y)
+    const y2 = Math.max(a.y, b.y)
+    for (let y = y1 + 1; y <= y2 - 1; y++) {
+      const found = Object.values(state.units).find((u) => u.pos.x === x && u.pos.y === y)
+      if (found) return found.id
+    }
+    return null
+  }
+  const y = a.y
+  const x1 = Math.min(a.x, b.x)
+  const x2 = Math.max(a.x, b.x)
+  for (let x = x1 + 1; x <= x2 - 1; x++) {
+    const found = Object.values(state.units).find((u) => u.pos.x === x && u.pos.y === y)
+    if (found) return found.id
+  }
+  return null
+}
+
+function abilityUsedCount(state: GameState, unitId: string, abilityType: string): number {
+  const key = abilityUseKey(unitId, abilityType)
+  return Number(state.turnFlags.abilityUsed?.[key] ?? 0)
+}
+
 function enemiesWithinRangeGte(state: GameState, sourceUnitId: string, range: number, count: number): boolean {
   const src = state.units[sourceUnitId]
   if (!src) return false
@@ -66,47 +119,6 @@ function enemiesWithinRangeGte(state: GameState, sourceUnitId: string, range: nu
     if (chebyshev(u.pos, src.pos) <= range) n++
   }
   return n >= count
-}
-
-function getDamageBonusForAttacker(state: GameState, attackerId: string): number {
-  const u = state.units[attackerId]
-  if (!u) return 0
-  const soulId = u.enchant?.soulId
-  if (!soulId) return 0
-  const card = getSoulCard(soulId)
-  if (!card) return 0
-
-  const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-  if (hasCrossRiver && !crossedRiver(u.side, u.pos.y)) return 0
-
-  let bonus = 0
-  for (const ab of card.abilities) {
-    if (ab.type !== 'DAMAGE_BONUS') continue
-    const amount = Number((ab as any).amount ?? 0)
-    if (Number.isFinite(amount) && amount > 0) bonus += amount
-  }
-
-  // AURA_DAMAGE_BONUS: from allied aura units when conditions match.
-  for (const auraUnit of Object.values(state.units)) {
-    if (auraUnit.side !== u.side) continue
-    const auraSoulId = auraUnit.enchant?.soulId
-    if (!auraSoulId) continue
-    const auraCard = getSoulCard(auraSoulId)
-    if (!auraCard) continue
-
-    for (const ab of auraCard.abilities) {
-      if (ab.type !== 'AURA_DAMAGE_BONUS') continue
-      if (!auraAppliesToAttacker(state, auraUnit.id, attackerId, (ab as any).when, auraCard.clan)) continue
-
-      const forKey = String((ab as any).for ?? '')
-      if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(u.side, u.pos.y)) continue
-
-      const amount = Number((ab as any).amount ?? 0)
-      if (Number.isFinite(amount) && amount > 0) bonus += amount
-    }
-  }
-
-  return bonus
 }
 
 function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
@@ -162,6 +174,42 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
 
     const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
 
+    // Eternal Night: corpse-threshold abilities (MVP)
+    if (card.clan === 'eternal_night') {
+      // Eternal Night: Sacrifice buffs (B)
+      handlers.push({
+        onBeforeShootValidate: (ctx) => {
+          if (ctx.attackerId !== u.id) return
+          const buff = ctx.state.status.sacrificeBuffByUnitId?.[u.id]
+          if (!buff) return
+          if (buff.ignoreBlockingAll) {
+            ctx.shootRules.ignoreBlockingAll = true
+          }
+        },
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+          const buff = ctx.state.status.sacrificeBuffByUnitId?.[u.id]
+          if (!buff) return
+
+          const radius = Number(buff.chainRadius ?? 0)
+          if (!(Number.isFinite(radius) && radius > 0)) return
+
+          // Allow chain shot if extra target is provided (radius around main target).
+          const extraId = ctx.extraTargetUnitId
+          if (!extraId) return
+          if (extraId === ctx.targetUnitId) return
+          const mainTarget = ctx.state.units[ctx.targetUnitId]
+          const extraTarget = ctx.state.units[extraId]
+          const attacker = ctx.state.units[ctx.attackerId]
+          if (!mainTarget || !extraTarget || !attacker) return
+          if (extraTarget.side === attacker.side) return
+          if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
+          plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
+        },
+      })
+
+    }
+
     for (const ab of card.abilities) {
       if (ab.type !== 'IGNORE_BLOCKING') continue
 
@@ -182,14 +230,71 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (!(Number.isFinite(range) && range > 0 && Number.isFinite(count) && count > 0)) return
             if (!enemiesWithinRangeGte(ctx.state, u.id, range, count)) return
           }
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
           if (mode === 'all') {
             ctx.shootRules.ignoreBlockingAll = true
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
             return
           }
           const count = Number((ab as any).count ?? 0)
           if (Number.isFinite(count) && count > 0) {
             ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, count)
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
           }
+        },
+      })
+    }
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'FREE_SHOOT') continue
+
+      handlers.push({
+        onBeforeShootValidate: (ctx) => {
+          if (ctx.attackerId !== u.id) return
+
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
+
+          const perTurn = Number((ab as any).perTurn ?? 0)
+          if (!(Number.isFinite(perTurn) && perTurn > 0)) return
+          const key = abilityUseKey(u.id, 'FREE_SHOOT')
+          const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
+          if (used >= perTurn) return
+
+          ctx.shootRules.manaCostOverride = 0
+          ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'FREE_SHOOT', text: '免費射擊' })
+        },
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            const corpses = countCorpses(ctx.state, u.side)
+            if (corpses < need) return
+          }
+
+          const perTurn = Number((ab as any).perTurn ?? 0)
+          if (!(Number.isFinite(perTurn) && perTurn > 0)) return
+          const key = abilityUseKey(u.id, 'FREE_SHOOT')
+          const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
+          if (used >= perTurn) return
+
+          plan.cost = 0
+          const next = plan.abilityUses ? [...plan.abilityUses] : []
+          next.push({ key })
+          plan.abilityUses = next
         },
       })
     }
@@ -219,6 +324,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           const mode = String((ab as any).mode ?? '')
           if (mode === 'all') {
             ctx.shootRules.ignoreBlockingAll = true
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'AURA_IGNORE_BLOCKING', text: '無視阻擋' })
             return
           }
 
@@ -277,18 +383,121 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             plan.abilityUses = next
           }
 
-          const bonus = getDamageBonusForAttacker(ctx.state, attacker.id)
-          const defValue = getDefValue(target, attacker.atk.key)
-          const rawDamage = Math.max(1, ctx.state.rules.diceFixed + attacker.atk.value + bonus - defValue)
-
-          const extraTargets = Object.values(ctx.state.units)
-            .filter((t) => t.side !== attacker.side)
-            .filter((t) => t.id !== target.id)
-            .filter((t) => chebyshev(t.pos, target.pos) <= radius)
+          const splashTargets = Object.values(ctx.state.units)
+            .filter((uu) => uu.side !== attacker.side)
+            .filter((uu) => uu.id !== target.id)
+            .filter((uu) => chebyshev(uu.pos, target.pos) <= radius)
             .sort((a, b) => a.id.localeCompare(b.id))
 
-          for (const t of extraTargets) {
-            plan.instances.push({ kind: 'splash', sourceUnitId: attacker.id, targetUnitId: t.id, fixedDamage: rawDamage })
+          for (const t of splashTargets) {
+            plan.instances.push({ kind: 'splash', sourceUnitId: attacker.id, targetUnitId: t.id })
+          }
+        },
+      })
+    }
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'CHAIN') continue
+
+      handlers.push({
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+
+          const when = (ab as any).when
+          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
+            const need = Number(when.count ?? 0)
+            if (Number.isFinite(need) && need > 0) {
+              const corpses = countCorpses(ctx.state, u.side)
+              if (corpses < need) return
+            }
+          }
+
+          const perTurn = Number((ab as any).perTurn ?? 0)
+          if (Number.isFinite(perTurn) && perTurn > 0) {
+            const used = abilityUsedCount(ctx.state, u.id, 'CHAIN')
+            if (used >= perTurn) return
+          }
+
+          const extraId = ctx.extraTargetUnitId
+          if (!extraId) return
+          if (extraId === ctx.targetUnitId) return
+
+          const mainTarget = ctx.state.units[ctx.targetUnitId]
+          const extraTarget = ctx.state.units[extraId]
+          const attacker = ctx.state.units[ctx.attackerId]
+          if (!mainTarget || !extraTarget || !attacker) return
+          if (extraTarget.side === attacker.side) return
+
+          const radius = Number((ab as any).radius ?? 0)
+          if (!(Number.isFinite(radius) && radius > 0)) return
+          if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
+
+          // Track per-turn usage.
+          if (Number.isFinite(perTurn) && perTurn > 0) {
+            const next = plan.abilityUses ? [...plan.abilityUses] : []
+            next.push({ key: abilityUseKey(u.id, 'CHAIN') })
+            plan.abilityUses = next
+          }
+
+          plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
+        },
+      })
+    }
+
+    for (const ab of card.abilities) {
+      if (ab.type !== 'PIERCE') continue
+
+      handlers.push({
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+
+          const attacker = ctx.state.units[ctx.attackerId]
+          const target = ctx.state.units[ctx.targetUnitId]
+          if (!attacker || !target) return
+
+          const mode = String((ab as any).mode ?? '')
+          if (mode === 'CANNON_SCREEN_AND_TARGET') {
+            if (attacker.base !== 'cannon') return
+            const between = countBetweenOrthogonal(ctx.state, attacker.pos, target.pos)
+            if (between !== 1) return
+            const screenId = firstUnitBetweenOrthogonal(ctx.state, attacker.pos, target.pos)
+            if (!screenId) return
+            const screen = ctx.state.units[screenId]
+            if (!screen) return
+            if (screen.side === attacker.side) return
+
+            plan.instances.push({ kind: 'pierce', sourceUnitId: attacker.id, targetUnitId: screen.id })
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'PIERCE', targetUnitIds: [target.id, screen.id], text: '貫穿' })
+            return
+          }
+
+          if (mode === 'LINE_ENEMIES') {
+            const count = Number((ab as any).count ?? 0)
+            if (!(Number.isFinite(count) && count > 1)) return
+
+            const dx = Math.sign(target.pos.x - attacker.pos.x)
+            const dy = Math.sign(target.pos.y - attacker.pos.y)
+            if (!((dx === 0 && dy !== 0) || (dy === 0 && dx !== 0))) return
+
+            const enemies: string[] = []
+            for (let step = 1; step < 20; step++) {
+              const pos = { x: attacker.pos.x + dx * step, y: attacker.pos.y + dy * step }
+              if (pos.x < 0 || pos.x > 8 || pos.y < 0 || pos.y > 9) break
+              const hit = Object.values(ctx.state.units).find((uu) => uu.pos.x === pos.x && uu.pos.y === pos.y)
+              if (!hit) continue
+              if (hit.side === attacker.side) continue
+              enemies.push(hit.id)
+              if (enemies.length >= count) break
+            }
+
+            if (!enemies.includes(target.id)) return
+            for (const id of enemies) {
+              if (id === target.id) continue
+              plan.instances.push({ kind: 'pierce', sourceUnitId: attacker.id, targetUnitId: id })
+            }
+            if (enemies.length > 1) {
+              ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'PIERCE', targetUnitIds: enemies.slice(0, count), text: '貫穿' })
+            }
           }
         },
       })
