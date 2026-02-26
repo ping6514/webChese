@@ -1,7 +1,8 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
 import type { GameState, Pos, PieceBase } from '../engine'
 import type { GuardResult } from '../engine'
+import { getReviveGoldCost } from '../engine'
 
 type UnitLite = {
   id: string
@@ -26,6 +27,13 @@ export default defineComponent({
     reviveGuard: { type: Object as () => GuardResult, required: true },
   },
   emits: ['revive'],
+  setup(props) {
+    const reviveCost = computed(() => {
+      const top = props.corpses[props.corpses.length - 1]
+      return top ? getReviveGoldCost(top.base) : 0
+    })
+    return { reviveCost }
+  },
 })
 </script>
 
@@ -49,7 +57,7 @@ export default defineComponent({
           :title="reviveGuard.ok ? '' : reviveGuard.reason"
           @click="$emit('revive', selectedCell)"
         >
-          Revive top corpse here
+          Revive ({{ reviveCost }}g)
         </button>
       </div>
       <div v-if="corpses.length" class="corpseList">

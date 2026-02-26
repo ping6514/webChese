@@ -21,6 +21,13 @@ describe('items: hand limit + discard', () => {
         ...s0.limits,
         buyItemActionsPerTurn: 2,
       },
+      resources: {
+        ...s0.resources,
+        [side]: {
+          ...s0.resources[side],
+          gold: 999,
+        },
+      },
       hands: {
         ...s0.hands,
         [side]: {

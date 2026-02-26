@@ -106,6 +106,20 @@ export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: n
   soldier: { hp: 8, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
 }
 
+export const REVIVE_GOLD_COST_BY_BASE: Record<PieceBase, number> = {
+  king: 999,
+  advisor: 3,
+  elephant: 3,
+  rook: 5,
+  knight: 4,
+  cannon: 5,
+  soldier: 2,
+}
+
+export function getReviveGoldCost(base: PieceBase): number {
+  return REVIVE_GOLD_COST_BY_BASE[base] ?? 3
+}
+
 function makeUnitId(side: Side, base: PieceBase, index: number): string {
   return `${side}:${base}:${index}`
 }
@@ -183,17 +197,22 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
 
   const rngState: RngState | null = rules.rngMode === 'seeded' ? createRngState(String(rules.matchSeed ?? 'default')) : null
 
-  const redStart: Resources = {
-    gold: 999,
-    mana: 999,
+  const firstSide: Side = rules.firstSide === 'black' ? 'black' : 'red'
+
+  const firstStart: Resources = {
+    gold: rules.startGoldFirst,
+    mana: rules.startMana,
     storageMana: 0,
   }
 
-  const blackStart: Resources = {
-    gold: 999,
-    mana: 999,
+  const secondStart: Resources = {
+    gold: rules.startGoldSecond,
+    mana: rules.startMana,
     storageMana: 0,
   }
+
+  const redStart: Resources = firstSide === 'red' ? firstStart : secondStart
+  const blackStart: Resources = firstSide === 'black' ? firstStart : secondStart
 
   const bases: PieceBase[] = ['king', 'advisor', 'elephant', 'rook', 'knight', 'cannon', 'soldier']
   const deckByBase: Partial<Record<PieceBase, string[]>> = {}
@@ -244,7 +263,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
     itemDisplay,
     itemDiscard: [],
     turn: {
-      side: 'red',
+      side: firstSide,
       phase: 'buy',
     },
     status: {

@@ -5,6 +5,7 @@ import type { PieceBase } from './types'
 import type { GameState } from './state'
 import { getUnitAt } from './state'
 import { BASE_STATS } from './state'
+import { getReviveGoldCost } from './state'
 import { isLegalMove } from './legalMoves'
 import { buildShotPlan, executeShotPlan } from './shotPlan'
 import { getSoulCard } from './cards'
@@ -453,8 +454,6 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       const side = state.turn.side
       const r = state.resources[side]
 
-      if (r.gold < state.rules.reviveGoldCost) return { ok: false, error: 'Not enough gold' }
-
       const posKey = `${action.pos.x},${action.pos.y}`
       const stack = state.corpsesByPos[posKey]
       if (!stack || stack.length === 0) return { ok: false, error: 'No corpses here' }
@@ -468,6 +467,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       const corpse = stack[index]
       if (!corpse) return { ok: false, error: 'Invalid corpse index' }
       if (corpse.ownerSide !== state.turn.side) return { ok: false, error: 'Not your corpse' }
+
+      const cost = getReviveGoldCost(corpse.base)
+      if (r.gold < cost) return { ok: false, error: 'Not enough gold' }
 
       // Create a deterministic new unit id without relying on time/random.
       let reviveIdx = 0
@@ -496,7 +498,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           ...state.resources,
           [side]: {
             ...r,
-            gold: r.gold - state.rules.reviveGoldCost,
+            gold: r.gold - cost,
           },
         },
         units: {

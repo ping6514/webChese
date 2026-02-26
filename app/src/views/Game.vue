@@ -106,6 +106,9 @@ watch(
   (phase, prev) => {
     if (phase === 'buy' && prev !== 'buy') ui.openShop()
 
+    if (phase === 'combat') ui.setHandCollapsedOverride(true)
+    else ui.setHandCollapsedOverride(null)
+
     ui.setSelectedUnitId(null)
     ui.setSelectedCell(null)
     ui.clearShootPreview()

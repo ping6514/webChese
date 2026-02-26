@@ -1,6 +1,7 @@
 import type { Action } from './actions'
 import type { GameState } from './state'
 import { getUnitAt } from './state'
+import { getReviveGoldCost } from './state'
 import type { PieceBase, Pos } from './types'
 import { isOnBoard } from './types'
 import { isLegalMove } from './legalMoves'
@@ -195,12 +196,13 @@ export function canRevive(state: GameState, pos: Pos): GuardResult {
   if (!stack || stack.length === 0) return fail('No corpses here')
   if (getUnitAt(state, pos)) return fail('Target position occupied')
 
-  const r = state.resources[state.turn.side]
-  if (r.gold < state.rules.reviveGoldCost) return fail('Not enough gold')
-
   const corpse = stack[stack.length - 1]
   if (!corpse) return fail('No corpses here')
   if (corpse.ownerSide !== state.turn.side) return fail('Not your corpse')
+
+  const cost = getReviveGoldCost(corpse.base)
+  const r = state.resources[state.turn.side]
+  if (r.gold < cost) return fail('Not enough gold')
 
   return ok()
 }

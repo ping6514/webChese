@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sim:balance": "vitest run src/sim/balanceReport.test.ts",
     "electron:dev": "concurrently -k -n VITE,ELECTRON -c cyan,magenta \"vite --port 5173\" \"wait-on http://127.0.0.1:5173 && electron .\"",
     "electron:build": "npm run build && electron-builder"
   },

@@ -1,8 +1,9 @@
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
+import { computed, defineComponent, ref } from 'vue'
 import type { GuardResult, GameState, PieceBase, SoulCard } from '../engine'
 import HandSouls from './HandSouls.vue'
 import HandItems from './HandItems.vue'
+import { useUiStore } from '../stores/ui'
 
 type UnitLite = {
   id: string
@@ -37,7 +38,16 @@ export default defineComponent({
   emits: ['select-soul', 'dragstart-soul', 'dragend-soul', 'enchant', 'return-soul', 'discard-item', 'show-item-detail'],
   setup() {
     const tab = ref<'souls' | 'items'>('souls')
-    return { tab }
+    const ui = useUiStore()
+    const isCollapsed = computed(() => ui.handCollapsedOverride ?? ui.handCollapsedUser)
+
+    function toggleCollapsed() {
+      const next = !isCollapsed.value
+      if (ui.handCollapsedOverride != null) ui.setHandCollapsedOverride(null)
+      ui.setHandCollapsedUser(next)
+    }
+
+    return { tab, ui, isCollapsed, toggleCollapsed }
   },
 })
 </script>
@@ -47,33 +57,41 @@ export default defineComponent({
     <div class="tabs">
       <button type="button" class="tabBtn" :class="{ active: tab === 'souls' }" @click="tab = 'souls'">Souls</button>
       <button type="button" class="tabBtn" :class="{ active: tab === 'items' }" @click="tab = 'items'">Items</button>
+
+      <div class="scaleCtl">
+        <button type="button" class="collapseBtn" @click="toggleCollapsed()">
+          {{ isCollapsed ? 'Expand' : 'Collapse' }}
+        </button>
+      </div>
     </div>
 
-    <HandSouls
-      v-if="tab === 'souls'"
-      :phase="phase"
-      :cards="soulCards"
-      :selected-soul-id="selectedSoulId"
-      :selected-unit="selectedUnit"
-      :enchant-guard="enchantGuard"
-      :return-guards="returnGuards"
-      @select="$emit('select-soul', $event)"
-      @dragstart="(e, soulId) => $emit('dragstart-soul', e, soulId)"
-      @dragend="(e, soulId) => $emit('dragend-soul', e, soulId)"
-      @enchant="$emit('enchant')"
-      @return="$emit('return-soul', $event)"
-    />
+    <div class="handBody" :class="{ collapsed: isCollapsed }">
+      <HandSouls
+        v-if="tab === 'souls'"
+        :phase="phase"
+        :cards="soulCards"
+        :selected-soul-id="selectedSoulId"
+        :selected-unit="selectedUnit"
+        :enchant-guard="enchantGuard"
+        :return-guards="returnGuards"
+        @select="$emit('select-soul', $event)"
+        @dragstart="(e, soulId) => $emit('dragstart-soul', e, soulId)"
+        @dragend="(e, soulId) => $emit('dragend-soul', e, soulId)"
+        @enchant="$emit('enchant')"
+        @return="$emit('return-soul', $event)"
+      />
 
-    <HandItems
-      v-else
-      :phase="phase"
-      :items="items"
-      :discard-guards="discardGuards"
-      :get-item-name="getItemName"
-      :get-item="getItem"
-      @discard="$emit('discard-item', $event)"
-      @show-item-detail="$emit('show-item-detail', $event)"
-    />
+      <HandItems
+        v-else
+        :phase="phase"
+        :items="items"
+        :discard-guards="discardGuards"
+        :get-item-name="getItemName"
+        :get-item="getItem"
+        @discard="$emit('discard-item', $event)"
+        @show-item-detail="$emit('show-item-detail', $event)"
+      />
+    </div>
   </div>
 </template>
 
@@ -94,6 +112,34 @@ export default defineComponent({
   display: flex;
   gap: 8px;
   margin-bottom: 8px;
+  align-items: center;
+}
+
+.scaleCtl {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.collapseBtn {
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.22);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.handBody {
+  max-height: 420px;
+  overflow: visible;
+  transition: max-height 160ms ease;
+}
+
+.handBody.collapsed {
+  max-height: 0px;
+  overflow: hidden;
 }
 
 .tabBtn {

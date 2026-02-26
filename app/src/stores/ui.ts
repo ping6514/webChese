@@ -61,6 +61,9 @@ export const useUiStore = defineStore('ui', {
     } as DetailModalState,
 
     interactionMode: { kind: 'idle' } as InteractionMode,
+
+    handCollapsedUser: false as boolean,
+    handCollapsedOverride: null as boolean | null,
   }),
   actions: {
     openShop: function () {
@@ -132,6 +135,16 @@ export const useUiStore = defineStore('ui', {
       const order: ConnectionStatus[] = ['connected', 'lagging', 'disconnected', 'connecting']
       const i = order.indexOf(this.connectionStatus)
       this.connectionStatus = order[(i + 1) % order.length] ?? 'connected'
+    },
+
+    setHandCollapsedUser: function (next: boolean) {
+      this.handCollapsedUser = !!next
+    },
+    toggleHandCollapsedUser: function () {
+      this.handCollapsedUser = !this.handCollapsedUser
+    },
+    setHandCollapsedOverride: function (next: boolean | null) {
+      this.handCollapsedOverride = next == null ? null : !!next
     },
   },
 })

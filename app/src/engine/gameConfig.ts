@@ -10,6 +10,12 @@ export type GameRules = {
   incomeGold: number
   incomeMana: number
   storageToGoldRate: number
+
+  firstSide: 'red' | 'black'
+  startGoldFirst: number
+  startGoldSecond: number
+  startMana: number
+
   reviveGoldCost: number
   buySoulFromDeckGoldCost: number
   buySoulFromDisplayGoldCost: number
@@ -47,6 +53,12 @@ export const DEFAULT_RULES: GameRules = {
   incomeGold: 4,
   incomeMana: 3,
   storageToGoldRate: 2,
+
+  firstSide: 'red',
+  startGoldFirst: 4,
+  startGoldSecond: 7,
+  startMana: 3,
+
   reviveGoldCost: 3,
   buySoulFromDeckGoldCost: 1,
   buySoulFromDisplayGoldCost: 2,

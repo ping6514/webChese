@@ -41,11 +41,11 @@ export default defineComponent({
 
     <div class="center">
       <div class="row mono rowVs">
-        <span class="hp hpBlack">BLACK HP {{ kingHp.black ?? '-' }}</span>
-        <span class="res">G{{ resources.black.gold }} M{{ resources.black.mana }} S{{ resources.black.storageMana }}</span>
+        <span class="hp hpBlack">BLACK ❤️ {{ kingHp.black ?? '-' }}</span>
+        <span class="res">💰{{ resources.black.gold }} ⭐{{ resources.black.mana }} ⚖️{{ resources.black.storageMana }}</span>
         <span class="vs">VS</span>
-        <span class="hp hpRed">RED HP {{ kingHp.red ?? '-' }}</span>
-        <span class="res">G{{ resources.red.gold }} M{{ resources.red.mana }} S{{ resources.red.storageMana }}</span>
+        <span class="hp hpRed">RED ❤️ {{ kingHp.red ?? '-' }}</span>
+        <span class="res">💰{{ resources.red.gold }} ⭐{{ resources.red.mana }} ⚖️{{ resources.red.storageMana }}</span>
       </div>
       <div class="row mono rowTurn">
         <span>Turn:</span>
