@@ -480,10 +480,6 @@ export default defineComponent({
 
 <template>
   <div class="board-wrap">
-    <div class="hint">
-      Selected: <span class="mono">{{ selectedUnitId ?? 'none' }}</span>
-    </div>
-
     <div class="board" :style="{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)` }">
       <ShootActionOverlay
         :show="!!shootActionPosKey && shootActionsVisible"
@@ -589,9 +585,13 @@ export default defineComponent({
 
 <style scoped>
 .board-wrap {
-  margin: 16px 0;
+  margin: 8px 0;
   overflow: visible;
   position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  padding: 8px;
 }
 
 .hint {
@@ -600,7 +600,7 @@ export default defineComponent({
 
 .board {
   display: grid;
-  gap: 4px;
+  gap: 3px;
   width: 100%;
   max-width: 100%;
   overflow: visible;

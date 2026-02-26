@@ -3,61 +3,27 @@
     "matches": 75,
     "maxSteps": 400,
     "parallel": 8,
-    "avgSteps": 153.36,
-    "redWinRate": 0.6933333333333334,
-    "avgCorpseSnowball": 2.92
+    "avgSteps": 160.50666666666666,
+    "redWinRate": 0.6133333333333333,
+    "avgCorpseSnowball": 2.56
   },
   "cards": [
     {
-      "id": "dark_moon_rook_yinghua",
+      "id": "dark_moon_advisor_yingji",
       "clan": "dark_moon",
-      "name": "影華",
-      "base": "rook",
-      "cost": 7,
-      "hp": 12,
+      "name": "影姬",
+      "base": "advisor",
+      "cost": 4,
+      "hp": 8,
       "atk": "P2",
       "defP": 1,
-      "defM": 0,
-      "statBudget": 20,
-      "n": 42,
-      "winRate": 0.74,
-      "CI±": 0.125,
-      "enchantRate": 0.63,
-      "costDelta": 0.188
-    },
-    {
-      "id": "dark_moon_cannon_yehua",
-      "clan": "dark_moon",
-      "name": "夜華",
-      "base": "cannon",
-      "cost": 6,
-      "hp": 9,
-      "atk": "P2",
-      "defP": 0,
       "defM": 1,
-      "statBudget": 17,
-      "n": 24,
-      "winRate": 0.716,
-      "CI±": 0.165,
-      "enchantRate": 0.65,
-      "costDelta": 0.24
-    },
-    {
-      "id": "dark_moon_cannon_fenghua",
-      "clan": "dark_moon",
-      "name": "風華",
-      "base": "cannon",
-      "cost": 5,
-      "hp": 9,
-      "atk": "P2",
-      "defP": 0,
-      "defM": 1,
-      "statBudget": 17,
-      "n": 27,
-      "winRate": 0.711,
-      "CI±": 0.158,
-      "enchantRate": 0.77,
-      "costDelta": 0.235
+      "statBudget": 18,
+      "n": 65,
+      "winRate": 0.725,
+      "CI±": 0.105,
+      "enchantRate": 0.87,
+      "costDelta": 0.234
     },
     {
       "id": "eternal_night_rook_minggouche",
@@ -70,113 +36,28 @@
       "defP": 1,
       "defM": 0,
       "statBudget": 23,
-      "n": 6,
-      "winRate": 0.703,
-      "CI±": 0.267,
-      "enchantRate": 0.08,
-      "costDelta": 0.15
+      "n": 12,
+      "winRate": 0.689,
+      "CI±": 0.222,
+      "enchantRate": 0.17,
+      "costDelta": 0.224
     },
     {
-      "id": "styx_cannon_baoyan",
-      "clan": "styx",
-      "name": "爆焰",
+      "id": "dark_moon_cannon_fenghua",
+      "clan": "dark_moon",
+      "name": "風華",
       "base": "cannon",
-      "cost": 7,
-      "hp": 10,
-      "atk": "M3",
-      "defP": 0,
-      "defM": 1,
-      "statBudget": 21,
-      "n": 8,
-      "winRate": 0.669,
-      "CI±": 0.26,
-      "enchantRate": 0.25,
-      "costDelta": 0.117
-    },
-    {
-      "id": "dark_moon_advisor_yingji",
-      "clan": "dark_moon",
-      "name": "影姬",
-      "base": "advisor",
-      "cost": 4,
-      "hp": 8,
-      "atk": "P2",
-      "defP": 1,
-      "defM": 1,
-      "statBudget": 18,
-      "n": 61,
-      "winRate": 0.647,
-      "CI±": 0.116,
-      "enchantRate": 0.81,
-      "costDelta": 0.147
-    },
-    {
-      "id": "dark_moon_elephant_youji",
-      "clan": "dark_moon",
-      "name": "幽姬",
-      "base": "elephant",
       "cost": 5,
       "hp": 9,
       "atk": "P2",
-      "defP": 1,
-      "defM": 1,
-      "statBudget": 19,
-      "n": 51,
-      "winRate": 0.637,
-      "CI±": 0.127,
-      "enchantRate": 0.74,
-      "costDelta": 0.161
-    },
-    {
-      "id": "eternal_night_cannon_suigu",
-      "clan": "eternal_night",
-      "name": "碎骨",
-      "base": "cannon",
-      "cost": 7,
-      "hp": 9,
-      "atk": "P3",
       "defP": 0,
       "defM": 1,
-      "statBudget": 20,
-      "n": 4,
-      "winRate": 0.628,
-      "CI±": 0.327,
-      "enchantRate": 0.21,
-      "costDelta": 0.076
-    },
-    {
-      "id": "dark_moon_elephant_yueji",
-      "clan": "dark_moon",
-      "name": "月姬",
-      "base": "elephant",
-      "cost": 4,
-      "hp": 8,
-      "atk": "P2",
-      "defP": 1,
-      "defM": 1,
-      "statBudget": 18,
-      "n": 62,
-      "winRate": 0.622,
-      "CI±": 0.117,
-      "enchantRate": 0.89,
-      "costDelta": 0.122
-    },
-    {
-      "id": "dark_moon_rook_lanhua",
-      "clan": "dark_moon",
-      "name": "蘭華",
-      "base": "rook",
-      "cost": 6,
-      "hp": 12,
-      "atk": "P3",
-      "defP": 1,
-      "defM": 1,
-      "statBudget": 25,
-      "n": 40,
-      "winRate": 0.568,
-      "CI±": 0.146,
-      "enchantRate": 0.6,
-      "costDelta": 0.092
+      "statBudget": 17,
+      "n": 21,
+      "winRate": 0.641,
+      "CI±": 0.187,
+      "enchantRate": 0.57,
+      "costDelta": 0.102
     },
     {
       "id": "eternal_night_knight_xuegu",
@@ -189,28 +70,11 @@
       "defP": 1,
       "defM": 1,
       "statBudget": 20,
-      "n": 7,
-      "winRate": 0.546,
-      "CI±": 0.296,
-      "enchantRate": 0.26,
-      "costDelta": 0.07
-    },
-    {
-      "id": "styx_advisor_minghu",
-      "clan": "styx",
-      "name": "冥護",
-      "base": "advisor",
-      "cost": 4,
-      "hp": 8,
-      "atk": "M1",
-      "defP": 0,
-      "defM": 3,
-      "statBudget": 17,
-      "n": 56,
-      "winRate": 0.5,
-      "CI±": 0.127,
-      "enchantRate": 0.75,
-      "costDelta": 0
+      "n": 1,
+      "winRate": 0.603,
+      "CI±": 0.397,
+      "enchantRate": 0.08,
+      "costDelta": 0.064
     },
     {
       "id": "eternal_night_cannon_minggupao",
@@ -223,28 +87,181 @@
       "defP": 0,
       "defM": 1,
       "statBudget": 24,
-      "n": 4,
-      "winRate": 0.5,
-      "CI±": 0.35,
-      "enchantRate": 0.13,
-      "costDelta": -0.052
+      "n": 6,
+      "winRate": 0.602,
+      "CI±": 0.302,
+      "enchantRate": 0.2,
+      "costDelta": 0.137
     },
     {
-      "id": "styx_cannon_mingleipao",
+      "id": "styx_rook_feiyan",
       "clan": "styx",
-      "name": "冥雷砲",
+      "name": "緋焰",
+      "base": "rook",
+      "cost": 6,
+      "hp": 12,
+      "atk": "M3",
+      "defP": 0,
+      "defM": 2,
+      "statBudget": 25,
+      "n": 40,
+      "winRate": 0.591,
+      "CI±": 0.145,
+      "enchantRate": 0.62,
+      "costDelta": 0.052
+    },
+    {
+      "id": "dark_moon_elephant_yueji",
+      "clan": "dark_moon",
+      "name": "月姬",
+      "base": "elephant",
+      "cost": 4,
+      "hp": 8,
+      "atk": "P2",
+      "defP": 1,
+      "defM": 1,
+      "statBudget": 18,
+      "n": 67,
+      "winRate": 0.578,
+      "CI±": 0.115,
+      "enchantRate": 0.91,
+      "costDelta": 0.087
+    },
+    {
+      "id": "styx_elephant_mingyanxiang",
+      "clan": "styx",
+      "name": "冥焰相",
+      "base": "elephant",
+      "cost": 5,
+      "hp": 9,
+      "atk": "M2",
+      "defP": 0,
+      "defM": 2,
+      "statBudget": 19,
+      "n": 31,
+      "winRate": 0.572,
+      "CI±": 0.164,
+      "enchantRate": 0.42,
+      "costDelta": 0.033
+    },
+    {
+      "id": "dark_moon_cannon_yehua",
+      "clan": "dark_moon",
+      "name": "夜華",
       "base": "cannon",
-      "cost": 8,
-      "hp": 11,
-      "atk": "M4",
+      "cost": 6,
+      "hp": 9,
+      "atk": "P2",
       "defP": 0,
       "defM": 1,
+      "statBudget": 17,
+      "n": 33,
+      "winRate": 0.568,
+      "CI±": 0.16,
+      "enchantRate": 0.87,
+      "costDelta": 0.029
+    },
+    {
+      "id": "dark_moon_rook_lanhua",
+      "clan": "dark_moon",
+      "name": "蘭華",
+      "base": "rook",
+      "cost": 6,
+      "hp": 12,
+      "atk": "P3",
+      "defP": 1,
+      "defM": 1,
       "statBudget": 25,
-      "n": 4,
+      "n": 51,
+      "winRate": 0.564,
+      "CI±": 0.131,
+      "enchantRate": 0.77,
+      "costDelta": 0.025
+    },
+    {
+      "id": "eternal_night_cannon_suigu",
+      "clan": "eternal_night",
+      "name": "碎骨",
+      "base": "cannon",
+      "cost": 7,
+      "hp": 9,
+      "atk": "P3",
+      "defP": 0,
+      "defM": 1,
+      "statBudget": 20,
+      "n": 12,
+      "winRate": 0.563,
+      "CI±": 0.244,
+      "enchantRate": 0.33,
+      "costDelta": 0.098
+    },
+    {
+      "id": "eternal_night_rook_guhua",
+      "clan": "eternal_night",
+      "name": "骨華",
+      "base": "rook",
+      "cost": 6,
+      "hp": 11,
+      "atk": "P3",
+      "defP": 1,
+      "defM": 1,
+      "statBudget": 24,
+      "n": 37,
+      "winRate": 0.561,
+      "CI±": 0.152,
+      "enchantRate": 0.56,
+      "costDelta": 0.022
+    },
+    {
+      "id": "eternal_night_elephant_mingguxiang",
+      "clan": "eternal_night",
+      "name": "冥骨相",
+      "base": "elephant",
+      "cost": 6,
+      "hp": 9,
+      "atk": "P3",
+      "defP": 1,
+      "defM": 2,
+      "statBudget": 24,
+      "n": 27,
+      "winRate": 0.516,
+      "CI±": 0.176,
+      "enchantRate": 0.36,
+      "costDelta": -0.023
+    },
+    {
+      "id": "styx_advisor_minghu",
+      "clan": "styx",
+      "name": "冥護",
+      "base": "advisor",
+      "cost": 4,
+      "hp": 8,
+      "atk": "M1",
+      "defP": 0,
+      "defM": 3,
+      "statBudget": 17,
+      "n": 44,
       "winRate": 0.5,
-      "CI±": 0.35,
-      "enchantRate": 0.21,
-      "costDelta": -0.052
+      "CI±": 0.142,
+      "enchantRate": 0.59,
+      "costDelta": 0.009
+    },
+    {
+      "id": "dark_moon_rook_yinghua",
+      "clan": "dark_moon",
+      "name": "影華",
+      "base": "rook",
+      "cost": 7,
+      "hp": 12,
+      "atk": "P2",
+      "defP": 1,
+      "defM": 0,
+      "statBudget": 20,
+      "n": 8,
+      "winRate": 0.5,
+      "CI±": 0.285,
+      "enchantRate": 0.13,
+      "costDelta": 0.035
     },
     {
       "id": "dark_moon_knight_wuying",
@@ -260,8 +277,59 @@
       "n": 2,
       "winRate": 0.5,
       "CI±": 0.405,
-      "enchantRate": 0.11,
-      "costDelta": 0.024
+      "enchantRate": 0.13,
+      "costDelta": -0.039
+    },
+    {
+      "id": "styx_elephant_mingleixiang",
+      "clan": "styx",
+      "name": "冥雷相",
+      "base": "elephant",
+      "cost": 6,
+      "hp": 9,
+      "atk": "M3",
+      "defP": 0,
+      "defM": 2,
+      "statBudget": 22,
+      "n": 44,
+      "winRate": 0.479,
+      "CI±": 0.142,
+      "enchantRate": 0.59,
+      "costDelta": -0.06
+    },
+    {
+      "id": "dark_moon_elephant_youji",
+      "clan": "dark_moon",
+      "name": "幽姬",
+      "base": "elephant",
+      "cost": 5,
+      "hp": 9,
+      "atk": "P2",
+      "defP": 1,
+      "defM": 1,
+      "statBudget": 19,
+      "n": 57,
+      "winRate": 0.475,
+      "CI±": 0.125,
+      "enchantRate": 0.77,
+      "costDelta": -0.064
+    },
+    {
+      "id": "styx_rook_mingyanche",
+      "clan": "styx",
+      "name": "冥焰車",
+      "base": "rook",
+      "cost": 7,
+      "hp": 13,
+      "atk": "M3",
+      "defP": 0,
+      "defM": 1,
+      "statBudget": 24,
+      "n": 39,
+      "winRate": 0.465,
+      "CI±": 0.149,
+      "enchantRate": 0.57,
+      "costDelta": 0
     },
     {
       "id": "dark_moon_advisor_yeji",
@@ -275,61 +343,10 @@
       "defM": 1,
       "statBudget": 23,
       "n": 52,
-      "winRate": 0.482,
-      "CI±": 0.131,
-      "enchantRate": 0.69,
-      "costDelta": -0.018
-    },
-    {
-      "id": "eternal_night_elephant_mingguxiang",
-      "clan": "eternal_night",
-      "name": "冥骨相",
-      "base": "elephant",
-      "cost": 6,
-      "hp": 9,
-      "atk": "P3",
-      "defP": 1,
-      "defM": 2,
-      "statBudget": 24,
-      "n": 18,
-      "winRate": 0.454,
-      "CI±": 0.209,
-      "enchantRate": 0.26,
-      "costDelta": -0.022
-    },
-    {
-      "id": "eternal_night_advisor_guhu",
-      "clan": "eternal_night",
-      "name": "骨護",
-      "base": "advisor",
-      "cost": 4,
-      "hp": 8,
-      "atk": "P1",
-      "defP": 2,
-      "defM": 2,
-      "statBudget": 19,
-      "n": 42,
-      "winRate": 0.435,
-      "CI±": 0.143,
-      "enchantRate": 0.56,
-      "costDelta": -0.065
-    },
-    {
-      "id": "eternal_night_advisor_hunshi",
-      "clan": "eternal_night",
-      "name": "魂侍",
-      "base": "advisor",
-      "cost": 3,
-      "hp": 8,
-      "atk": "M2",
-      "defP": 1,
-      "defM": 2,
-      "statBudget": 20,
-      "n": 52,
-      "winRate": 0.428,
+      "winRate": 0.446,
       "CI±": 0.13,
       "enchantRate": 0.69,
-      "costDelta": -0.072
+      "costDelta": -0.045
     },
     {
       "id": "dark_moon_knight_yingzi",
@@ -342,45 +359,11 @@
       "defP": 1,
       "defM": 0,
       "statBudget": 18,
-      "n": 17,
-      "winRate": 0.428,
-      "CI±": 0.212,
-      "enchantRate": 0.55,
-      "costDelta": -0.048
-    },
-    {
-      "id": "styx_advisor_yanshi",
-      "clan": "styx",
-      "name": "焰侍",
-      "base": "advisor",
-      "cost": 4,
-      "hp": 8,
-      "atk": "M2",
-      "defP": 0,
-      "defM": 3,
-      "statBudget": 20,
-      "n": 56,
-      "winRate": 0.383,
-      "CI±": 0.123,
-      "enchantRate": 0.75,
-      "costDelta": -0.117
-    },
-    {
-      "id": "eternal_night_rook_guhua",
-      "clan": "eternal_night",
-      "name": "骨華",
-      "base": "rook",
-      "cost": 6,
-      "hp": 11,
-      "atk": "P3",
-      "defP": 1,
-      "defM": 1,
-      "statBudget": 24,
-      "n": 46,
-      "winRate": 0.38,
-      "CI±": 0.134,
-      "enchantRate": 0.66,
-      "costDelta": -0.096
+      "n": 14,
+      "winRate": 0.444,
+      "CI±": 0.23,
+      "enchantRate": 0.54,
+      "costDelta": -0.095
     },
     {
       "id": "styx_knight_yanling",
@@ -394,10 +377,95 @@
       "defM": 2,
       "statBudget": 20,
       "n": 12,
-      "winRate": 0.374,
-      "CI±": 0.236,
-      "enchantRate": 0.39,
-      "costDelta": -0.178
+      "winRate": 0.437,
+      "CI±": 0.244,
+      "enchantRate": 0.43,
+      "costDelta": -0.028
+    },
+    {
+      "id": "styx_cannon_baoyan",
+      "clan": "styx",
+      "name": "爆焰",
+      "base": "cannon",
+      "cost": 7,
+      "hp": 10,
+      "atk": "M3",
+      "defP": 0,
+      "defM": 1,
+      "statBudget": 21,
+      "n": 3,
+      "winRate": 0.427,
+      "CI±": 0.365,
+      "enchantRate": 0.13,
+      "costDelta": -0.038
+    },
+    {
+      "id": "eternal_night_elephant_gulingxiang",
+      "clan": "eternal_night",
+      "name": "骨靈相",
+      "base": "elephant",
+      "cost": 5,
+      "hp": 9,
+      "atk": "M2",
+      "defP": 0,
+      "defM": 3,
+      "statBudget": 21,
+      "n": 41,
+      "winRate": 0.422,
+      "CI±": 0.144,
+      "enchantRate": 0.55,
+      "costDelta": -0.117
+    },
+    {
+      "id": "eternal_night_advisor_guhu",
+      "clan": "eternal_night",
+      "name": "骨護",
+      "base": "advisor",
+      "cost": 4,
+      "hp": 8,
+      "atk": "P1",
+      "defP": 2,
+      "defM": 2,
+      "statBudget": 19,
+      "n": 41,
+      "winRate": 0.4,
+      "CI±": 0.143,
+      "enchantRate": 0.55,
+      "costDelta": -0.091
+    },
+    {
+      "id": "styx_advisor_yanshi",
+      "clan": "styx",
+      "name": "焰侍",
+      "base": "advisor",
+      "cost": 4,
+      "hp": 8,
+      "atk": "M2",
+      "defP": 0,
+      "defM": 3,
+      "statBudget": 20,
+      "n": 57,
+      "winRate": 0.393,
+      "CI±": 0.123,
+      "enchantRate": 0.76,
+      "costDelta": -0.098
+    },
+    {
+      "id": "eternal_night_advisor_hunshi",
+      "clan": "eternal_night",
+      "name": "魂侍",
+      "base": "advisor",
+      "cost": 3,
+      "hp": 8,
+      "atk": "M2",
+      "defP": 1,
+      "defM": 2,
+      "statBudget": 20,
+      "n": 47,
+      "winRate": 0.392,
+      "CI±": 0.134,
+      "enchantRate": 0.63,
+      "costDelta": -0.099
     },
     {
       "id": "styx_knight_xueyan",
@@ -413,25 +481,8 @@
       "n": 4,
       "winRate": 0.372,
       "CI±": 0.327,
-      "enchantRate": 0.29,
-      "costDelta": -0.104
-    },
-    {
-      "id": "styx_rook_mingyanche",
-      "clan": "styx",
-      "name": "冥焰車",
-      "base": "rook",
-      "cost": 7,
-      "hp": 13,
-      "atk": "M3",
-      "defP": 0,
-      "defM": 1,
-      "statBudget": 24,
-      "n": 37,
-      "winRate": 0.365,
-      "CI±": 0.147,
-      "enchantRate": 0.53,
-      "costDelta": -0.188
+      "enchantRate": 0.33,
+      "costDelta": -0.167
     },
     {
       "id": "eternal_night_knight_hunling",
@@ -444,114 +495,63 @@
       "defP": 0,
       "defM": 2,
       "statBudget": 23,
-      "n": 16,
-      "winRate": 0.349,
-      "CI±": 0.207,
-      "enchantRate": 0.67,
-      "costDelta": -0.204
+      "n": 15,
+      "winRate": 0.367,
+      "CI±": 0.216,
+      "enchantRate": 0.65,
+      "costDelta": -0.098
     },
     {
-      "id": "styx_elephant_mingyanxiang",
+      "id": "styx_cannon_mingleipao",
       "clan": "styx",
-      "name": "冥焰相",
-      "base": "elephant",
-      "cost": 5,
-      "hp": 9,
-      "atk": "M2",
+      "name": "冥雷砲",
+      "base": "cannon",
+      "cost": 8,
+      "hp": 11,
+      "atk": "M4",
       "defP": 0,
-      "defM": 2,
-      "statBudget": 19,
-      "n": 40,
-      "winRate": 0.34,
-      "CI±": 0.139,
-      "enchantRate": 0.56,
-      "costDelta": -0.136
-    },
-    {
-      "id": "eternal_night_elephant_gulingxiang",
-      "clan": "eternal_night",
-      "name": "骨靈相",
-      "base": "elephant",
-      "cost": 5,
-      "hp": 9,
-      "atk": "M2",
-      "defP": 0,
-      "defM": 3,
-      "statBudget": 21,
-      "n": 35,
-      "winRate": 0.333,
-      "CI±": 0.147,
-      "enchantRate": 0.51,
-      "costDelta": -0.143
-    },
-    {
-      "id": "styx_elephant_mingleixiang",
-      "clan": "styx",
-      "name": "冥雷相",
-      "base": "elephant",
-      "cost": 6,
-      "hp": 9,
-      "atk": "M3",
-      "defP": 0,
-      "defM": 2,
-      "statBudget": 22,
-      "n": 31,
-      "winRate": 0.313,
-      "CI±": 0.152,
-      "enchantRate": 0.46,
-      "costDelta": -0.163
-    },
-    {
-      "id": "styx_rook_feiyan",
-      "clan": "styx",
-      "name": "緋焰",
-      "base": "rook",
-      "cost": 6,
-      "hp": 12,
-      "atk": "M3",
-      "defP": 0,
-      "defM": 2,
+      "defM": 1,
       "statBudget": 25,
-      "n": 27,
-      "winRate": 0.289,
-      "CI±": 0.158,
-      "enchantRate": 0.39,
-      "costDelta": -0.187
+      "n": 5,
+      "winRate": 0.33,
+      "CI±": 0.294,
+      "enchantRate": 0.16,
+      "costDelta": -0.135
     }
   ],
   "clans": [
     {
       "clan": "dark_moon",
-      "sideMatches": 137,
-      "totalEnchants": 378,
-      "winRate": 0.525,
+      "sideMatches": 138,
+      "totalEnchants": 370,
+      "winRate": 0.521,
       "CI±": 0.082,
-      "avgGoldPerEnchant": 5
-    },
-    {
-      "clan": "styx",
-      "sideMatches": 117,
-      "totalEnchants": 275,
-      "winRate": 0.454,
-      "CI±": 0.089,
-      "avgGoldPerEnchant": 5.3
+      "avgGoldPerEnchant": 4.8
     },
     {
       "clan": "eternal_night",
-      "sideMatches": 125,
-      "totalEnchants": 230,
-      "winRate": 0.45,
-      "CI±": 0.086,
-      "avgGoldPerEnchant": 5
+      "sideMatches": 132,
+      "totalEnchants": 239,
+      "winRate": 0.493,
+      "CI±": 0.084,
+      "avgGoldPerEnchant": 5.1
+    },
+    {
+      "clan": "styx",
+      "sideMatches": 123,
+      "totalEnchants": 279,
+      "winRate": 0.48,
+      "CI±": 0.087,
+      "avgGoldPerEnchant": 5.4
     }
   ],
   "historiesSample": [
     {
       "seed": 5000,
-      "winner": "black",
-      "steps": 150,
-      "finalGoldDiff": 0,
-      "finalCorpseDiff": 6,
+      "winner": "red",
+      "steps": 194,
+      "finalGoldDiff": -10,
+      "finalCorpseDiff": -3,
       "keyEvents": [
         {
           "step": 0,
@@ -611,55 +611,55 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "styx_cannon_mingleipao"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
           "soulId": "styx_advisor_yanshi"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
+          "side": "red",
           "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "red",
+          "side": "black",
           "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
           "soulId": "dark_moon_advisor_yingji"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "red",
+          "side": "black",
           "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
@@ -689,148 +689,112 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
           "soulId": "styx_elephant_mingleixiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
           "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_wuying"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_knight_wuying"
+          "soulId": "dark_moon_rook_yinghua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
+          "soulId": "eternal_night_rook_minggouche"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
+          "soulId": "eternal_night_rook_guhua"
         }
       ]
     },
     {
       "seed": 5001,
       "winner": "red",
-      "steps": 130,
-      "finalGoldDiff": -6,
-      "finalCorpseDiff": -2,
+      "steps": 178,
+      "finalGoldDiff": -11,
+      "finalCorpseDiff": -3,
       "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
           "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
+          "soulId": "styx_advisor_minghu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
           "soulId": "styx_advisor_minghu"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "eternal_night_elephant_mingguxiang"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_advisor_minghu"
+          "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
@@ -848,7 +812,25 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
           "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
         },
         {
           "step": 0,
@@ -866,43 +848,19 @@
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
           "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
+          "side": "red",
           "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
         },
         {
           "step": 0,
@@ -914,18 +872,6 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
           "soulId": "dark_moon_elephant_youji"
         },
         {
@@ -936,21 +882,9 @@
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "dark_moon_knight_wuying"
+          "soulId": "dark_moon_rook_yinghua"
         },
         {
           "step": 0,
@@ -960,456 +894,102 @@
         },
         {
           "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
           "type": "ENCHANT",
           "side": "red",
           "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
         }
       ]
     },
     {
       "seed": 5002,
-      "winner": "red",
-      "steps": 146,
-      "finalGoldDiff": -3,
-      "finalCorpseDiff": 0,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_wuying"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        }
-      ]
-    },
-    {
-      "seed": 5003,
-      "winner": "red",
-      "steps": 130,
-      "finalGoldDiff": -1,
-      "finalCorpseDiff": -2,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_cannon_suigu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_wuying"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_cannon_suigu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        }
-      ]
-    },
-    {
-      "seed": 5004,
       "winner": "black",
-      "steps": 206,
-      "finalGoldDiff": -11,
+      "steps": 262,
+      "finalGoldDiff": 3,
       "finalCorpseDiff": 2,
       "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
@@ -1427,19 +1007,19 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
         },
         {
           "step": 0,
@@ -1449,9 +1029,33 @@
         },
         {
           "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_rook_feiyan"
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
         },
         {
           "step": 0,
@@ -1463,73 +1067,43 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
           "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_advisor_yanshi"
+          "soulId": "eternal_night_advisor_hunshi"
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
+          "type": "BUY",
+          "side": "red",
           "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
+          "side": "black",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
+          "side": "red",
           "soulId": "styx_elephant_mingyanxiang"
         },
         {
           "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
@@ -1539,15 +1113,63 @@
         },
         {
           "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "styx_advisor_minghu"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_mingleipao"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_rook_guhua"
         },
         {
           "step": 0,
@@ -1557,471 +1179,66 @@
         },
         {
           "step": 0,
-          "type": "ENCHANT",
+          "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "dark_moon_cannon_yehua"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
+          "soulId": "dark_moon_knight_wuying"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
+          "soulId": "dark_moon_cannon_yehua"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
+          "soulId": "styx_cannon_baoyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_cannon_mingleipao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
         }
       ]
     },
     {
-      "seed": 5005,
-      "winner": "red",
-      "steps": 130,
-      "finalGoldDiff": 2,
-      "finalCorpseDiff": -1,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        }
-      ]
-    },
-    {
-      "seed": 5006,
+      "seed": 5003,
       "winner": "black",
-      "steps": 190,
+      "steps": 174,
       "finalGoldDiff": -5,
-      "finalCorpseDiff": 1,
+      "finalCorpseDiff": 6,
       "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
+          "soulId": "eternal_night_knight_hunling"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
+          "soulId": "eternal_night_knight_hunling"
         },
         {
           "step": 0,
@@ -2033,25 +1250,724 @@
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "dark_moon_elephant_youji"
+          "soulId": "eternal_night_advisor_hunshi"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
           "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_guhua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
           "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_wuying"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "styx_knight_xueyan"
+        }
+      ]
+    },
+    {
+      "seed": 5004,
+      "winner": "red",
+      "steps": 130,
+      "finalGoldDiff": 0,
+      "finalCorpseDiff": -6,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        }
+      ]
+    },
+    {
+      "seed": 5005,
+      "winner": "red",
+      "steps": 114,
+      "finalGoldDiff": -2,
+      "finalCorpseDiff": -2,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_minggupao"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        }
+      ]
+    },
+    {
+      "seed": 5006,
+      "winner": "red",
+      "steps": 158,
+      "finalGoldDiff": -5,
+      "finalCorpseDiff": -2,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
@@ -2062,23 +1978,65 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
+          "side": "black",
           "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
           "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_baoyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_knight_xuegu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_cannon_mingleipao"
         }
       ]
     },
     {
       "seed": 5007,
       "winner": "red",
-      "steps": 122,
-      "finalGoldDiff": -1,
-      "finalCorpseDiff": -1,
+      "steps": 138,
+      "finalGoldDiff": -3,
+      "finalCorpseDiff": 1,
       "keyEvents": [
         {
           "step": 0,
@@ -2138,7 +2096,79 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
           "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
@@ -2162,106 +2192,52 @@
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
+          "soulId": "eternal_night_rook_minggouche"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "styx_elephant_mingyanxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
+          "soulId": "dark_moon_rook_lanhua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
           "side": "black",
           "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
         },
         {
           "step": 0,
-          "type": "BUY",
+          "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_cannon_baoyan"
+          "soulId": "dark_moon_rook_lanhua"
         }
       ]
     },
     {
       "seed": 5008,
-      "winner": "black",
-      "steps": 142,
-      "finalGoldDiff": -6,
-      "finalCorpseDiff": -3,
+      "winner": "red",
+      "steps": 106,
+      "finalGoldDiff": 1,
+      "finalCorpseDiff": -5,
       "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "eternal_night_advisor_hunshi"
         },
         {
           "step": 0,
@@ -2279,7 +2255,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
+          "soulId": "eternal_night_cannon_minggupao"
         },
         {
           "step": 0,
@@ -2296,6 +2272,207 @@
         {
           "step": 0,
           "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        }
+      ]
+    },
+    {
+      "seed": 5009,
+      "winner": "black",
+      "steps": 166,
+      "finalGoldDiff": -8,
+      "finalCorpseDiff": 5,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
           "side": "black",
           "soulId": "styx_advisor_yanshi"
         },
@@ -2307,69 +2484,117 @@
         },
         {
           "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_advisor_minghu"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "styx_elephant_mingleixiang"
         },
         {
           "step": 0,
           "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
+          "soulId": "dark_moon_rook_yinghua"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
+          "soulId": "styx_rook_feiyan"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_knight_xuegu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_baoyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_feiyan"
         },
         {
           "step": 0,
@@ -2380,285 +2605,24 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        }
-      ]
-    },
-    {
-      "seed": 5009,
-      "winner": "red",
-      "steps": 130,
-      "finalGoldDiff": -6,
-      "finalCorpseDiff": -4,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
           "side": "red",
           "soulId": "styx_cannon_baoyan"
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "red",
           "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
         }
       ]
     },
     {
       "seed": 5010,
       "winner": "red",
-      "steps": 90,
-      "finalGoldDiff": 3,
-      "finalCorpseDiff": -3,
+      "steps": 122,
+      "finalGoldDiff": 1,
+      "finalCorpseDiff": -2,
       "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
         {
           "step": 0,
           "type": "BUY",
@@ -2667,6 +2631,24 @@
         },
         {
           "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
           "type": "ENCHANT",
           "side": "red",
           "soulId": "dark_moon_elephant_yueji"
@@ -2687,7 +2669,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
@@ -2699,13 +2681,31 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
           "soulId": "styx_advisor_minghu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
+          "side": "black",
           "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
@@ -2733,15 +2733,9 @@
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
@@ -2759,19 +2753,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
         },
         {
           "step": 0,
@@ -2787,6 +2769,12 @@
         },
         {
           "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "eternal_night_elephant_mingguxiang"
@@ -2794,425 +2782,89 @@
         {
           "step": 0,
           "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
           "side": "black",
           "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_minggupao"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_yinghua"
         }
       ]
     },
     {
       "seed": 5011,
       "winner": "red",
-      "steps": 122,
-      "finalGoldDiff": -1,
-      "finalCorpseDiff": -1,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_guhua"
-        }
-      ]
-    },
-    {
-      "seed": 5012,
-      "winner": "red",
-      "steps": 146,
-      "finalGoldDiff": -7,
-      "finalCorpseDiff": 5,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_feiyan"
-        }
-      ]
-    },
-    {
-      "seed": 5013,
-      "winner": "red",
-      "steps": 218,
-      "finalGoldDiff": 4,
+      "steps": 106,
+      "finalGoldDiff": -2,
       "finalCorpseDiff": -3,
       "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_advisor_minghu"
+          "soulId": "styx_rook_mingyanche"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_advisor_minghu"
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
         },
         {
           "step": 0,
@@ -3222,21 +2874,27 @@
         },
         {
           "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
           "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yeji"
+          "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
@@ -3254,14 +2912,89 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "styx_cannon_baoyan"
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_advisor_yanshi"
+          "soulId": "styx_advisor_minghu"
         },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        }
+      ]
+    },
+    {
+      "seed": 5012,
+      "winner": "black",
+      "steps": 150,
+      "finalGoldDiff": 0,
+      "finalCorpseDiff": 5,
+      "keyEvents": [
         {
           "step": 0,
           "type": "BUY",
@@ -3272,7 +3005,121 @@
           "step": 0,
           "type": "BUY",
           "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
           "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
@@ -3288,33 +3135,9 @@
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
         },
         {
           "step": 0,
@@ -3326,13 +3149,112 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "styx_cannon_mingleipao"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_cannon_mingleipao"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        }
+      ]
+    },
+    {
+      "seed": 5013,
+      "winner": "black",
+      "steps": 262,
+      "finalGoldDiff": 3,
+      "finalCorpseDiff": 5,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
@@ -3344,13 +3266,13 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
+          "soulId": "styx_elephant_mingyanxiang"
         },
         {
           "step": 0,
-          "type": "ENCHANT",
+          "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
+          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
@@ -3362,31 +3284,103 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
+          "soulId": "dark_moon_cannon_yehua"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
           "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_baoyan"
         },
         {
           "step": 0,
@@ -3403,20 +3397,8 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
           "side": "black",
           "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_mingleipao"
         },
         {
           "step": 0,
@@ -3429,9 +3411,9 @@
     {
       "seed": 5014,
       "winner": "red",
-      "steps": 122,
-      "finalGoldDiff": 2,
-      "finalCorpseDiff": 0,
+      "steps": 258,
+      "finalGoldDiff": -2,
+      "finalCorpseDiff": -2,
       "keyEvents": [
         {
           "step": 0,
@@ -3455,7 +3437,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "styx_cannon_baoyan"
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
@@ -3509,7 +3491,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
+          "soulId": "styx_elephant_mingyanxiang"
         },
         {
           "step": 0,
@@ -3527,13 +3509,13 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
+          "soulId": "dark_moon_elephant_yueji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
@@ -3545,19 +3527,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
+          "soulId": "dark_moon_advisor_yingji"
         },
         {
           "step": 0,
@@ -3567,372 +3537,12 @@
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "eternal_night_elephant_mingguxiang"
         },
         {
           "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        }
-      ]
-    },
-    {
-      "seed": 5015,
-      "winner": "black",
-      "steps": 94,
-      "finalGoldDiff": 0,
-      "finalCorpseDiff": 3,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        }
-      ]
-    },
-    {
-      "seed": 5016,
-      "winner": "red",
-      "steps": 138,
-      "finalGoldDiff": -3,
-      "finalCorpseDiff": 0,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_cannon_minggupao"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "styx_elephant_mingleixiang"
@@ -3940,107 +3550,20 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
           "soulId": "dark_moon_elephant_youji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "styx_rook_feiyan"
-        }
-      ]
-    },
-    {
-      "seed": 5017,
-      "winner": "red",
-      "steps": 278,
-      "finalGoldDiff": 1,
-      "finalCorpseDiff": 1,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
+          "soulId": "eternal_night_rook_minggouche"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
           "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
@@ -4050,15 +3573,9 @@
         },
         {
           "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
           "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
         },
         {
           "step": 0,
@@ -4068,123 +3585,21 @@
         },
         {
           "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_elephant_gulingxiang"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
           "side": "red",
           "soulId": "dark_moon_rook_lanhua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
           "side": "black",
-          "soulId": "eternal_night_advisor_hunshi"
+          "soulId": "eternal_night_elephant_mingguxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "styx_rook_feiyan"
+          "soulId": "styx_cannon_baoyan"
         },
         {
           "step": 0,
@@ -4195,197 +3610,8 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_knight_xueyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_wuying"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_knight_xuegu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_knight_yingzi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_cannon_suigu"
-        }
-      ]
-    },
-    {
-      "seed": 5018,
-      "winner": "black",
-      "steps": 238,
-      "finalGoldDiff": 1,
-      "finalCorpseDiff": 8,
-      "keyEvents": [
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_knight_hunling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_elephant_mingguxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_rook_feiyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "eternal_night_rook_guhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "dark_moon_rook_lanhua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
@@ -4397,67 +3623,31 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_rook_mingyanche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_rook_yinghua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "styx_elephant_mingleixiang"
         },
         {
           "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "black",
-          "soulId": "styx_elephant_mingyanxiang"
-        },
-        {
-          "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "styx_cannon_baoyan"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
           "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
           "side": "black",
-          "soulId": "styx_elephant_mingleixiang"
+          "soulId": "eternal_night_knight_xuegu"
         },
         {
           "step": 0,
           "type": "BUY",
-          "side": "black",
-          "soulId": "eternal_night_rook_minggouche"
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
+          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
@@ -4469,7 +3659,829 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
+          "soulId": "styx_knight_xueyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_knight_hunling"
+        }
+      ]
+    },
+    {
+      "seed": 5015,
+      "winner": "black",
+      "steps": 94,
+      "finalGoldDiff": 0,
+      "finalCorpseDiff": 1,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_suigu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
           "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        }
+      ]
+    },
+    {
+      "seed": 5016,
+      "winner": "red",
+      "steps": 170,
+      "finalGoldDiff": -7,
+      "finalCorpseDiff": -2,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_yingzi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_knight_yanling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_knight_wuying"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_baoyan"
+        }
+      ]
+    },
+    {
+      "seed": 5017,
+      "winner": "black",
+      "steps": 126,
+      "finalGoldDiff": -1,
+      "finalCorpseDiff": 2,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_cannon_baoyan"
+        }
+      ]
+    },
+    {
+      "seed": 5018,
+      "winner": "red",
+      "steps": 178,
+      "finalGoldDiff": 7,
+      "finalCorpseDiff": 0,
+      "keyEvents": [
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_knight_hunling"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_mingguxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_youji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_elephant_mingyanxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_fenghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_advisor_minghu"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_advisor_yanshi"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_rook_mingyanche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
+          "soulId": "dark_moon_rook_yinghua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_rook_minggouche"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "styx_rook_feiyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_cannon_minggupao"
         },
         {
           "step": 0,
@@ -4487,7 +4499,13 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
+          "soulId": "styx_cannon_baoyan"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "dark_moon_rook_lanhua"
         }
       ]
     },
@@ -4495,8 +4513,8 @@
       "seed": 5019,
       "winner": "black",
       "steps": 150,
-      "finalGoldDiff": -12,
-      "finalCorpseDiff": 3,
+      "finalGoldDiff": 7,
+      "finalCorpseDiff": 5,
       "keyEvents": [
         {
           "step": 0,
@@ -4520,13 +4538,7 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_advisor_yeji"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
@@ -4544,7 +4556,25 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
+          "soulId": "dark_moon_advisor_yeji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "dark_moon_cannon_yehua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "black",
           "soulId": "eternal_night_rook_guhua"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
         },
         {
           "step": 0,
@@ -4556,13 +4586,13 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
+          "soulId": "dark_moon_cannon_fenghua"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "eternal_night_advisor_hunshi"
+          "soulId": "dark_moon_advisor_yeji"
         },
         {
           "step": 0,
@@ -4574,25 +4604,13 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "eternal_night_advisor_guhu"
+          "soulId": "eternal_night_elephant_mingguxiang"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
           "soulId": "styx_knight_yanling"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "styx_advisor_minghu"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "black",
-          "soulId": "styx_advisor_yanshi"
         },
         {
           "step": 0,
@@ -4604,29 +4622,47 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_advisor_yingji"
+          "soulId": "dark_moon_elephant_yueji"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
+          "soulId": "eternal_night_advisor_hunshi"
         },
         {
           "step": 0,
           "type": "BUY",
           "side": "black",
-          "soulId": "eternal_night_elephant_mingguxiang"
+          "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "eternal_night_rook_guhua"
+          "soulId": "dark_moon_elephant_yueji"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
+          "side": "red",
+          "soulId": "styx_advisor_minghu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_hunshi"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "red",
+          "soulId": "eternal_night_elephant_gulingxiang"
+        },
+        {
+          "step": 0,
+          "type": "BUY",
           "side": "black",
           "soulId": "styx_advisor_yanshi"
         },
@@ -4634,13 +4670,19 @@
           "step": 0,
           "type": "BUY",
           "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
+          "soulId": "dark_moon_advisor_yingji"
+        },
+        {
+          "step": 0,
+          "type": "ENCHANT",
+          "side": "black",
+          "soulId": "eternal_night_advisor_guhu"
         },
         {
           "step": 0,
           "type": "ENCHANT",
           "side": "red",
-          "soulId": "dark_moon_elephant_yueji"
+          "soulId": "eternal_night_cannon_suigu"
         },
         {
           "step": 0,
@@ -4658,7 +4700,7 @@
           "step": 0,
           "type": "ENCHANT",
           "side": "black",
-          "soulId": "eternal_night_elephant_gulingxiang"
+          "soulId": "styx_elephant_mingyanxiang"
         },
         {
           "step": 0,
@@ -4669,20 +4711,8 @@
         {
           "step": 0,
           "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_cannon_yehua"
-        },
-        {
-          "step": 0,
-          "type": "BUY",
-          "side": "red",
-          "soulId": "eternal_night_rook_minggouche"
-        },
-        {
-          "step": 0,
-          "type": "ENCHANT",
-          "side": "red",
-          "soulId": "dark_moon_elephant_youji"
+          "side": "black",
+          "soulId": "styx_elephant_mingleixiang"
         }
       ]
     }

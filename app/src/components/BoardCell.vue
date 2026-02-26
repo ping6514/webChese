@@ -107,9 +107,9 @@ export default defineComponent({
 <style scoped>
 .cell {
   aspect-ratio: 1 / 1;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(0, 0, 0, 0.15);
-  color: #eaeaea;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f0f0f0;
   text-align: left;
   padding: 4px 6px;
   border-radius: 6px;

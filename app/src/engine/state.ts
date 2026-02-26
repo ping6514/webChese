@@ -79,6 +79,12 @@ export type GameState = {
     necroActionsUsed: number
     bloodRitualUsed: boolean
     necroBonusActions: number
+    freeShootBonus: number
+    enchantGoldDiscount: number
+    itemNecroBonus: number
+    lastStandContractBonus: number
+    lastStandNoEnchantUnitIds: string[]
+    darkMoonScopeActive: boolean
   }
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
@@ -281,6 +287,12 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       necroActionsUsed: 0,
       bloodRitualUsed: false,
       necroBonusActions: 0,
+      freeShootBonus: 0,
+      enchantGoldDiscount: 0,
+      itemNecroBonus: 0,
+      lastStandContractBonus: 0,
+      lastStandNoEnchantUnitIds: [],
+      darkMoonScopeActive: false,
     },
     hands: {
       red: { souls: [], items: [] },

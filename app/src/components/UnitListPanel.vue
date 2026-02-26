@@ -9,6 +9,12 @@ type UnitRow = {
   hpCurrent: number
   name: string
   image?: string
+  pos: { x: number; y: number }
+  dead?: boolean
+}
+
+const BASE_LABEL: Record<string, string> = {
+  king: '帥', advisor: '仕', elephant: '象', rook: '車', knight: '馬', cannon: '砲', soldier: '卒',
 }
 
 export default defineComponent({
@@ -17,101 +23,213 @@ export default defineComponent({
     title: { type: String, required: true },
     units: { type: Array as () => UnitRow[], required: true },
   },
-  emits: ['show-unit-detail'],
+  emits: ['show-unit-detail', 'select-cell'],
+  methods: {
+    baseLabel(b: string) { return BASE_LABEL[b] ?? b },
+    hpColor(hp: number) {
+      if (hp <= 3) return '#ff4d4f'
+      if (hp <= 6) return '#fa8c16'
+      return '#ff9c9e'
+    },
+  },
 })
 </script>
 
 <template>
-  <div>
-    <h2>{{ title }}</h2>
-    <div class="unitCard">
-      <div v-if="units.length === 0" class="muted">(empty)</div>
-      <button v-for="u in units" :key="u.id" type="button" class="row" @click="$emit('show-unit-detail', u.id)">
-        <div class="rowMain">
-          <div class="mono rowTop">{{ u.side }} | {{ u.base }} | hp {{ u.hpCurrent }}</div>
-          <div class="rowName">{{ u.name }}</div>
+  <div class="panel">
+    <div class="panelTitle">{{ title }}</div>
+
+    <div v-if="units.length === 0" class="empty">（無單位）</div>
+
+    <div class="unitList">
+      <div
+        v-for="u in units"
+        :key="u.id"
+        class="unitRow"
+        :class="{ dead: u.dead, sideRed: u.side === 'red', sideBlack: u.side === 'black' }"
+      >
+        <!-- Image -->
+        <div class="imgCell">
+          <img v-if="u.image && !u.dead" class="unitImg" :src="u.image" alt="" />
+          <div v-else-if="u.dead" class="unitImgDead">💀</div>
+          <div v-else class="unitImgEmpty">{{ baseLabel(u.base) }}</div>
         </div>
-        <div class="rowImg">
-          <img v-if="u.image" :src="u.image" alt="" />
-          <div v-else class="noImg mono">no img</div>
+
+        <!-- Info -->
+        <div class="infoCell" @click="$emit('show-unit-detail', u.id)">
+          <div class="unitName" :class="{ strikethrough: u.dead }">{{ u.name }}</div>
+          <div class="unitBase">{{ u.side === 'red' ? '🔴' : '🟢' }} {{ baseLabel(u.base) }}</div>
+          <div v-if="!u.dead" class="hpRow">
+            <span class="hpIcon">❤️</span>
+            <span class="hpNum" :style="{ color: hpColor(u.hpCurrent) }">{{ u.hpCurrent }}</span>
+          </div>
+          <div v-else class="deadLabel">已陣亡</div>
         </div>
-      </button>
+
+        <!-- Select cell button (alive units only) -->
+        <button
+          v-if="!u.dead"
+          type="button"
+          class="locateBtn"
+          title="在棋盤上定位"
+          @click.stop="$emit('select-cell', u.id)"
+        >📍</button>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.unitCard {
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.18);
+.panel {
+  display: grid;
+  gap: 10px;
+}
+
+.panelTitle {
+  font-size: 15px;
+  font-weight: 900;
+  opacity: 0.9;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.empty {
+  font-size: 13px;
+  opacity: 0.45;
+  padding: 8px 0;
+}
+
+.unitList {
   display: grid;
   gap: 6px;
   max-height: 70vh;
-  overflow: auto;
+  overflow-y: auto;
 }
 
-.row {
-  width: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.92);
-  padding: 8px;
+/* ── Unit row ────────────────────────────────────────────────────────── */
+.unitRow {
   display: grid;
-  grid-template-columns: 1fr 46px;
+  grid-template-columns: 52px 1fr 36px;
   gap: 10px;
   align-items: center;
-  text-align: left;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.row:hover {
-  border-color: rgba(145, 202, 255, 0.55);
+.unitRow:not(.dead):hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.rowTop {
-  opacity: 0.85;
-  font-size: 12px;
+.unitRow.sideBlack { border-left: 3px solid rgba(82, 196, 26, 0.6); }
+.unitRow.sideRed   { border-left: 3px solid rgba(255, 77, 79, 0.6); }
+
+.unitRow.dead {
+  opacity: 0.4;
+  border-left-color: rgba(255, 255, 255, 0.2) !important;
+  background: rgba(0, 0, 0, 0.15);
 }
 
-.rowName {
-  font-weight: 700;
-  font-size: 13px;
+/* ── Image cell ──────────────────────────────────────────────────────── */
+.imgCell {
+  width: 52px;
+  height: 68px;
+  flex-shrink: 0;
 }
 
-.rowImg {
-  width: 46px;
-  height: 62px;
-  display: grid;
-  place-items: center;
-}
-
-.rowImg img {
-  width: 46px;
-  height: 62px;
+.unitImg {
+  width: 52px;
+  height: 68px;
   object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.noImg {
-  width: 46px;
-  height: 62px;
-  border-radius: 6px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+.unitImgDead {
+  width: 52px;
+  height: 68px;
   display: grid;
   place-items: center;
-  font-size: 11px;
-  opacity: 0.8;
+  font-size: 28px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
 }
 
-.muted {
-  opacity: 0.75;
+.unitImgEmpty {
+  width: 52px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 900;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  opacity: 0.7;
+}
+
+/* ── Info cell ───────────────────────────────────────────────────────── */
+.infoCell {
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.unitName {
+  font-size: 16px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.strikethrough { text-decoration: line-through; }
+
+.unitBase {
   font-size: 12px;
+  opacity: 0.65;
 }
 
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+.hpRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hpIcon { font-size: 13px; }
+
+.hpNum {
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.deadLabel {
+  font-size: 12px;
+  color: rgba(255, 77, 79, 0.75);
+  font-weight: 700;
+}
+
+/* ── Locate button ───────────────────────────────────────────────────── */
+.locateBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s;
+  padding: 0;
+  align-self: center;
+}
+.locateBtn:hover {
+  background: rgba(145, 202, 255, 0.2);
+  border-color: rgba(145, 202, 255, 0.5);
 }
 </style>

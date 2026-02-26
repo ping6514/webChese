@@ -19,80 +19,204 @@ type UnitLite = {
   enchant?: { soulId: string }
 }
 
+const BASE_LABEL: Record<string, string> = {
+  king: '帥', advisor: '仕', elephant: '象', rook: '車', knight: '馬', cannon: '砲', soldier: '卒',
+}
+
+const ATK_LABEL: Record<string, string> = {
+  magic: '魔', phys: '物理', true: '穿透',
+}
+
 export default defineComponent({
   name: 'UnitInfoPanel',
   props: {
     unit: { type: Object as () => UnitLite | null, required: true },
     enchantSoul: { type: Object as () => EnchantSoulLite | null, required: true },
+    baseImage: { type: String as () => string | undefined, required: false, default: undefined },
   },
   emits: ['show-soul-detail'],
+  methods: {
+    baseLabel(b: string) { return BASE_LABEL[b] ?? b },
+    atkLabel(k: string) { return ATK_LABEL[k] ?? k },
+  },
 })
 </script>
 
 <template>
-  <div>
-    <h2>Unit</h2>
-    <div v-if="unit" class="unitCard">
-      <div class="mono">id: {{ unit.id }}</div>
-      <div class="mono">side: {{ unit.side }}</div>
-      <div class="mono">base: {{ unit.base }}</div>
-      <div class="mono">pos: ({{ unit.pos.x }},{{ unit.pos.y }})</div>
-      <div class="mono">hp: {{ unit.hpCurrent }}</div>
-      <div class="mono">atk: {{ unit.atk.key }} {{ unit.atk.value }}</div>
-      <div class="mono">def: {{ unit.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
-      <div class="mono">soul: {{ unit.enchant?.soulId ?? '-' }}</div>
+  <div class="unitPanel">
+    <div class="sectionTitle">⚔️ 選中單位</div>
 
-      <div v-if="enchantSoul" class="enchantRow">
-        <button type="button" class="linkBtn" @click="$emit('show-soul-detail', enchantSoul.id)">
+    <div v-if="unit" class="unitCard">
+      <div class="cardLeft">
+        <img
+          v-if="enchantSoul?.image"
+          class="soulImg"
+          :src="enchantSoul.image"
+          alt=""
+          @click="$emit('show-soul-detail', enchantSoul!.id)"
+        />
+        <img
+          v-else-if="baseImage"
+          class="soulImg baseImg"
+          :src="baseImage"
+          alt=""
+        />
+        <div v-else class="soulImgEmpty">
+          <span class="baseChar">{{ baseLabel(unit.base) }}</span>
+        </div>
+        <div v-if="enchantSoul" class="soulName linkBtn" @click="$emit('show-soul-detail', enchantSoul.id)">
           {{ enchantSoul.name }}
-        </button>
-        <img v-if="enchantSoul.image" class="enchantImg" :src="enchantSoul.image" alt="" />
+        </div>
+        <div v-else class="soulName muted">無靈魂</div>
+      </div>
+
+      <div class="cardRight">
+        <div class="hpRow">
+          <span class="hpIcon">❤️</span>
+          <span class="hpNum" :class="unit.side === 'red' ? 'red' : 'green'">{{ unit.hpCurrent }}</span>
+          <span class="hpLabel">HP</span>
+        </div>
+        <div class="statRow">
+          <span class="statLabel">陣營</span>
+          <span class="statVal" :class="unit.side === 'red' ? 'red' : 'green'">
+            {{ unit.side === 'red' ? '🔴 紅方' : '🟢 黑方' }}
+          </span>
+        </div>
+        <div class="statRow">
+          <span class="statLabel">基底</span>
+          <span class="statVal">{{ baseLabel(unit.base) }}</span>
+        </div>
+        <div class="statRow">
+          <span class="statLabel">⚔️ 攻</span>
+          <span class="statVal">{{ atkLabel(unit.atk.key) }} {{ unit.atk.value }}</span>
+        </div>
+        <div class="statRow">
+          <span class="statLabel">🛡️ 防</span>
+          <span class="statVal">{{ unit.def.map(d => `${atkLabel(d.key)} ${d.value}`).join(' / ') }}</span>
+        </div>
+        <div class="statRow">
+          <span class="statLabel">📍 位置</span>
+          <span class="statVal mono">({{ unit.pos.x }}, {{ unit.pos.y }})</span>
+        </div>
       </div>
     </div>
-    <div v-else class="muted">Select a unit on the board.</div>
+
+    <div v-else class="empty">點擊棋盤上的單位</div>
   </div>
 </template>
 
 <style scoped>
+.unitPanel { display: grid; gap: 8px; }
+
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0.65;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
 .unitCard {
-  padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.18);
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.07);
 }
 
-.enchantRow {
+.cardLeft {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 6px;
 }
 
+.soulImg {
+  width: 72px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.baseImg {
+  cursor: default;
+  opacity: 0.7;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.soulImg:hover { border-color: rgba(145, 202, 255, 0.7); }
+
+.soulImgEmpty {
+  width: 72px;
+  height: 96px;
+  border-radius: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.04);
+}
+.baseChar { font-size: 32px; font-weight: 900; opacity: 0.55; }
+
+.soulName {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.3;
+}
 .linkBtn {
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: rgba(145, 202, 255, 0.95);
-  text-align: left;
+  color: rgba(145, 202, 255, 0.9);
   cursor: pointer;
 }
+.linkBtn:hover { text-decoration: underline; }
+.muted { color: rgba(255, 255, 255, 0.35); }
 
-.linkBtn:hover {
-  text-decoration: underline;
+.cardRight {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  justify-content: center;
 }
 
-.enchantImg {
-  width: 42px;
-  height: 58px;
-  object-fit: cover;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+.hpRow {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 2px;
 }
+.hpIcon { font-size: 15px; }
+.hpNum {
+  font-size: 30px;
+  font-weight: 900;
+  line-height: 1;
+}
+.hpNum.red { color: #ff9c9e; }
+.hpNum.green { color: #95de64; }
+.hpLabel { font-size: 13px; opacity: 0.65; font-weight: 600; }
 
-.muted {
-  opacity: 0.75;
+.statRow {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
 }
+.statLabel {
+  font-size: 12px;
+  opacity: 0.55;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 52px;
+}
+.statVal {
+  font-size: 13px;
+  font-weight: 700;
+}
+.statVal.red { color: #ff9c9e; }
+.statVal.green { color: #95de64; }
+
+.empty { font-size: 13px; opacity: 0.45; padding: 8px 0; }
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;

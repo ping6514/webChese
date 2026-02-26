@@ -76,6 +76,14 @@ export type RevivedEvent = {
   soulId?: string
 }
 
+export type ItemUsedEvent = {
+  type: 'ITEM_USED'
+  side: string
+  itemId: string
+  itemName: string
+  targetUnitId?: string
+}
+
 export type Event =
   | UnitMovedEvent
   | PhaseChangedEvent
@@ -88,3 +96,4 @@ export type Event =
   | EnchantedEvent
   | RevivedEvent
   | AbilityTriggeredEvent
+  | ItemUsedEvent

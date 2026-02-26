@@ -34,6 +34,15 @@ type InteractionMode =
       sourceUnitId: string
       range: number
     }
+  | {
+      kind: 'use_item_target_unit'
+      itemId: string
+      validUnitIds: string[]
+    }
+  | {
+      kind: 'use_item_target_corpse'
+      itemId: string
+    }
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'lagging'
 
@@ -123,6 +132,14 @@ export const useUiStore = defineStore('ui', {
       const r = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : 1
       this.interactionMode = { kind: 'sacrifice_select_target', sourceUnitId, range: r }
     },
+
+    startUseItemTargetUnit: function (itemId: string, validUnitIds: string[]) {
+      this.interactionMode = { kind: 'use_item_target_unit', itemId, validUnitIds }
+    },
+    startUseItemTargetCorpse: function (itemId: string) {
+      this.interactionMode = { kind: 'use_item_target_corpse', itemId }
+    },
+
     clearInteractionMode: function () {
       this.interactionMode = { kind: 'idle' }
     },

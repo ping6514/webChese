@@ -25,6 +25,11 @@ export default defineComponent({
 
     items: { type: Array as () => string[], required: true },
     discardGuards: { type: Object as () => Partial<Record<string, GuardResult>>, required: true },
+    useGuards: {
+      type: Object as () => Partial<Record<string, GuardResult>>,
+      required: false,
+      default: () => ({}),
+    },
     getItemName: {
       type: Function as unknown as () => (itemId: string) => string,
       required: true,
@@ -35,8 +40,8 @@ export default defineComponent({
       default: undefined,
     },
   },
-  emits: ['select-soul', 'dragstart-soul', 'dragend-soul', 'enchant', 'return-soul', 'discard-item', 'show-item-detail'],
-  setup() {
+  emits: ['select-soul', 'dragstart-soul', 'dragend-soul', 'enchant', 'return-soul', 'discard-item', 'use-item', 'show-item-detail'],
+  setup(props) {
     const tab = ref<'souls' | 'items'>('souls')
     const ui = useUiStore()
     const isCollapsed = computed(() => ui.handCollapsedOverride ?? ui.handCollapsedUser)
@@ -47,24 +52,43 @@ export default defineComponent({
       ui.setHandCollapsedUser(next)
     }
 
-    return { tab, ui, isCollapsed, toggleCollapsed }
+    const soulCount = computed(() => props.soulCards.length)
+    const itemCount = computed(() => props.items.length)
+
+    return { tab, ui, isCollapsed, toggleCollapsed, soulCount, itemCount }
   },
 })
 </script>
 
 <template>
   <div class="handBarWrap">
-    <div class="tabs">
-      <button type="button" class="tabBtn" :class="{ active: tab === 'souls' }" @click="tab = 'souls'">Souls</button>
-      <button type="button" class="tabBtn" :class="{ active: tab === 'items' }" @click="tab = 'items'">Items</button>
+    <!-- Tab header -->
+    <div class="tabBar">
+      <button
+        type="button"
+        class="tabBtn"
+        :class="{ active: tab === 'souls' }"
+        @click="tab = 'souls'"
+      >
+        ✨ 靈魂
+        <span class="badge" :class="{ badgeActive: tab === 'souls' }">{{ soulCount }}</span>
+      </button>
+      <button
+        type="button"
+        class="tabBtn"
+        :class="{ active: tab === 'items' }"
+        @click="tab = 'items'"
+      >
+        🎒 道具
+        <span class="badge" :class="{ badgeActive: tab === 'items' }">{{ itemCount }}</span>
+      </button>
 
-      <div class="scaleCtl">
-        <button type="button" class="collapseBtn" @click="toggleCollapsed()">
-          {{ isCollapsed ? 'Expand' : 'Collapse' }}
-        </button>
-      </div>
+      <button type="button" class="collapseBtn" @click="toggleCollapsed()">
+        {{ isCollapsed ? '▲ 展開' : '▼ 收起' }}
+      </button>
     </div>
 
+    <!-- Content -->
     <div class="handBody" :class="{ collapsed: isCollapsed }">
       <HandSouls
         v-if="tab === 'souls'"
@@ -86,9 +110,11 @@ export default defineComponent({
         :phase="phase"
         :items="items"
         :discard-guards="discardGuards"
+        :use-guards="useGuards"
         :get-item-name="getItemName"
         :get-item="getItem"
         @discard="$emit('discard-item', $event)"
+        @use-item="$emit('use-item', $event)"
         @show-item-detail="$emit('show-item-detail', $event)"
       />
     </div>
@@ -101,58 +127,94 @@ export default defineComponent({
   bottom: 8px;
   z-index: 15;
   margin-top: 8px;
-  padding: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.72);
-  backdrop-filter: blur(6px);
-}
-
-.tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  align-items: center;
-}
-
-.scaleCtl {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.collapseBtn {
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.22);
-  color: rgba(255, 255, 255, 0.92);
-}
-
-.handBody {
-  max-height: 420px;
-  overflow: visible;
-  transition: max-height 160ms ease;
-}
-
-.handBody.collapsed {
-  max-height: 0px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  background: rgba(10, 12, 24, 0.88);
+  backdrop-filter: blur(8px);
   overflow: hidden;
 }
 
-.tabBtn {
-  padding: 6px 10px;
-  font-size: 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.22);
-  color: rgba(255, 255, 255, 0.92);
+/* ── Tab bar ─────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.tabBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.tabBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
 .tabBtn.active {
-  border-color: rgba(145, 202, 255, 0.95);
-  background: rgba(145, 202, 255, 0.12);
+  background: rgba(145, 202, 255, 0.14);
+  border-color: rgba(145, 202, 255, 0.7);
+  color: rgba(145, 202, 255, 0.95);
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 800;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.6);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.badge.badgeActive {
+  background: rgba(145, 202, 255, 0.25);
+  color: rgba(145, 202, 255, 0.95);
+}
+
+.collapseBtn {
+  margin-left: auto;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.collapseBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── Content area ────────────────────────────────────────────────────── */
+.handBody {
+  padding: 10px;
+  max-height: 300px;
+  overflow: visible;
+  transition: max-height 180ms ease, padding 180ms ease;
+}
+
+.handBody.collapsed {
+  max-height: 0;
+  overflow: hidden;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 </style>

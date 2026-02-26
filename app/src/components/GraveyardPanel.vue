@@ -1,127 +1,205 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, ref } from 'vue'
 
 export default defineComponent({
   name: 'GraveyardPanel',
   props: {
     red: { type: Array as () => string[], required: true },
     black: { type: Array as () => string[], required: true },
-    previewCount: { type: Number, required: false, default: 5 },
+    previewCount: { type: Number, required: false, default: 6 },
   },
   emits: {
     'show-soul-detail': (_soulId: string) => true,
+  },
+  setup() {
+    const expanded = ref(false)
+    return { expanded }
   },
 })
 </script>
 
 <template>
-  <div>
-    <h2>Graveyard</h2>
-    <div class="unitCard">
-      <details class="row" :open="red.length > 0">
-        <summary class="label mono">red: <span class="count">({{ red.length }})</span></summary>
-        <div class="dropdown">
-          <div v-if="red.length === 0" class="mono">-</div>
+  <div class="graveyardPanel">
+    <div class="panelHead" @click="expanded = !expanded">
+      <span class="panelTitle">⚰️ 靈魂卡墓場</span>
+      <div class="panelMeta">
+        <span class="countBadge red">🔴 {{ red.length }}</span>
+        <span class="countBadge black">⚫ {{ black.length }}</span>
+        <span class="expandIcon">{{ expanded ? '▲' : '▼' }}</span>
+      </div>
+    </div>
+
+    <div v-if="expanded" class="columns">
+      <!-- Red graveyard -->
+      <div class="column">
+        <div class="colHead red">🔴 紅方 <span class="colCount">{{ red.length }}</span></div>
+        <div class="chipList">
+          <div v-if="red.length === 0" class="emptyMsg">空</div>
           <button
             v-for="(id, idx) in red.slice(0, previewCount)"
-            :key="`red:${id}:${idx}`"
+            :key="`r:${id}:${idx}`"
             type="button"
-            class="linkBtn mono"
+            class="chip chipRed"
             @click="$emit('show-soul-detail', id)"
-          >
-            {{ id }}
-          </button>
-          <div v-if="red.length > previewCount" class="more mono">… +{{ red.length - previewCount }}</div>
+          >{{ id }}</button>
+          <div v-if="red.length > previewCount" class="moreChip">+{{ red.length - previewCount }}</div>
         </div>
-      </details>
+      </div>
 
-      <details class="row" :open="black.length > 0">
-        <summary class="label mono">black: <span class="count">({{ black.length }})</span></summary>
-        <div class="dropdown">
-          <div v-if="black.length === 0" class="mono">-</div>
+      <!-- Black graveyard -->
+      <div class="column">
+        <div class="colHead black">⚫ 黑方 <span class="colCount">{{ black.length }}</span></div>
+        <div class="chipList">
+          <div v-if="black.length === 0" class="emptyMsg">空</div>
           <button
             v-for="(id, idx) in black.slice(0, previewCount)"
-            :key="`black:${id}:${idx}`"
+            :key="`b:${id}:${idx}`"
             type="button"
-            class="linkBtn mono"
+            class="chip chipBlack"
             @click="$emit('show-soul-detail', id)"
-          >
-            {{ id }}
-          </button>
-          <div v-if="black.length > previewCount" class="more mono">… +{{ black.length - previewCount }}</div>
+          >{{ id }}</button>
+          <div v-if="black.length > previewCount" class="moreChip">+{{ black.length - previewCount }}</div>
         </div>
-      </details>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.unitCard {
-  padding: 8px;
+.graveyardPanel {
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(0, 0, 0, 0.18);
+  overflow: hidden;
 }
 
-.row {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 6px;
-  padding-bottom: 6px;
-}
-
-.row:first-of-type {
-  border-top: none;
-  padding-top: 0;
-}
-
-.label {
-  opacity: 0.85;
+/* ── Header ──────────────────────────────────────────────────────────── */
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
   cursor: pointer;
-  list-style: none;
+  user-select: none;
+  transition: background 0.15s;
+}
+.panelHead:hover { background: rgba(255, 255, 255, 0.05); }
+
+.panelTitle {
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.65;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-.label::-webkit-details-marker {
-  display: none;
+.panelMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.count {
-  opacity: 0.7;
+.countBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.countBadge.red {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff9c9e;
+  border: 1px solid rgba(255, 77, 79, 0.3);
+}
+.countBadge.black {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.dropdown {
-  margin-top: 6px;
+.expandIcon {
+  font-size: 10px;
+  opacity: 0.45;
+  margin-left: 2px;
+}
+
+/* ── Columns ─────────────────────────────────────────────────────────── */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.column {
+  padding: 8px;
+}
+
+.column + .column {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.colHead {
+  font-size: 11px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.colHead.red { color: #ff9c9e; }
+.colHead.black { color: rgba(255, 255, 255, 0.6); }
+
+.colCount {
+  font-size: 10px;
+  opacity: 0.65;
+  font-weight: 400;
+}
+
+/* ── Chip list ───────────────────────────────────────────────────────── */
+.chipList {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  max-height: 180px;
-  overflow: auto;
-  padding: 6px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.15);
+  gap: 4px;
+  max-height: 130px;
+  overflow-y: auto;
 }
 
-.linkBtn {
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: rgba(145, 202, 255, 0.95);
+.chip {
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-align: left;
   cursor: pointer;
-  display: block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s;
 }
 
-.linkBtn:hover {
-  text-decoration: underline;
+.chipRed {
+  background: rgba(255, 77, 79, 0.1);
+  border: 1px solid rgba(255, 77, 79, 0.25);
+  color: #ffb3b4;
+}
+.chipRed:hover { background: rgba(255, 77, 79, 0.22); }
+
+.chipBlack {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.75);
+}
+.chipBlack:hover { background: rgba(255, 255, 255, 0.12); }
+
+.moreChip {
+  font-size: 10px;
+  opacity: 0.5;
+  padding: 2px 4px;
 }
 
-.more {
-  opacity: 0.75;
-}
-
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+.emptyMsg {
+  font-size: 11px;
+  opacity: 0.35;
+  padding: 4px 0;
 }
 </style>

@@ -42,6 +42,15 @@ export type BuySoulFromDisplayAction = {
 
 export type BuySoulFromEnemyGraveyardAction = {
   type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD'
+  soulId?: string  // 暗月窺視鏡：指定任意位置的靈魂
+}
+
+export type UseItemFromHandAction = {
+  type: 'USE_ITEM_FROM_HAND'
+  itemId: string
+  targetUnitId?: string            // 靈血聖杯、亡者歸途
+  targetPos?: { x: number; y: number }  // 骸骨煉化
+  choice?: 'gold' | 'mana'        // 骸骨煉化 二選一
 }
 
 export type ReturnSoulToDeckBottomAction = {
@@ -83,4 +92,5 @@ export type Action =
   | ReturnSoulToDeckBottomAction
   | BuyItemFromDisplayAction
   | DiscardItemFromHandAction
+  | UseItemFromHandAction
   | NextPhaseAction

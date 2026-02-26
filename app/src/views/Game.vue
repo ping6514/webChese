@@ -15,6 +15,7 @@ import {
   canBuySoulFromEnemyGraveyard,
   canBuyItemFromDisplay,
   canDiscardItemFromHand,
+  canUseItemFromHand,
   canReturnSoulToDeckBottom,
   canEnchant,
   canSacrifice,
@@ -24,6 +25,7 @@ import {
   getItemCard,
   getSoulCard,
   reduce,
+  BASE_STATS,
   type GameState,
   type Pos,
   type PieceBase,
@@ -72,6 +74,27 @@ const fxEnchantedPosKeys = ref<string[]>([])
 
 const debugOpen = ref(false)
 const eventLogOpen = ref(false)
+
+// ── Sidebar width toggle ───────────────────────────────────────────────────────
+type SidebarSize = 'sm' | 'md' | 'lg'
+const SIDEBAR_WIDTHS: Record<SidebarSize, number> = { sm: 220, md: 340, lg: 500 }
+const SIDEBAR_LABELS: Record<SidebarSize, string> = { sm: '◀◀', md: '◀▶', lg: '▶▶' }
+const sidebarSize = ref<SidebarSize>('md')
+function cycleSidebarWidth() {
+  sidebarSize.value = sidebarSize.value === 'sm' ? 'md' : sidebarSize.value === 'md' ? 'lg' : 'sm'
+}
+const mainGridStyle = computed(() => ({ gridTemplateColumns: `1fr ${SIDEBAR_WIDTHS[sidebarSize.value]}px` }))
+
+// ── Board scale toggle ─────────────────────────────────────────────────────────
+type BoardScale = 50 | 75 | 100
+const boardScale = ref<BoardScale>(100)
+const BOARD_SCALE_LABELS: Record<BoardScale, string> = { 50: '50%', 75: '75%', 100: '100%' }
+function cycleBoardScale() {
+  boardScale.value = boardScale.value === 100 ? 75 : boardScale.value === 75 ? 50 : 100
+}
+const boardScaleStyle = computed(() =>
+  boardScale.value === 100 ? {} : { zoom: boardScale.value / 100 }
+)
 const debugMatchSeed = ref<string>(state.value.rules.matchSeed)
 const debugEnabledClans = ref<string[]>(state.value.rules.enabledClans)
 
@@ -123,13 +146,25 @@ const isNpcTurn = computed(() =>
 const botRunning = ref(false)
 let botSeed = Date.now()
 
+type BotSpeedKey = '最慢' | '慢' | '正常' | '快' | '即時'
+const botSpeedLabel = ref<BotSpeedKey>('正常')
+const botDelays = computed((): { init: number; action: number } => {
+  switch (botSpeedLabel.value) {
+    case '最慢':  return { init: 1800, action: 1800 }
+    case '慢':  return { init: 1000, action: 1000 }
+    case '快':  return { init: 120, action: 60 }
+    case '即時': return { init: 20,  action: 0 }
+    default:    return { init: 350, action: 180 }
+  }
+})
+
 watch(
   () => [state.value.turn.side, state.value.turn.phase] as const,
   async ([side, phase]) => {
     if (!npcSide.value || side !== npcSide.value || botRunning.value) return
     if (phase === 'turnStart') return  // engine auto-advances; no action needed
     botRunning.value = true
-    await sleep(350)
+    await sleep(botDelays.value.init)
 
     const weightsMode = setup.difficulty === 'easy' ? 'base' : 'blend'
     const ctx: BotContext = { seed: botSeed++, epsilon: 0, weightsMode }
@@ -137,11 +172,26 @@ watch(
 
     for (const action of result.actions) {
       dispatch(action)
-      if (action.type !== 'NEXT_PHASE') await sleep(180)
+      if (action.type !== 'NEXT_PHASE') await sleep(botDelays.value.action)
     }
     botRunning.value = false
   },
+  { immediate: true },
 )
+
+// ── Phase change toast ────────────────────────────────────────────────────────
+const phaseToastText = ref('')
+const phaseToastVisible = ref(false)
+let phaseToastTimer: ReturnType<typeof setTimeout> | null = null
+
+function showPhaseToast(text: string) {
+  phaseToastText.value = text
+  phaseToastVisible.value = true
+  if (phaseToastTimer) clearTimeout(phaseToastTimer)
+  phaseToastTimer = setTimeout(() => {
+    phaseToastVisible.value = false
+  }, 1800)
+}
 
 watch(
   () => state.value.turn.phase,
@@ -156,6 +206,16 @@ watch(
     ui.clearShootPreview()
     ui.clearInteractionMode()
     selectedSoulId.value = ''
+
+    if (phase !== 'turnStart') {
+      const phaseNames: Record<string, string> = {
+        buy: '💰 購買階段',
+        necro: '⚗️ 死靈術階段',
+        combat: '⚔️ 戰鬥階段',
+      }
+      const text = phaseNames[phase]
+      if (text) showPhaseToast(text)
+    }
   },
 )
 
@@ -332,6 +392,8 @@ const buyEnemyGraveGuard = computed(() => canBuySoulFromEnemyGraveyard(state.val
 
 const enemySide = computed(() => (state.value.turn.side === 'red' ? 'black' : 'red'))
 const enemyGraveTop = computed(() => state.value.graveyard[enemySide.value][0] ?? null)
+const enemyGraveyard = computed(() => state.value.graveyard[enemySide.value])
+const darkMoonScopeActive = computed(() => state.value.turnFlags.darkMoonScopeActive ?? false)
 
 const kingHp = computed(() => {
   const red = Object.values(state.value.units).find((u) => u.side === 'red' && u.base === 'king')?.hpCurrent ?? null
@@ -354,7 +416,22 @@ const selectedEnchantSoul = computed(() => {
   }
 })
 
-type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string }
+const selectedUnitBaseImage = computed(() => {
+  const base = selectedUnit.value?.base
+  return base ? BASE_IMAGES[base] : undefined
+})
+
+const BASE_IMAGES: Partial<Record<PieceBase, string>> = {
+  king:     '/assets/cards/base/king.jpg',
+  advisor:  '/assets/cards/base/advisor.jpg',
+  elephant: '/assets/cards/base/elephant.jpg',
+  rook:     '/assets/cards/base/rook.jpg',
+  knight:   '/assets/cards/base/knight.jpg',
+  cannon:   '/assets/cards/base/cannon.jpg',
+  soldier:  '/assets/cards/base/soldier.jpg',
+}
+
+type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string; pos: { x: number; y: number } }
 
 function toUnitRow(u: GameState['units'][string]): UnitRow {
   const soul = u.enchant?.soulId ? getSoulCard(u.enchant.soulId) : null
@@ -364,7 +441,8 @@ function toUnitRow(u: GameState['units'][string]): UnitRow {
     base: u.base,
     hpCurrent: u.hpCurrent,
     name: soul?.name ?? u.base,
-    image: soul?.image || undefined,
+    image: soul?.image || BASE_IMAGES[u.base] || undefined,
+    pos: { ...u.pos },
   }
 }
 
@@ -541,8 +619,8 @@ function buyFromDeck(base: PieceBase) {
   dispatch({ type: 'BUY_SOUL_FROM_DECK', base })
 }
 
-function buyFromEnemyGraveyard() {
-  dispatch({ type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD' })
+function buyFromEnemyGraveyard(soulId?: string) {
+  dispatch({ type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD', soulId })
 }
 
 const buyItemGuards = computed(() => {
@@ -555,6 +633,15 @@ const discardItemGuards = computed(() => {
   return out
 })
 
+const useItemGuards = computed(() => {
+  const out: Partial<Record<string, ReturnType<typeof canUseItemFromHand>>> = {}
+  for (const id of handItems.value) out[id] = canUseItemFromHand(state.value, id)
+  return out
+})
+
+// 骸骨煉化二選一：暫存選中的屍骸位置
+const boneRefineChoicePos = ref<Pos | null>(null)
+
 function getItemName(id: string): string {
   return getItemCard(id)?.name ?? id
 }
@@ -565,6 +652,64 @@ function buyItem(slot: number) {
 
 function discardItem(itemId: string) {
   dispatch({ type: 'DISCARD_ITEM_FROM_HAND', itemId })
+}
+
+function getUnitHpMax(unit: GameState['units'][string]): number {
+  if (unit.enchant) return getSoulCard(unit.enchant.soulId)?.stats.hp ?? BASE_STATS[unit.base].hp
+  return BASE_STATS[unit.base].hp
+}
+
+function onUseItem(itemId: string) {
+  const item = getItemCard(itemId)
+  if (!item) return
+  const side = state.value.turn.side
+
+  switch (itemId) {
+    case 'item_lingxue_holy_grail': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side === side && u.hpCurrent < getUnitHpMax(u))
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '沒有可治療的單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
+    case 'item_dead_return_path': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side === side && !!u.enchant)
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '沒有附魔單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
+    case 'item_bone_refine': {
+      ui.startUseItemTargetCorpse(itemId)
+      break
+    }
+    default: {
+      // 無目標道具：直接彈出確認
+      setPending({
+        action: { type: 'USE_ITEM_FROM_HAND', itemId },
+        title: item.name,
+        detail: item.text ?? '',
+      })
+    }
+  }
+}
+
+function boneRefineChoose(choice: 'gold' | 'mana') {
+  if (!boneRefineChoicePos.value) return
+  setPending({
+    action: { type: 'USE_ITEM_FROM_HAND', itemId: 'item_bone_refine', targetPos: boneRefineChoicePos.value, choice },
+    title: '骸骨煉化',
+    detail: choice === 'gold' ? '移除屍骸 → 獲得 +3 財力' : '移除屍骸 → 獲得 +2 魔力',
+  })
+  boneRefineChoicePos.value = null
+  ui.clearInteractionMode()
+}
+
+function cancelBoneRefine() {
+  boneRefineChoicePos.value = null
+  ui.clearInteractionMode()
 }
 
 const { detailModal, closeDetail, runDetailAction, showSoulDetail, showItemDetail, showEnemyGraveTopDetail } =
@@ -583,7 +728,7 @@ function showUnitDetail(unitId: string) {
   const soul = soulId ? getSoulCard(soulId) : null
   ui.openDetailModal({
     title: soul?.name ?? unitId,
-    image: soul?.image || null,
+    image: soul?.image || BASE_IMAGES[u.base] || null,
     actionLabel: null,
     actionDisabled: false,
     actionTitle: '',
@@ -635,6 +780,14 @@ function closeAllUnits() {
   ui.closeAllUnits()
 }
 
+function selectCellFromUnits(unitId: string) {
+  closeAllUnits()
+  const u = state.value.units[unitId]
+  if (!u) return
+  ui.setSelectedUnitId(unitId)
+  ui.setSelectedCell({ ...u.pos })
+}
+
 
 function dispatch(action: Parameters<typeof reduce>[1]) {
   const prevState = state.value
@@ -650,6 +803,24 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
   const nextState = res.state
 
   for (const e of res.events) {
+    if ((e as any).type === 'ITEM_USED') {
+      // 道具使用：在己方帥的位置顯示道具名稱浮字
+      const itemName = String((e as any).itemName ?? '')
+      const usedSide = String((e as any).side ?? state.value.turn.side)
+      const king = Object.values(nextState.units).find((u) => u.side === usedSide && u.base === 'king')
+      if (king && itemName) {
+        const key = `${king.pos.x},${king.pos.y}`
+        const id = `${Date.now()}-${Math.random()}`
+        const floatItem: FloatText = { id, text: itemName, kind: 'heal' }
+        const cur = floatTextsByPos.value[key] ?? []
+        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, floatItem] }
+        window.setTimeout(() => {
+          const cur2 = floatTextsByPos.value[key] ?? []
+          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
+        }, 900)
+      }
+    }
+
     if ((e as any).type === 'ABILITY_TRIGGERED') {
       const unitId = String((e as any).unitId ?? '')
       const text = String((e as any).text ?? (e as any).abilityType ?? '')
@@ -808,7 +979,7 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
     }, 760)
   }
 
-  lastEvents.value = res.events.map((e) => JSON.stringify(e))
+  lastEvents.value = [...lastEvents.value, ...res.events.map((e) => JSON.stringify(e))].slice(-300)
 }
 
 function onEnchantDrop(payload: { unitId: string; soulId: string }) {
@@ -856,6 +1027,32 @@ function onCellClick(payload: { x: number; y: number; unitId: string | null }) {
       })
       ui.clearInteractionMode()
       return
+    }
+    return
+  }
+
+  if (ui.interactionMode.kind === 'use_item_target_unit') {
+    const unitId = payload.unitId
+    const itemId = ui.interactionMode.itemId
+    if (unitId && ui.interactionMode.validUnitIds.includes(unitId)) {
+      const item = getItemCard(itemId)
+      const unit = state.value.units[unitId]
+      setPending({
+        action: { type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: unitId },
+        title: item?.name ?? itemId,
+        detail: `目標: ${unit ? (getSoulCard(unit.enchant?.soulId ?? '')?.name ?? unit.base) : unitId}`,
+      })
+      ui.clearInteractionMode()
+    }
+    return
+  }
+
+  if (ui.interactionMode.kind === 'use_item_target_corpse') {
+    const posKey = `${payload.x},${payload.y}`
+    const stack = state.value.corpsesByPos[posKey]
+    const hasFriendlyCorpse = stack && stack.some((c) => c.ownerSide === state.value.turn.side)
+    if (hasFriendlyCorpse) {
+      boneRefineChoicePos.value = { x: payload.x, y: payload.y }
     }
     return
   }
@@ -1029,6 +1226,16 @@ async function copyEventLog() {
 
 <template>
   <div class="page" :class="turnTintClass">
+    <!-- 視窗固定背景色調 -->
+    <div class="turnBg" :class="turnTintClass" />
+
+    <!-- 階段切換 Toast -->
+    <Transition name="phase-toast">
+      <div v-if="phaseToastVisible" class="phaseToast" :class="currentSide === 'red' ? 'toastRed' : 'toastGreen'">
+        {{ phaseToastText }}
+      </div>
+    </Transition>
+
     <!-- NPC 回合鎖定：防止玩家誤點 -->
     <div v-if="isNpcTurn" class="npc-overlay" />
 
@@ -1044,7 +1251,19 @@ async function copyEventLog() {
         :resources="resources"
         @cycle-connection="cycleConnection"
         @open-menu="openMenu"
+        @next-phase="nextPhase"
       />
+      <div v-if="npcSide !== null" class="speedRow">
+        <span class="speedLabel">電腦速度</span>
+        <button
+          v-for="s in (['最慢', '慢', '正常', '快', '即時'] as const)"
+          :key="s"
+          type="button"
+          class="speedBtn"
+          :class="{ speedActive: botSpeedLabel === s }"
+          @click="botSpeedLabel = s"
+        >{{ s }}</button>
+      </div>
     </div>
 
     <div v-if="enchantMode" class="actionStatusBar">
@@ -1057,14 +1276,44 @@ async function copyEventLog() {
       <button type="button" @click="cancelSacrificeMode">Cancel (Esc)</button>
     </div>
 
-    <main class="main">
+    <div v-if="ui.interactionMode.kind === 'use_item_target_unit'" class="actionStatusBar">
+      <div class="mono">選擇目標單位：{{ getItemCard(ui.interactionMode.itemId)?.name ?? ui.interactionMode.itemId }}</div>
+      <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
+    </div>
+
+    <div v-if="ui.interactionMode.kind === 'use_item_target_corpse' && !boneRefineChoicePos" class="actionStatusBar">
+      <div class="mono">選擇要消耗的屍骸格：{{ getItemCard(ui.interactionMode.itemId)?.name ?? ui.interactionMode.itemId }}</div>
+      <button type="button" @click="cancelBoneRefine()">取消 (Esc)</button>
+    </div>
+
+    <div v-if="boneRefineChoicePos" class="actionStatusBar">
+      <div class="mono">骸骨煉化：選擇增益（位置 {{ boneRefineChoicePos.x }},{{ boneRefineChoicePos.y }}）</div>
+      <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">+3 財力</button>
+      <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">+2 魔力</button>
+      <button type="button" @click="cancelBoneRefine()">取消</button>
+    </div>
+
+    <main class="main" :style="mainGridStyle">
       <section class="boardArea">
+        <!-- Board scale toggle -->
+        <div class="boardScaleBar">
+          <button
+            v-for="s in ([50, 75, 100] as BoardScale[])"
+            :key="s"
+            type="button"
+            class="scaleBtn"
+            :class="{ scaleActive: boardScale === s }"
+            @click="boardScale = s"
+          >{{ BOARD_SCALE_LABELS[s] }}</button>
+        </div>
+
+        <div class="boardScaleWrap" :style="boardScaleStyle">
         <BoardGrid
           :state="state"
           :selected-unit-id="selectedUnitId"
           :legal-moves="legalMoves"
           :shootable-target-ids="shootableTargetIds"
-          :highlight-unit-ids="enchantMode ? enchantableUnitIds : sacrificeMode ? sacrificeTargetableUnitIds : []"
+          :highlight-unit-ids="enchantMode ? enchantableUnitIds : sacrificeMode ? sacrificeTargetableUnitIds : ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds : []"
           :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
           :preview-pierce-marks="shootPreviewPierceMarks"
           :preview-splash-pos-keys="shootPreviewSplashPosKeys"
@@ -1098,6 +1347,7 @@ async function copyEventLog() {
           @sacrifice-confirm="confirmSacrificeOverlay"
           @sacrifice-cancel="cancelSacrificeOverlay"
         />
+        </div><!-- end boardScaleWrap -->
 
         <div v-if="lastError" class="error">{{ lastError }}</div>
 
@@ -1110,6 +1360,7 @@ async function copyEventLog() {
           :return-guards="soulReturnGuards"
           :items="handItems"
           :discard-guards="discardItemGuards"
+          :use-guards="useItemGuards"
           :get-item-name="getItemName"
           :get-item="getItemCard"
           @select-soul="selectSoul"
@@ -1118,15 +1369,23 @@ async function copyEventLog() {
           @enchant="enchantSelected"
           @return-soul="returnSoulToDeckBottom"
           @discard-item="discardItem"
+          @use-item="onUseItem"
           @show-item-detail="showItemDetail"
         />
       </section>
 
       <aside class="sidePanel">
+        <button
+          type="button"
+          class="sideWidthBtn"
+          :title="`側欄寬度：${SIDEBAR_WIDTHS[sidebarSize]}px（點擊切換）`"
+          @click="cycleSidebarWidth"
+        >{{ SIDEBAR_LABELS[sidebarSize] }}</button>
         <SidePanel
           :phase="state.turn.phase"
           :selected-unit="selectedUnit"
           :selected-enchant-soul="selectedEnchantSoul"
+          :selected-unit-base-image="selectedUnitBaseImage"
           :selected-cell="selectedCell"
           :selected-cell-unit="selectedCellUnit"
           :selected-cell-corpses="selectedCellCorpses"
@@ -1177,6 +1436,7 @@ async function copyEventLog() {
       :enemy-units="enemyUnitRows"
       @close="closeAllUnits"
       @show-unit-detail="showUnitDetail"
+      @select-cell="selectCellFromUnits"
     />
 
     <CardDetailModal
@@ -1203,6 +1463,8 @@ async function copyEventLog() {
       :buy-item-guards="buyItemGuards"
       :item-deck-count="state.itemDeck.length"
       :enemy-grave-top="enemyGraveTop"
+      :enemy-graveyard="enemyGraveyard"
+      :dark-moon-scope-active="darkMoonScopeActive"
       :buy-enemy-grave-guard="buyEnemyGraveGuard"
       :buy-soul-from-deck-gold-cost="state.rules.buySoulFromDeckGoldCost"
       :buy-soul-from-display-gold-cost="state.rules.buySoulFromDisplayGoldCost"
@@ -1211,7 +1473,7 @@ async function copyEventLog() {
       @buy-display="buyFromDisplay"
       @buy-deck="buyFromDeck"
       @buy-item="buyItem"
-      @buy-enemy-graveyard="buyFromEnemyGraveyard"
+      @buy-enemy-graveyard="(soulId?: string) => buyFromEnemyGraveyard(soulId)"
       @show-soul-detail="showSoulDetail"
       @show-item-detail="showItemDetail"
       @show-enemy-grave-top-detail="showEnemyGraveTopDetail"
@@ -1234,8 +1496,8 @@ async function copyEventLog() {
 .page {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: 10px;
+  padding: 0 10px 10px;
   box-sizing: border-box;
 }
 
@@ -1243,47 +1505,146 @@ async function copyEventLog() {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(6px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px 12px;
+  background: rgba(16, 18, 32, 0.88);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 8px 14px;
   overflow: visible;
 }
 
-.page.turn-red {
-  background: linear-gradient(180deg, rgba(255, 77, 79, 0.06) 0%, rgba(0, 0, 0, 0) 45%);
+.speedRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: 6px;
 }
 
-.page.turn-green {
-  background: linear-gradient(180deg, rgba(82, 196, 26, 0.06) 0%, rgba(0, 0, 0, 0) 45%);
+.speedLabel {
+  font-size: 11px;
+  opacity: 0.65;
+  margin-right: 2px;
+}
+
+.speedBtn {
+  padding: 2px 10px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.speedBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.speedActive {
+  background: rgba(145, 202, 255, 0.2) !important;
+  border-color: rgba(145, 202, 255, 0.65) !important;
+  color: rgba(145, 202, 255, 0.95) !important;
+}
+
+.turnBg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: background 0.5s ease;
+}
+
+.turnBg.turn-red {
+  background: linear-gradient(180deg, rgba(255, 77, 79, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
+}
+
+.turnBg.turn-green {
+  background: linear-gradient(180deg, rgba(82, 196, 26, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
 }
 
 .main {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 16px;
+  grid-template-columns: 1fr 340px;
+  gap: 12px;
   align-items: start;
 }
 
 .boardArea {
   min-width: 0;
-  padding-bottom: 220px;
+  padding-bottom: 180px;
+}
+
+.boardScaleBar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.scaleBtn {
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.scaleBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+.scaleActive {
+  background: rgba(145, 202, 255, 0.18) !important;
+  border-color: rgba(145, 202, 255, 0.65) !important;
+  color: rgba(145, 202, 255, 0.95) !important;
+}
+
+.boardScaleWrap {
+  transition: zoom 0.2s ease;
 }
 
 .sidePanel {
   position: sticky;
-  top: 86px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.12);
-  border-radius: 10px;
-  padding: 12px;
+  top: 130px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 14px;
+  max-height: calc(100vh - 160px);
+  overflow-y: auto;
+}
+
+.sideWidthBtn {
+  display: block;
+  margin-left: auto;
+  margin-bottom: 8px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.sideWidthBtn:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .unitCard {
   padding: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 8px;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .enchantRow {
@@ -1335,5 +1696,91 @@ async function copyEventLog() {
   inset: 0;
   z-index: 9000;
   cursor: wait;
+}
+
+.actionStatusBar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: rgba(30, 34, 55, 0.88);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.choiceBtn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.choiceGold {
+  background: rgba(200, 160, 40, 0.2);
+  border: 1px solid rgba(200, 160, 40, 0.55);
+  color: #e8d8a0;
+}
+
+.choiceGold:hover {
+  background: rgba(200, 160, 40, 0.35);
+}
+
+.choiceMana {
+  background: rgba(60, 120, 200, 0.2);
+  border: 1px solid rgba(60, 120, 200, 0.55);
+  color: #a0c8f4;
+}
+
+.choiceMana:hover {
+  background: rgba(60, 120, 200, 0.35);
+}
+
+/* ── Phase Toast ─────────────────────────────────────────────────────────── */
+.phaseToast {
+  position: fixed;
+  top: 90px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9100;
+  padding: 10px 28px;
+  border-radius: 999px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(20, 22, 36, 0.85);
+  color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.phaseToast.toastRed {
+  border-color: rgba(255, 77, 79, 0.5);
+  box-shadow: 0 4px 28px rgba(255, 77, 79, 0.2);
+}
+
+.phaseToast.toastGreen {
+  border-color: rgba(82, 196, 26, 0.5);
+  box-shadow: 0 4px 28px rgba(82, 196, 26, 0.2);
+}
+
+.phase-toast-enter-active,
+.phase-toast-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.phase-toast-enter-from {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-12px) scale(0.92);
+}
+
+.phase-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px) scale(0.96);
 }
 </style>
