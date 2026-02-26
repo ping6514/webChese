@@ -44,7 +44,7 @@
     "costGold": 7,
     "stats": {
       "hp": 10,
-      "atk": { "key": "magic", "value": 3 },
+      "atk": { "key": "magic", "value": 2 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 2 }
