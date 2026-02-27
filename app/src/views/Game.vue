@@ -89,9 +89,6 @@ const mainGridStyle = computed(() => ({ gridTemplateColumns: `1fr ${SIDEBAR_WIDT
 type BoardScale = 50 | 75 | 100
 const boardScale = ref<BoardScale>(100)
 const BOARD_SCALE_LABELS: Record<BoardScale, string> = { 50: '50%', 75: '75%', 100: '100%' }
-function cycleBoardScale() {
-  boardScale.value = boardScale.value === 100 ? 75 : boardScale.value === 75 ? 50 : 100
-}
 const boardScaleStyle = computed(() =>
   boardScale.value === 100 ? {} : { zoom: boardScale.value / 100 }
 )
