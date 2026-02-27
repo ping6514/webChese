@@ -90,7 +90,7 @@ type BoardScale = 50 | 75 | 100
 const boardScale = ref<BoardScale>(100)
 const BOARD_SCALE_LABELS: Record<BoardScale, string> = { 50: '50%', 75: '75%', 100: '100%' }
 const boardScaleStyle = computed(() =>
-  boardScale.value === 100 ? {} : { zoom: boardScale.value / 100 }
+  boardScale.value === 100 ? {} : { width: `${boardScale.value}%` }
 )
 const debugMatchSeed = ref<string>(state.value.rules.matchSeed)
 const debugEnabledClans = ref<string[]>(state.value.rules.enabledClans)
@@ -1639,7 +1639,8 @@ async function copyEventLog() {
 }
 
 .boardScaleWrap {
-  transition: zoom 0.2s ease;
+  transition: width 0.2s ease;
+  margin: 0 auto;
 }
 
 .sidePanel {
