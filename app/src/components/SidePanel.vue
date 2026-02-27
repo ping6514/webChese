@@ -125,15 +125,15 @@ export default defineComponent({
   border-radius: 10px;
   font-size: 14px;
   font-weight: 800;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-2);
+  color: var(--text);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .actionBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg-surface-1);
+  border-color: var(--border-focus);
 }
 
 /* ── Blood ritual ────────────────────────────────────────────────────── */
@@ -184,12 +184,12 @@ export default defineComponent({
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   cursor: pointer;
 }
-.eventsOpenBtn:hover { background: rgba(255, 255, 255, 0.12); }
+.eventsOpenBtn:hover { background: var(--bg-surface-1); }
 
 .eventsArea {
   width: 100%;
@@ -201,9 +201,9 @@ export default defineComponent({
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 10px;
   line-height: 1.5;
-  background: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 8px;
 }

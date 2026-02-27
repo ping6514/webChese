@@ -143,7 +143,7 @@ export default defineComponent({
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -154,10 +154,10 @@ export default defineComponent({
 .modal {
   width: min(660px, 92vw);
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(16, 18, 32, 0.98);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-modal-strong);
   padding: 20px;
-  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
 }
 
 /* ── Head ────────────────────────────────────────────────────────────── */
@@ -168,7 +168,7 @@ export default defineComponent({
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--border);
 }
 
 .modalTitle {
@@ -182,16 +182,16 @@ export default defineComponent({
   height: 32px;
   padding: 0;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   font-size: 14px;
   cursor: pointer;
   display: grid;
   place-items: center;
   transition: background 0.15s;
 }
-.closeBtn:hover { background: rgba(255, 255, 255, 0.15); }
+.closeBtn:hover { background: var(--bg-surface-1); }
 
 /* ── Body ────────────────────────────────────────────────────────────── */
 .modalBody {
@@ -208,18 +208,18 @@ export default defineComponent({
   height: 220px;
   object-fit: cover;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border-strong);
 }
 
 .noImg {
   width: 160px;
   height: 220px;
   border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
   font-size: 48px;
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--bg-surface-3);
 }
 
 /* ── Stats column ────────────────────────────────────────────────────── */
@@ -235,11 +235,11 @@ export default defineComponent({
   align-items: baseline;
   padding: 5px 8px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
   transition: background 0.12s;
 }
-.statRow:hover { background: rgba(255, 255, 255, 0.08); }
+.statRow:hover { background: var(--bg-surface-1); }
 
 .statIcon { font-size: 14px; text-align: center; }
 
@@ -282,7 +282,7 @@ export default defineComponent({
   font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--text);
 }
 
 .rawDetail {
@@ -298,7 +298,7 @@ export default defineComponent({
   justify-content: flex-end;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
 }
 
 .actionBtn {

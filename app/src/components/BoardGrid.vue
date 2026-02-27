@@ -1,8 +1,18 @@
 <script lang="ts">
 import { computed, defineComponent, ref, watch, type PropType } from 'vue'
-import { BOARD_HEIGHT, BOARD_WIDTH, canEnchant, canMove, getSoulCard, type GameState } from '../engine'
+import { BOARD_HEIGHT, BOARD_WIDTH, canEnchant, canMove, getSoulCard, type GameState, type PieceBase } from '../engine'
 import BoardCell from './BoardCell.vue'
 import ShootActionOverlay from './ShootActionOverlay.vue'
+
+const BASE_IMAGES: Partial<Record<PieceBase, string>> = {
+  king:     '/assets/cards/base/king.jpg',
+  advisor:  '/assets/cards/base/advisor.jpg',
+  elephant: '/assets/cards/base/elephant.jpg',
+  rook:     '/assets/cards/base/rook.jpg',
+  knight:   '/assets/cards/base/knight.jpg',
+  cannon:   '/assets/cards/base/cannon.jpg',
+  soldier:  '/assets/cards/base/soldier.jpg',
+}
 
 export default defineComponent({
   name: 'BoardGrid',
@@ -177,6 +187,7 @@ export default defineComponent({
           hp: number
           enchantName: string | null
           enchantImage: string | null
+          baseImage: string | null
         }
       >()
       for (const u of Object.values(props.state.units)) {
@@ -192,6 +203,7 @@ export default defineComponent({
           hp: u.hpCurrent,
           enchantName: soul?.name ?? null,
           enchantImage: soul?.image || null,
+          baseImage: BASE_IMAGES[u.base] ?? null,
         })
       }
       return map
@@ -588,8 +600,8 @@ export default defineComponent({
   margin: 8px 0;
   overflow: visible;
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-surface-3);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px;
 }

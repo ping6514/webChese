@@ -66,12 +66,11 @@ export default defineComponent({
           <div v-else class="deadLabel">已陣亡</div>
         </div>
 
-        <!-- Select cell button (alive units only) -->
+        <!-- Select cell button -->
         <button
-          v-if="!u.dead"
           type="button"
           class="locateBtn"
-          title="在棋盤上定位"
+          :title="u.dead ? '選擇屍骸格（可執行復活）' : '在棋盤上定位'"
           @click.stop="$emit('select-cell', u.id)"
         >📍</button>
       </div>
@@ -86,7 +85,7 @@ export default defineComponent({
 }
 
 .panelTitle {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 900;
   opacity: 0.9;
   padding-bottom: 8px;
@@ -94,7 +93,7 @@ export default defineComponent({
 }
 
 .empty {
-  font-size: 13px;
+  font-size: 0.8125rem;
   opacity: 0.45;
   padding: 8px 0;
 }
@@ -152,7 +151,7 @@ export default defineComponent({
   height: 68px;
   display: grid;
   place-items: center;
-  font-size: 28px;
+  font-size: 1.75rem;
   border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.12);
 }
@@ -162,7 +161,7 @@ export default defineComponent({
   height: 68px;
   display: grid;
   place-items: center;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 900;
   border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.2);
@@ -179,7 +178,7 @@ export default defineComponent({
 }
 
 .unitName {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 800;
   white-space: nowrap;
   overflow: hidden;
@@ -189,7 +188,7 @@ export default defineComponent({
 .strikethrough { text-decoration: line-through; }
 
 .unitBase {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.65;
 }
 
@@ -199,16 +198,16 @@ export default defineComponent({
   gap: 4px;
 }
 
-.hpIcon { font-size: 13px; }
+.hpIcon { font-size: 0.8125rem; }
 
 .hpNum {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 900;
   line-height: 1;
 }
 
 .deadLabel {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgba(255, 77, 79, 0.75);
   font-weight: 700;
 }
@@ -220,7 +219,7 @@ export default defineComponent({
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   background: rgba(255, 255, 255, 0.07);
-  font-size: 16px;
+  font-size: 1rem;
   cursor: pointer;
   display: grid;
   place-items: center;

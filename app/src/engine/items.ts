@@ -29,8 +29,23 @@ export function listItemCards(): ItemCard[] {
   return allItemCards
 }
 
+// 已在 reduce.ts 中實作效果的道具 ID 集合（未實作的不加入牌組）
+const IMPLEMENTED_ITEM_IDS = new Set([
+  'item_lingxue_holy_grail',
+  'item_bone_refine',
+  'item_dead_return_path',
+  'item_wizard_greed',
+  'item_soul_infusion',
+  'item_soul_overload',
+  'item_last_stand_contract',
+  'item_dark_moon_scope',
+])
+
 export function listItemDeckIds(): string[] {
-  const sorted = allItemCards.slice().sort((a, b) => a.id.localeCompare(b.id))
+  const sorted = allItemCards
+    .filter((c) => IMPLEMENTED_ITEM_IDS.has(c.id))
+    .slice()
+    .sort((a, b) => a.id.localeCompare(b.id))
   const out: string[] = []
   for (const c of sorted) {
     const n = Number.isInteger(c.copies) && (c.copies as number) > 0 ? (c.copies as number) : 1

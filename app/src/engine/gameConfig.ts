@@ -67,7 +67,8 @@ export const DEFAULT_RULES: GameRules = {
   shootManaCost: 1,
   diceFixed: 3,
   rngMode: 'seeded',
-  matchSeed: 'default',
+  // 每次啟動使用不同隨機種子，確保牌組順序每局不同
+  matchSeed: String(Date.now()),
   enabledClans: ['dark_moon', 'styx', 'eternal_night'],
 }
 

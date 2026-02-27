@@ -2,9 +2,11 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
+import { useThemeStore } from '../stores/theme'
 
 const router = useRouter()
 const setup = useGameSetup()
+const theme = useThemeStore()
 
 const mode = ref<GameMode>(setup.mode)
 const playerSide = ref<SideOrRandom>(setup.playerSide)
@@ -12,6 +14,11 @@ const firstPlayer = ref<SideOrRandom>(setup.firstPlayer)
 const difficulty = ref<Difficulty>(setup.difficulty)
 
 const isPve = computed(() => mode.value === 'pve')
+
+const buildLabel = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit',
+})
 
 function startGame() {
   setup.mode = mode.value
@@ -25,7 +32,27 @@ function startGame() {
 
 <template>
   <div class="page">
+    <div class="topBtns">
+      <!-- 主題旋鈕 -->
+      <div
+        class="themeSwitch"
+        :class="{ 'is-light': theme.current === 'light' }"
+        @click="theme.toggle()"
+        :title="theme.current === 'dark' ? '目前：暗色 ── 點擊切換亮色' : '目前：亮色 ── 點擊切換暗色'"
+      >
+        <span class="switchLabel">🌙 暗色</span>
+        <div class="switchTrack">
+          <div class="switchKnob"></div>
+        </div>
+        <span class="switchLabel">☀️ 亮色</span>
+      </div>
+      <button type="button" class="iconBtn" title="規則與卡牌圖鑑" @click="router.push({ name: 'intro' })">
+        📖
+      </button>
+    </div>
+
     <h1 class="title">幽冥棋</h1>
+    <div class="buildVer">build {{ buildLabel }}</div>
 
     <div class="card">
       <!-- 遊戲模式 -->
@@ -123,15 +150,119 @@ function startGame() {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: #0d0d12;
+  position: relative;
+  color: rgba(255, 255, 255, 0.92);
+  background:
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0%, rgba(13, 13, 18, 0.58) 100%),
+    url('/assets/home/homeImg.jpg') center / auto 100vh no-repeat fixed;
+}
+
+.topBtns {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 10;
+}
+
+/* ── Theme toggle switch ─────────────────────── */
+.themeSwitch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.40);
+  backdrop-filter: blur(10px);
+  user-select: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+.themeSwitch:hover {
+  border-color: rgba(255, 255, 255, 0.42);
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.switchLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.42);
+  white-space: nowrap;
+  transition: color 0.25s;
+  letter-spacing: 0.03em;
+}
+/* Current active label lights up */
+.themeSwitch:not(.is-light) .switchLabel:first-child { color: rgba(255, 255, 255, 0.92); }
+.themeSwitch.is-light .switchLabel:last-child { color: rgba(255, 255, 255, 0.92); }
+
+.switchTrack {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.3s, border-color 0.3s;
+}
+.themeSwitch.is-light .switchTrack {
+  background: rgba(232, 200, 60, 0.55);
+  border-color: rgba(232, 200, 60, 0.75);
+}
+
+.switchKnob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), background 0.26s;
+}
+.themeSwitch.is-light .switchKnob {
+  transform: translateX(16px);
+  background: #e8c83c;
+}
+
+/* ── Intro button ────────────────────────────── */
+.iconBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  font-size: 1.125rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.35);
 }
 
 .title {
-  margin: 0 0 20px;
+  margin: 0 0 6px;
   font-size: 2rem;
   letter-spacing: 0.15em;
   color: #e8d8a0;
   text-shadow: 0 0 24px rgba(220, 180, 80, 0.4);
+}
+
+.buildVer {
+  margin: 0 0 18px;
+  font-size: 0.7rem;
+  opacity: 0.35;
+  letter-spacing: 0.05em;
+  font-family: ui-monospace, monospace;
 }
 
 .card {
@@ -152,7 +283,7 @@ function startGame() {
 }
 
 .section-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   letter-spacing: 0.1em;
   opacity: 0.55;
   text-transform: uppercase;
@@ -173,7 +304,7 @@ function startGame() {
   border-radius: 8px;
   color: rgba(255, 255, 255, 0.7);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.8125rem;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
   display: flex;
   flex-direction: column;
@@ -206,12 +337,12 @@ function startGame() {
 }
 
 .diff-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
 }
 
 .diff-desc {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.6;
 }
 
@@ -222,7 +353,7 @@ function startGame() {
   border: 1px solid rgba(200, 160, 60, 0.5);
   border-radius: 10px;
   color: #e8d8a0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   cursor: pointer;

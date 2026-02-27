@@ -213,7 +213,9 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
 
   const secondStart: Resources = {
     gold: rules.startGoldSecond,
-    mana: rules.startMana,
+    // 後手方第一個回合會經過 autoTurnStart（+incomeMana），所以初始 mana=0
+    // 避免後手第一回合 mana = startMana + incomeMana（即 6）的 bug
+    mana: 0,
     storageMana: 0,
   }
 

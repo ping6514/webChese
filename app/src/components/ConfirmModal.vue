@@ -43,7 +43,7 @@ export default defineComponent({
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -53,8 +53,8 @@ export default defineComponent({
 .modal {
   width: min(520px, 92vw);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.92);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-modal);
   padding: 16px;
 }
 

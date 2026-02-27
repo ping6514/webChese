@@ -79,7 +79,7 @@ const eventLogOpen = ref(false)
 type SidebarSize = 'sm' | 'md' | 'lg'
 const SIDEBAR_WIDTHS: Record<SidebarSize, number> = { sm: 220, md: 340, lg: 500 }
 const SIDEBAR_LABELS: Record<SidebarSize, string> = { sm: '◀◀', md: '◀▶', lg: '▶▶' }
-const sidebarSize = ref<SidebarSize>('md')
+const sidebarSize = ref<SidebarSize>('lg')
 function cycleSidebarWidth() {
   sidebarSize.value = sidebarSize.value === 'sm' ? 'md' : sidebarSize.value === 'md' ? 'lg' : 'sm'
 }
@@ -431,7 +431,7 @@ const BASE_IMAGES: Partial<Record<PieceBase, string>> = {
   soldier:  '/assets/cards/base/soldier.jpg',
 }
 
-type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string; pos: { x: number; y: number } }
+type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string; pos: { x: number; y: number }; dead?: boolean }
 
 function toUnitRow(u: GameState['units'][string]): UnitRow {
   const soul = u.enchant?.soulId ? getSoulCard(u.enchant.soulId) : null
@@ -446,26 +446,50 @@ function toUnitRow(u: GameState['units'][string]): UnitRow {
   }
 }
 
+// 從 corpsesByPos 建立死亡單位列表（每個位置的頂部屍骸各一筆）
+function deadUnitRowsForSide(side: 'red' | 'black'): UnitRow[] {
+  const out: UnitRow[] = []
+  for (const [posKey, stack] of Object.entries(state.value.corpsesByPos)) {
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const corpse = stack[i]
+      if (!corpse || corpse.ownerSide !== side) continue
+      const [xs, ys] = posKey.split(',')
+      const pos = { x: Number(xs), y: Number(ys) }
+      out.push({
+        id: `dead:${posKey}:${i}`,
+        side,
+        base: corpse.base,
+        hpCurrent: 0,
+        name: corpse.base,
+        image: BASE_IMAGES[corpse.base],
+        pos,
+        dead: true,
+      })
+    }
+  }
+  return out
+}
+
 const myUnitRows = computed(() => {
   const side = state.value.turn.side
-  const out: UnitRow[] = []
+  const alive: UnitRow[] = []
   for (const u of Object.values(state.value.units)) {
     if (u.side !== side) continue
-    out.push(toUnitRow(u))
+    alive.push(toUnitRow(u))
   }
-  out.sort((a, b) => a.id.localeCompare(b.id))
-  return out
+  alive.sort((a, b) => a.id.localeCompare(b.id))
+  return [...alive, ...deadUnitRowsForSide(side)]
 })
 
 const enemyUnitRows = computed(() => {
   const enemy = state.value.turn.side === 'red' ? 'black' : 'red'
-  const out: UnitRow[] = []
+  const alive: UnitRow[] = []
   for (const u of Object.values(state.value.units)) {
     if (u.side !== enemy) continue
-    out.push(toUnitRow(u))
+    alive.push(toUnitRow(u))
   }
-  out.sort((a, b) => a.id.localeCompare(b.id))
-  return out
+  alive.sort((a, b) => a.id.localeCompare(b.id))
+  return [...alive, ...deadUnitRowsForSide(enemy)]
 })
 
 const enchantGuard = computed(() => {
@@ -782,6 +806,17 @@ function closeAllUnits() {
 
 function selectCellFromUnits(unitId: string) {
   closeAllUnits()
+  // dead row IDs are formatted "dead:x,y:stackIndex"
+  if (unitId.startsWith('dead:')) {
+    const posKey = unitId.split(':')[1] ?? ''
+    const [xs, ys] = posKey.split(',')
+    const pos = { x: Number(xs), y: Number(ys) }
+    if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+      ui.setSelectedUnitId(null)
+      ui.setSelectedCell(pos)
+    }
+    return
+  }
   const u = state.value.units[unitId]
   if (!u) return
   ui.setSelectedUnitId(unitId)
@@ -1486,6 +1521,7 @@ async function copyEventLog() {
       @close="closeDebugMenu"
       @apply="applyDebugSettings"
       @open-events="openEventLog"
+      @go-home="router.push({ name: 'home' })"
     />
 
     <EventLogModal :open="eventLogOpen" :text="eventLogText" @close="closeEventLog" @copy="copyEventLog" />
@@ -1505,9 +1541,9 @@ async function copyEventLog() {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(16, 18, 32, 0.88);
+  background: var(--bg-topbar);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid var(--border);
   padding: 8px 14px;
   overflow: visible;
 }
@@ -1522,14 +1558,14 @@ async function copyEventLog() {
 }
 
 .speedLabel {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.65;
   margin-right: 2px;
 }
 
 .speedBtn {
   padding: 2px 10px;
-  font-size: 12px;
+  font-size: 0.75rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
@@ -1586,7 +1622,7 @@ async function copyEventLog() {
 
 .scaleBtn {
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -1625,7 +1661,7 @@ async function copyEventLog() {
   margin-left: auto;
   margin-bottom: 8px;
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   border-radius: 999px;
@@ -1661,7 +1697,7 @@ async function copyEventLog() {
 }
 
 .corpseRow {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.9;
 }
 
@@ -1682,7 +1718,7 @@ async function copyEventLog() {
   background: #fafafa;
   color: #111;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   min-height: 80px;
   overflow: auto;
 }
@@ -1706,14 +1742,14 @@ async function copyEventLog() {
   background: rgba(30, 34, 55, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.95);
 }
 
 .choiceBtn {
   padding: 6px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1747,7 +1783,7 @@ async function copyEventLog() {
   z-index: 9100;
   padding: 10px 28px;
   border-radius: 999px;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   pointer-events: none;

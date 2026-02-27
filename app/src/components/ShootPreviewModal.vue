@@ -143,7 +143,7 @@ export default defineComponent({
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -153,8 +153,8 @@ export default defineComponent({
 .modal {
   width: min(860px, 96vw);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(0, 0, 0, 0.92);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-modal);
   padding: 16px;
 }
 
@@ -188,9 +188,9 @@ export default defineComponent({
 }
 
 .unitCard {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-2);
   padding: 10px;
 }
 
@@ -206,14 +206,14 @@ export default defineComponent({
   height: 124px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--border-strong);
 }
 
 .noImg {
   width: 90px;
   height: 124px;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
   font-size: 11px;
@@ -239,7 +239,7 @@ export default defineComponent({
 .effects {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid var(--border);
 }
 
 .muted {

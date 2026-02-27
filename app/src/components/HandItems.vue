@@ -105,7 +105,7 @@ export default defineComponent({
 }
 
 .handEmpty {
-  font-size: 13px;
+  font-size: 0.8125rem;
   opacity: 0.4;
   padding: 12px 0;
   text-align: center;
@@ -124,8 +124,8 @@ export default defineComponent({
   width: 150px;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-1);
   display: grid;
   gap: 8px;
   transition: border-color 0.15s;
@@ -147,7 +147,7 @@ export default defineComponent({
 }
 
 .timingChip {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 6px;
@@ -170,7 +170,7 @@ export default defineComponent({
 }
 
 .costChip {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: 6px;
@@ -186,27 +186,27 @@ export default defineComponent({
   height: 130px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
 }
 
 .cardImgEmpty {
   width: 100%;
   height: 130px;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
-  font-size: 32px;
-  background: rgba(255, 255, 255, 0.03);
+  font-size: 2rem;
+  background: var(--bg-surface-3);
 }
 
 /* ── Name ────────────────────────────────────────────────────────────── */
 .cardName {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.3;
   word-break: break-all;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text);
 }
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
@@ -218,7 +218,7 @@ export default defineComponent({
 .actionBtn {
   flex: 1;
   padding: 5px 4px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   border-radius: 7px;
   cursor: pointer;
@@ -234,9 +234,9 @@ export default defineComponent({
 .useBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .discardBtn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.55);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
 }
 .discardBtn:not(:disabled):hover {
   background: rgba(255, 77, 79, 0.15);

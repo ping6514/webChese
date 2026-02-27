@@ -121,9 +121,9 @@ export default defineComponent({
   grid-template-columns: 80px 1fr;
   gap: 12px;
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--bg-surface-1);
 }
 
 .cardLeft {
@@ -138,7 +138,7 @@ export default defineComponent({
   height: 96px;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-strong);
 }
 
 .baseImg {
@@ -153,10 +153,10 @@ export default defineComponent({
   width: 72px;
   height: 96px;
   border-radius: 10px;
-  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-2);
 }
 .baseChar { font-size: 32px; font-weight: 900; opacity: 0.55; }
 
@@ -168,11 +168,11 @@ export default defineComponent({
   line-height: 1.3;
 }
 .linkBtn {
-  color: rgba(145, 202, 255, 0.9);
+  color: var(--accent-blue);
   cursor: pointer;
 }
 .linkBtn:hover { text-decoration: underline; }
-.muted { color: rgba(255, 255, 255, 0.35); }
+.muted { color: var(--text-dim); }
 
 .cardRight {
   display: flex;

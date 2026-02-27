@@ -1,38 +1,109 @@
+/* ══════════════════════════════════════════════════════
+   Design tokens — dark theme (default)
+   ══════════════════════════════════════════════════════ */
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
-  color-scheme: dark;
-  color: rgba(255, 255, 255, 0.92);
-  background-color: #1a1c28;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --panel-bg: rgba(255, 255, 255, 0.06);
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-page:        #161822;
+  --bg-topbar:      rgba(18, 20, 36, 0.93);
+  --bg-surface-1:   rgba(255, 255, 255, 0.05);  /* side panels, cards */
+  --bg-surface-2:   rgba(255, 255, 255, 0.08);  /* inset widgets */
+  --bg-surface-3:   rgba(255, 255, 255, 0.03);  /* subtle fills */
+  --bg-overlay:     rgba(0, 0, 0, 0.72);          /* legacy */
+
+  /* Modal / overlay */
+  --bg-modal-overlay: rgba(0, 0, 0, 0.60);
+  --bg-modal:         rgba(22, 24, 42, 0.97);
+  --bg-modal-strong:  rgba(14, 16, 30, 0.99);
+
+  /* Board cells */
+  --cell-bg:        rgba(255, 255, 255, 0.04);
+  --cell-border:    rgba(255, 255, 255, 0.22);
+
+  /* Borders */
+  --border:         rgba(255, 255, 255, 0.13);
+  --border-strong:  rgba(255, 255, 255, 0.24);
+  --border-focus:   rgba(145, 202, 255, 0.75);
+
+  /* Text */
+  --text:           rgba(255, 255, 255, 0.92);
+  --text-muted:     rgba(255, 255, 255, 0.55);
+  --text-dim:       rgba(255, 255, 255, 0.32);
+
+  /* Legacy compat aliases */
+  --panel-bg:       var(--bg-surface-2);
   --panel-bg-strong: rgba(10, 12, 22, 0.95);
-  --border: rgba(255, 255, 255, 0.18);
-  --border-strong: rgba(255, 255, 255, 0.24);
-  --text: rgba(255, 255, 255, 0.95);
-  --text-muted: rgba(255, 255, 255, 0.7);
+  --border-strong-alias: var(--border-strong);
+  --text-muted-alias: var(--text-muted);
+
+  /* Accent colours (theme-invariant) */
+  --accent-red:     #ff4d4f;
+  --accent-red-light: #ff9c9e;
+  --accent-green:   #52c41a;
+  --accent-green-light: #95de64;
+  --accent-gold:    #e8d070;
+  --accent-blue:    #91caff;
+  --accent-purple:  #b37feb;
+
+  color:            var(--text);
+  background-color: var(--bg-page);
 }
 
+/* ══════════════════════════════════════════════════════
+   Light / grey theme overrides
+   ══════════════════════════════════════════════════════ */
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-page:        #edf0f7;
+  --bg-topbar:      rgba(237, 240, 247, 0.96);
+  --bg-surface-1:   rgba(255, 255, 255, 0.92);
+  --bg-surface-2:   rgba(0, 0, 0, 0.05);
+  --bg-surface-3:   rgba(0, 0, 0, 0.025);
+  --bg-overlay:     rgba(20, 24, 50, 0.6);
+
+  /* Modal / overlay */
+  --bg-modal-overlay: rgba(20, 24, 50, 0.50);
+  --bg-modal:         rgba(248, 250, 255, 0.99);
+  --bg-modal-strong:  rgba(245, 248, 255, 0.99);
+
+  /* Board cells */
+  --cell-bg:        rgba(180, 195, 225, 0.22);
+  --cell-border:    rgba(80, 100, 160, 0.28);
+
+  --border:         rgba(0, 0, 0, 0.13);
+  --border-strong:  rgba(0, 0, 0, 0.22);
+  --border-focus:   rgba(24, 144, 255, 0.75);
+
+  --text:           rgba(20, 24, 50, 0.92);
+  --text-muted:     rgba(20, 24, 50, 0.55);
+  --text-dim:       rgba(20, 24, 50, 0.32);
+
+  --panel-bg:       var(--bg-surface-2);
+  --panel-bg-strong: rgba(248, 250, 255, 0.99);
+  --border-strong-alias: var(--border-strong);
+  --text-muted-alias: var(--text-muted);
+
+  color:            var(--text);
+  background-color: var(--bg-page);
+}
+
+/* ══════════════════════════════════════════════════════
+   Reset & base
+   ══════════════════════════════════════════════════════ */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
 }
 
 body {
@@ -40,8 +111,49 @@ body {
   display: block;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--bg-page);
+  color: var(--text);
+  transition: background-color 0.25s, color 0.2s;
 }
 
+a {
+  font-weight: 500;
+  color: var(--accent-blue);
+  text-decoration: inherit;
+}
+a:hover {
+  filter: brightness(1.2);
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--bg-surface-2);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.25s, background-color 0.2s;
+}
+button:hover {
+  border-color: var(--border-focus);
+  background-color: var(--bg-surface-1);
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+/* ══════════════════════════════════════════════════════
+   Utility classes
+   ══════════════════════════════════════════════════════ */
 .panel {
   padding: 8px;
   border: 1px solid var(--border);
@@ -57,36 +169,6 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  transition: border-color 0.25s, background-color 0.2s;
-}
-button:hover {
-  border-color: rgba(145, 202, 255, 0.7);
-  background-color: rgba(255, 255, 255, 0.13);
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-.card {
-  padding: 2em;
-}
-
 #app {
   width: 100%;
   max-width: none;
@@ -94,4 +176,3 @@ button:focus-visible {
   padding: 0;
   text-align: left;
 }
-
