@@ -1,7 +1,7 @@
 import type { GameState } from './state'
 import type { Event } from './events'
 import { getSoulCard } from './cards'
-import { countCorpses } from './corpses'
+import { countCorpses, countSoldiers } from './corpses'
 
 export type ShootValidateContext = {
   state: GameState
@@ -236,6 +236,11 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
           }
+          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            if (countSoldiers(ctx.state, u.side) < need) return
+          }
           if (mode === 'all') {
             ctx.shootRules.ignoreBlockingAll = true
             ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
@@ -264,6 +269,11 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
           }
+          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            if (countSoldiers(ctx.state, u.side) < need) return
+          }
 
           const perTurn = Number((ab as any).perTurn ?? 0)
           if (!(Number.isFinite(perTurn) && perTurn > 0)) return
@@ -283,6 +293,11 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (!(Number.isFinite(need) && need > 0)) return
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
+          }
+          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
+            const need = Number(when.count ?? 0)
+            if (!(Number.isFinite(need) && need > 0)) return
+            if (countSoldiers(ctx.state, u.side) < need) return
           }
 
           const perTurn = Number((ab as any).perTurn ?? 0)
@@ -411,6 +426,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
               if (corpses < need) return
             }
           }
+          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
+            const need = Number(when.count ?? 0)
+            if (Number.isFinite(need) && need > 0) {
+              if (countSoldiers(ctx.state, u.side) < need) return
+            }
+          }
 
           const perTurn = Number((ab as any).perTurn ?? 0)
           if (Number.isFinite(perTurn) && perTurn > 0) {
@@ -499,6 +520,32 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
               ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'PIERCE', targetUnitIds: enemies.slice(0, count), text: '貫穿' })
             }
           }
+        },
+      })
+    }
+
+    // ARMY_RALLY (軍援): when this unit shoots, an adjacent allied soldier attacks the same target
+    for (const ab of card.abilities) {
+      if (ab.type !== 'ARMY_RALLY') continue
+
+      handlers.push({
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+
+          const mainTarget = ctx.state.units[ctx.targetUnitId]
+          const attacker = ctx.state.units[ctx.attackerId]
+          if (!mainTarget || !attacker) return
+
+          // Find the first allied soldier within 1 Chebyshev of the main target (sorted by id for determinism)
+          const rallySoldier = Object.values(ctx.state.units)
+            .filter((unit) => unit.side === attacker.side && unit.base === 'soldier')
+            .filter((unit) => chebyshev(unit.pos, mainTarget.pos) <= 1)
+            .sort((a, b) => a.id.localeCompare(b.id))[0]
+
+          if (!rallySoldier) return
+
+          plan.instances.push({ kind: 'chain', sourceUnitId: rallySoldier.id, targetUnitId: mainTarget.id })
+          ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'ARMY_RALLY', text: '軍援' })
         },
       })
     }

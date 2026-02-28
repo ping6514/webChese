@@ -7,7 +7,7 @@ import { getSoulCard } from './cards'
 import { computeRawDamage } from './damage'
 import { killUnit as killUnitShared } from './kill'
 import { rollDice, type RngState } from '../serverSim'
-import { countCorpses } from './corpses'
+import { countCorpses, countSoldiers } from './corpses'
 
 export type ShotPlanResult = { ok: true; plan: ShotPlan } | { ok: false; error: string }
 
@@ -89,6 +89,12 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (Number.isFinite(need) && need > 0) {
         const corpses = countCorpses(state, attacker.side)
         if (corpses < need) return { ok: false, error: 'Already shot this turn' }
+      }
+    }
+    if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
+      const need = Number(when.count ?? 0)
+      if (Number.isFinite(need) && need > 0) {
+        if (countSoldiers(state, attacker.side) < need) return { ok: false, error: 'Already shot this turn' }
       }
     }
     const perTurn = Number((ab as any)?.perTurn ?? 0)
@@ -237,6 +243,27 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return null
   }
 
+  function findPalaceGuard(s: GameState, kingside: 'red' | 'black'): { unitId: string; amount: number } | null {
+    for (const u of Object.values(s.units).sort((a, b) => a.id.localeCompare(b.id))) {
+      if (u.side !== kingside) continue
+      if (!palaceContains(kingside, u.pos)) continue
+      const soulId = u.enchant?.soulId
+      if (!soulId) continue
+      const card = getSoulCard(soulId)
+      if (!card) continue
+      for (const ab of card.abilities) {
+        if (ab.type !== 'PALACE_GUARD') continue
+        const amount = Number((ab as any).amount ?? 1)
+        const perTurn = Number((ab as any).perTurn ?? 1)
+        const key = `${u.id}:PALACE_GUARD`
+        const used = Number(s.turnFlags.abilityUsed?.[key] ?? 0)
+        if (used >= perTurn) continue
+        return { unitId: u.id, amount }
+      }
+    }
+    return null
+  }
+
   function applyCounterOnKingDamaged(s: GameState, events: Event[], attackSourceId: string, damagedKingId: string): GameState {
     const king = s.units[damagedKingId]
     const src = s.units[attackSourceId]
@@ -319,7 +346,22 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       sharedAmount = Math.max(0, Math.min(sharer.amount, rawDamage - 1))
     }
 
-    const damageToTarget = rawDamage - sharedAmount
+    let damageToTarget = rawDamage - sharedAmount
+
+    // PALACE_GUARD (宮護): reduce damage to king when ally advisor is in palace
+    if (tgt.base === 'king' && damageToTarget > 0) {
+      const guard = findPalaceGuard(nextState, tgt.side)
+      if (guard) {
+        const key = `${guard.unitId}:PALACE_GUARD`
+        const cur = nextState.turnFlags.abilityUsed ?? {}
+        nextState.turnFlags = {
+          ...nextState.turnFlags,
+          abilityUsed: { ...cur, [key]: Number(cur[key] ?? 0) + 1 },
+        }
+        damageToTarget = Math.max(0, damageToTarget - guard.amount)
+        events.push({ type: 'ABILITY_TRIGGERED', unitId: guard.unitId, abilityType: 'PALACE_GUARD', text: '宮護' })
+      }
+    }
 
     const kingInvincible = tgt.base === 'king' && nextState.status.kingInvincibleSide === tgt.side
     const finalDamageToTarget = kingInvincible ? 0 : damageToTarget

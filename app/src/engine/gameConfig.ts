@@ -69,7 +69,7 @@ export const DEFAULT_RULES: GameRules = {
   rngMode: 'seeded',
   // 每次啟動使用不同隨機種子，確保牌組順序每局不同
   matchSeed: String(Date.now()),
-  enabledClans: ['dark_moon', 'styx', 'eternal_night'],
+  enabledClans: ['dark_moon', 'styx', 'eternal_night', 'iron_guard'],
 }
 
 export const DEFAULT_PHASE_ACTION_LIMITS: PhaseActionLimits = {

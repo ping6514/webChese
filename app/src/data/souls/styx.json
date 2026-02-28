@@ -68,8 +68,8 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 1 }],
-    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 1 點 HP（不可超過最大上限）。"
+    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 4 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 4 點 HP（不可超過最大上限）。"
   },
   {
     "id": "styx_cannon_mingleipao",
@@ -140,8 +140,8 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 1 }],
-    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 1 點 HP（不可超過最大上限）。"
+    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 4 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 4 點 HP（不可超過最大上限）。"
   },
   {
     "id": "styx_advisor_minghu",

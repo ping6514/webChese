@@ -5,7 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { decideActions, type BotContext } from '../sim/balanceBot'
 import { useGameSetup } from '../stores/gameSetup'
@@ -37,6 +37,7 @@ import ConfirmModal from '../components/ConfirmModal.vue'
 import CardDetailModal from '../components/CardDetailModal.vue'
 import ShootPreviewModal from '../components/ShootPreviewModal.vue'
 import AllUnitsModal from '../components/AllUnitsModal.vue'
+import EffectsModal from '../components/EffectsModal.vue'
 import HandBar from '../components/HandBar.vue'
 import SidePanel from '../components/SidePanel.vue'
 import DebugMenuModal from '../components/DebugMenuModal.vue'
@@ -87,7 +88,7 @@ const mainGridStyle = computed(() => ({ gridTemplateColumns: `1fr ${SIDEBAR_WIDT
 
 // ── Board scale toggle ─────────────────────────────────────────────────────────
 type BoardScale = 50 | 75 | 100
-const boardScale = ref<BoardScale>(100)
+const boardScale = ref<BoardScale>(75)
 const BOARD_SCALE_LABELS: Record<BoardScale, string> = { 50: '50%', 75: '75%', 100: '100%' }
 const boardScaleStyle = computed(() =>
   boardScale.value === 100 ? {} : { width: `${boardScale.value}%` }
@@ -108,6 +109,9 @@ function closeShop() {
 }
 
 const allUnitsOpen = computed(() => ui.allUnitsOpen)
+const effectsOpen = ref(false)
+function openEffects() { effectsOpen.value = true }
+function closeEffects() { effectsOpen.value = false }
 
 const currentSide = computed(() => state.value.turn.side)
 const currentPhase = computed(() => state.value.turn.phase)
@@ -352,7 +356,13 @@ const shootChainEligibleEnemyIds = computed(() => {
   return out
 })
 
-const turnTintClass = computed(() => (currentSide.value === 'red' ? 'turn-red' : 'turn-green'))
+watchEffect(() => {
+  document.body.style.backgroundImage =
+    currentSide.value === 'red'
+      ? 'linear-gradient(180deg, rgba(255, 77, 79, 0.25) 0%, rgba(0,0,0,0) 50%)'
+      : 'linear-gradient(180deg, rgba(82, 196, 26, 0.25) 0%, rgba(0,0,0,0) 50%)'
+})
+onUnmounted(() => { document.body.style.backgroundImage = '' })
 
 const resources = computed(() => state.value.resources)
 const handItems = computed(() => state.value.hands[state.value.turn.side].items)
@@ -400,6 +410,91 @@ const kingHp = computed(() => {
 
 const necroActionsUsed = computed(() => state.value.turnFlags.necroActionsUsed ?? 0)
 const necroActionsMax = computed(() => state.value.limits.necroActionsPerTurn + (state.value.turnFlags.necroBonusActions ?? 0))
+
+// ── Active buff indicator ─────────────────────────────────────────────────────
+function highestTierAmount(tiers: { count: number; amount: number }[], n: number): number {
+  const sorted = [...tiers].sort((a, b) => b.count - a.count)
+  for (const t of sorted) { if (n >= t.count) return t.amount }
+  return 0
+}
+
+type BuffEntry = { label: string; kind: 'aura' | 'free' | 'buff' }
+
+const activeBuffs = computed((): BuffEntry[] => {
+  const s = state.value
+  const side = s.turn.side
+  const phase = s.turn.phase
+  const buffs: BuffEntry[] = []
+
+  const soldierCount = Object.values(s.units).filter((u) => u.side === side && u.base === 'soldier').length
+
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    for (const ab of card.abilities) {
+      const type = ab.type
+
+      if (type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') {
+        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (amt > 0) buffs.push({ label: `${card.name}：全軍 ATK +${amt}`, kind: 'aura' })
+      }
+
+      if (type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
+        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (amt > 0) buffs.push({ label: `${card.name}：全軍 減傷 -${amt}`, kind: 'aura' })
+      }
+
+      if (type === 'FORMATION_COMMAND' && phase === 'combat') {
+        const perTurn = Number((ab as any).perTurn ?? 1)
+        const used = s.turnFlags.abilityUsed?.[`${u.id}:FORMATION_COMMAND`] ?? 0
+        if (used < perTurn) buffs.push({ label: `${card.name}（整編）：相鄰卒可免費移動`, kind: 'free' })
+      }
+
+      if (type === 'LOGISTICS_REVIVE' && phase === 'necro') {
+        const perTurn = Number((ab as any).perTurn ?? 1)
+        const used = s.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
+        if (used < perTurn) buffs.push({ label: `${card.name}（後勤）：可免費復活 1 個卒`, kind: 'free' })
+      }
+
+      if (type === 'FREE_SHOOT' && phase === 'combat') {
+        const when = (ab as any).when
+        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
+        if (conditionOk) {
+          const perTurn = Number((ab as any).perTurn ?? 1)
+          const used = s.turnFlags.abilityUsed?.[`${u.id}:FREE_SHOOT`] ?? 0
+          if (used < perTurn) buffs.push({ label: `${card.name}：可免費射擊 ×${perTurn - used}`, kind: 'free' })
+        }
+      }
+
+      if (type === 'IGNORE_BLOCKING') {
+        const when = (ab as any).when
+        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
+        if (conditionOk && phase === 'combat') buffs.push({ label: `${card.name}：無視阻擋`, kind: 'buff' })
+      }
+    }
+  }
+
+  // TurnFlags 額外狀態
+  if ((s.turnFlags.freeShootBonus ?? 0) > 0)
+    buffs.push({ label: `魂能超載：下次射擊免費 ×${s.turnFlags.freeShootBonus}`, kind: 'free' })
+  if ((s.turnFlags.enchantGoldDiscount ?? 0) > 0)
+    buffs.push({ label: `冥魂灌注：附魔 -${s.turnFlags.enchantGoldDiscount}G`, kind: 'buff' })
+  if ((s.turnFlags.itemNecroBonus ?? 0) > 0)
+    buffs.push({ label: `冥魂灌注：死靈術 +${s.turnFlags.itemNecroBonus}`, kind: 'buff' })
+  if ((s.turnFlags.necroBonusActions ?? 0) > 0)
+    buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
+  if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
+    buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
+  if (s.turnFlags.darkMoonScopeActive)
+    buffs.push({ label: '暗月窺視：可選任意墳場卡', kind: 'buff' })
+  if (s.turnFlags.deathChainActive)
+    buffs.push({ label: '死亡連鎖：擊殺 +1 魔力', kind: 'aura' })
+
+  return buffs
+})
 
 const selectedEnchantSoul = computed(() => {
   const soulId = selectedUnit.value?.enchant?.soulId
@@ -706,6 +801,22 @@ function onUseItem(itemId: string) {
       ui.startUseItemTargetCorpse(itemId)
       break
     }
+    case 'item_nether_seal': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side !== side)
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '沒有可封印的敵方單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
+    case 'item_soul_detach_needle': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side !== side && !!u.enchant)
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '敵方沒有附魔單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
     default: {
       // 無目標道具：直接彈出確認
       setPending({
@@ -722,7 +833,12 @@ function boneRefineChoose(choice: 'gold' | 'mana') {
   setPending({
     action: { type: 'USE_ITEM_FROM_HAND', itemId: 'item_bone_refine', targetPos: boneRefineChoicePos.value, choice },
     title: '骸骨煉化',
-    detail: choice === 'gold' ? '移除屍骸 → 獲得 +3 財力' : '移除屍骸 → 獲得 +2 魔力',
+    detail: (() => {
+      const eff = getItemCard('item_bone_refine')?.effect
+      return choice === 'gold'
+        ? `移除屍骸 → 獲得 +${eff?.goldAmount ?? 9} 財力`
+        : `移除屍骸 → 獲得 +${eff?.manaAmount ?? 2} 魔力`
+    })(),
   })
   boneRefineChoicePos.value = null
   ui.clearInteractionMode()
@@ -1257,9 +1373,7 @@ async function copyEventLog() {
 </script>
 
 <template>
-  <div class="page" :class="turnTintClass">
-    <!-- 視窗固定背景色調 -->
-    <div class="turnBg" :class="turnTintClass" />
+  <div class="page">
 
     <!-- 階段切換 Toast -->
     <Transition name="phase-toast">
@@ -1298,6 +1412,16 @@ async function copyEventLog() {
       </div>
     </div>
 
+    <!-- 主動效果提示條 -->
+    <div v-if="activeBuffs.length > 0" class="buffBar">
+      <span
+        v-for="(b, i) in activeBuffs"
+        :key="i"
+        class="buffPill"
+        :class="`buffPill--${b.kind}`"
+      >{{ b.label }}</span>
+    </div>
+
     <div v-if="enchantMode" class="actionStatusBar">
       <div class="mono">Selecting unit to enchant: {{ enchantModeSoulName ?? '-' }}</div>
       <button type="button" @click="cancelEnchantMode">Cancel (Esc)</button>
@@ -1318,11 +1442,23 @@ async function copyEventLog() {
       <button type="button" @click="cancelBoneRefine()">取消 (Esc)</button>
     </div>
 
-    <div v-if="boneRefineChoicePos" class="actionStatusBar">
-      <div class="mono">骸骨煉化：選擇增益（位置 {{ boneRefineChoicePos.x }},{{ boneRefineChoicePos.y }}）</div>
-      <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">+3 財力</button>
-      <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">+2 魔力</button>
-      <button type="button" @click="cancelBoneRefine()">取消</button>
+    <!-- 骸骨煉化：選擇增益彈窗 -->
+    <div v-if="boneRefineChoicePos" class="boneRefineOverlay" @click.self="cancelBoneRefine()">
+      <div class="boneRefineModal">
+        <div class="boneRefineTitle">骸骨煉化</div>
+        <div class="boneRefineDesc">移除屍骸，選擇獲得的增益：</div>
+        <div class="boneRefineBtns">
+          <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">
+            <span class="choiceIcon">💰</span>
+            <span class="choiceMain">+{{ getItemCard('item_bone_refine')?.effect?.goldAmount ?? 9 }} 財力</span>
+          </button>
+          <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">
+            <span class="choiceIcon">💧</span>
+            <span class="choiceMain">+{{ getItemCard('item_bone_refine')?.effect?.manaAmount ?? 2 }} 魔力</span>
+          </button>
+        </div>
+        <button type="button" class="boneRefineCancel" @click="cancelBoneRefine()">取消</button>
+      </div>
     </div>
 
     <main class="main" :style="mainGridStyle">
@@ -1339,7 +1475,7 @@ async function copyEventLog() {
           >{{ BOARD_SCALE_LABELS[s] }}</button>
         </div>
 
-        <div class="boardScaleWrap" :style="boardScaleStyle">
+        <div class="boardScaleWrap" :style="boardScaleStyle" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
         <BoardGrid
           :state="state"
           :selected-unit-id="selectedUnitId"
@@ -1431,6 +1567,7 @@ async function copyEventLog() {
           @blood-ritual="bloodRitual"
           @open-shop="openShop"
           @open-units="openAllUnits"
+          @open-effects="openEffects"
           @next-phase="nextPhase"
           @open-events="openEventLog"
         />
@@ -1469,6 +1606,12 @@ async function copyEventLog() {
       @close="closeAllUnits"
       @show-unit-detail="showUnitDetail"
       @select-cell="selectCellFromUnits"
+    />
+
+    <EffectsModal
+      :open="effectsOpen"
+      :state="state"
+      @close="closeEffects"
     />
 
     <CardDetailModal
@@ -1583,21 +1726,6 @@ async function copyEventLog() {
   color: rgba(145, 202, 255, 0.95) !important;
 }
 
-.turnBg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: background 0.5s ease;
-}
-
-.turnBg.turn-red {
-  background: linear-gradient(180deg, rgba(255, 77, 79, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
-}
-
-.turnBg.turn-green {
-  background: linear-gradient(180deg, rgba(82, 196, 26, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
-}
 
 .main {
   display: grid;
@@ -1639,8 +1767,17 @@ async function copyEventLog() {
 }
 
 .boardScaleWrap {
-  transition: width 0.2s ease;
+  transition: width 0.2s ease, box-shadow 0.5s ease;
   margin: 0 auto;
+  border-radius: 12px;
+}
+
+.boardWrap--red {
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.35), 0 0 32px rgba(255, 77, 79, 0.18);
+}
+
+.boardWrap--green {
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.35), 0 0 32px rgba(82, 196, 26, 0.18);
 }
 
 .sidePanel {
@@ -1743,6 +1880,109 @@ async function copyEventLog() {
   font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.95);
 }
+
+/* ── Buff 指示條 ─────────────────────────────────────────────────────── */
+.buffBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 5px 10px;
+}
+
+.buffPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.buffPill--aura {
+  background: rgba(82, 196, 26, 0.16);
+  border: 1px solid rgba(82, 196, 26, 0.45);
+  color: #95de64;
+}
+
+.buffPill--free {
+  background: rgba(250, 173, 20, 0.16);
+  border: 1px solid rgba(250, 173, 20, 0.45);
+  color: #ffd666;
+}
+
+.buffPill--buff {
+  background: rgba(100, 181, 246, 0.16);
+  border: 1px solid rgba(100, 181, 246, 0.45);
+  color: #90caf9;
+}
+
+/* ── 骸骨煉化彈窗 ─────────────────────────────────────────────────────── */
+.boneRefineOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-modal-overlay);
+  display: grid;
+  place-items: center;
+  z-index: 55;
+  backdrop-filter: blur(3px);
+}
+
+.boneRefineModal {
+  width: min(320px, 90vw);
+  background: var(--bg-modal-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+
+.boneRefineTitle {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.boneRefineDesc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.boneRefineBtns {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.boneRefineBtns .choiceBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+}
+
+.choiceIcon { font-size: 1.5rem; line-height: 1; }
+.choiceMain { font-size: 0.9375rem; font-weight: 800; }
+
+.boneRefineCancel {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.boneRefineCancel:hover { color: var(--text-muted); }
 
 .choiceBtn {
   padding: 6px 14px;

@@ -48,7 +48,7 @@ export default defineComponent({
     bloodRitualGuard: { type: Object as () => GuardResult, required: true },
     lastEvents: { type: Array as () => string[], required: true },
   },
-  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'next-phase', 'open-events'],
+  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'open-effects', 'next-phase', 'open-events'],
 })
 </script>
 
@@ -58,6 +58,7 @@ export default defineComponent({
     <div class="quickActions">
       <button type="button" class="actionBtn" @click="$emit('open-shop')">🛒 商店</button>
       <button type="button" class="actionBtn" @click="$emit('open-units')">📋 單位</button>
+      <button type="button" class="actionBtn actionBtnFx" @click="$emit('open-effects')">⚡ 效果</button>
     </div>
 
     <!-- Blood ritual (necro only) -->
@@ -116,8 +117,17 @@ export default defineComponent({
 /* ── Quick actions ───────────────────────────────────────────────────── */
 .quickActions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.actionBtnFx {
+  border-color: rgba(250, 173, 20, 0.3) !important;
+  color: #ffd666 !important;
+}
+.actionBtnFx:hover {
+  background: rgba(250, 173, 20, 0.1) !important;
+  border-color: rgba(250, 173, 20, 0.55) !important;
 }
 
 .actionBtn {

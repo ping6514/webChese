@@ -19,15 +19,15 @@
         "type": "PIERCE",
         "mode": "LINE_ENEMIES",
         "count": 1,
-        "when": { "type": "CORPSES_GTE", "count": 8 }
+        "when": { "type": "CORPSES_GTE", "count": 4 }
       },
       {
         "type": "DAMAGE_BONUS",
         "amount": 1,
-        "when": { "type": "CORPSES_GTE", "count": 10 }
+        "when": { "type": "CORPSES_GTE", "count": 5 }
       }
     ],
-    "text": "【屍氣】（依我方屍骸數）：≥8 時，射擊對同一直線上的前 1 名敵方造成傷害（含目標）。≥10 時，射擊傷害額外 +1。"
+    "text": "【屍氣】（依我方屍骸數）：≥4 時，射擊對同一直線上的前 1 名敵方造成傷害（含目標）。≥5 時，射擊傷害額外 +1。"
   },
   {
     "id": "eternal_night_rook_minggouche",

@@ -6,6 +6,10 @@ export type ItemCard = {
   image?: string | null
   text?: string
   copies?: number
+  effect?: {
+    goldAmount?: number
+    manaAmount?: number
+  }
 }
 
 import rulebookItems from '../data/items/rulebook-items.json'
@@ -39,6 +43,10 @@ const IMPLEMENTED_ITEM_IDS = new Set([
   'item_soul_overload',
   'item_last_stand_contract',
   'item_dark_moon_scope',
+  'item_death_chain',
+  'item_nether_seal',
+  'item_cage_plunder',
+  'item_soul_detach_needle',
 ])
 
 export function listItemDeckIds(): string[] {

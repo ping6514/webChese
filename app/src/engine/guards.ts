@@ -142,7 +142,8 @@ function necroActionsPerTurn(state: GameState): number {
 }
 
 export function canUseItemFromHand(state: GameState, itemId: string): GuardResult {
-  const hand = state.hands[state.turn.side].items
+  const side = state.turn.side
+  const hand = state.hands[side].items
   if (!hand.includes(itemId)) return fail('Item not in hand')
   const item = getItemCard(itemId)
   if (!item) return fail('Item not found')
@@ -150,7 +151,37 @@ export function canUseItemFromHand(state: GameState, itemId: string): GuardResul
   if (timing === 'buy' && state.turn.phase !== 'buy') return fail('Must be in buy phase')
   if (timing === 'necro' && state.turn.phase !== 'necro') return fail('Must be in necro phase')
   if (timing === 'combat' && state.turn.phase !== 'combat') return fail('Must be in combat phase')
+  // 牢籠掠奪：己方牢籠已有 5 張 or 敵方牢籠為空
+  if (itemId === 'item_cage_plunder') {
+    const enemySide = side === 'red' ? 'black' : 'red'
+    if (state.hands[enemySide].souls.length === 0) return fail('敵方牢籠沒有靈魂卡')
+    if (state.hands[side].souls.length >= 5) return fail('己方牢籠已有 5 張，無法發動')
+  }
   return ok()
+}
+
+// Helper: find an ally with FORMATION_COMMAND within radius of the given soldier unit.
+function findFormationCommand(state: GameState, unitId: string): { allyId: string; abilityKey: string } | null {
+  const unit = state.units[unitId]
+  if (!unit || unit.base !== 'soldier') return null
+  for (const u of Object.values(state.units)) {
+    if (u.side !== unit.side || u.id === unit.id) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    const ab = card.abilities.find((a) => a.type === 'FORMATION_COMMAND')
+    if (!ab) continue
+    const radius = Number((ab as any).radius ?? 1)
+    const perTurn = Number((ab as any).perTurn ?? 1)
+    const key = `${u.id}:FORMATION_COMMAND`
+    const used = state.turnFlags.abilityUsed?.[key] ?? 0
+    if (used >= perTurn) continue
+    const dist = Math.max(Math.abs(u.pos.x - unit.pos.x), Math.abs(u.pos.y - unit.pos.y))
+    if (dist > radius) continue
+    return { allyId: u.id, abilityKey: key }
+  }
+  return null
 }
 
 export function canMove(state: GameState, unitId: string, to: Pos): GuardResult {
@@ -158,10 +189,14 @@ export function canMove(state: GameState, unitId: string, to: Pos): GuardResult 
   if (!unit) return fail('Unit not found')
   if (unit.side !== state.turn.side) return fail('Not your turn')
   if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+  if ((state.turnFlags.sealedUnitIds ?? []).includes(unitId)) return fail('此單位已被冥鎖封印，本回合無法移動')
 
   const r = state.resources[state.turn.side]
   const cost = state.rules.moveManaCost
-  if (r.mana < cost) return fail('Not enough mana')
+  // 整編：周圍有 FORMATION_COMMAND 的卒免費移動
+  const fc = findFormationCommand(state, unit.id)
+  const effectiveManaCost = fc ? 0 : cost
+  if (r.mana < effectiveManaCost) return fail('Not enough mana')
   if (!isOnBoard(to)) return fail('Target position out of board')
   if (getUnitAt(state, to)) return fail('Target position occupied')
   if (!isLegalMove(state, unit.id, to)) return fail('Illegal move')
@@ -174,6 +209,7 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
   if (!attacker || !target) return fail('Unit not found')
+  if ((state.turnFlags.sealedUnitIds ?? []).includes(attackerId)) return fail('此單位已被冥鎖封印，本回合無法射擊')
   if (attacker.side !== state.turn.side) return fail('Not your turn')
 
   // 魂能超載: 若有免費射擊，暫時提升魔力以通過消耗檢查
@@ -222,11 +258,28 @@ export function canEnchant(state: GameState, unitId: string, soulId: string): Gu
   return ok()
 }
 
+// Helper: find an ally with LOGISTICS_REVIVE ability available this turn.
+function findLogisticsRevive(state: GameState): { allyId: string; abilityKey: string } | null {
+  for (const u of Object.values(state.units)) {
+    if (u.side !== state.turn.side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+    if (!ab) continue
+    const perTurn = Number((ab as any).perTurn ?? 1)
+    const key = `${u.id}:LOGISTICS_REVIVE`
+    const used = state.turnFlags.abilityUsed?.[key] ?? 0
+    if (used >= perTurn) continue
+    return { allyId: u.id, abilityKey: key }
+  }
+  return null
+}
+
 export function canRevive(state: GameState, pos: Pos): GuardResult {
   if (state.turn.phase !== 'necro') return fail('Not in necro phase')
-  // 死戰契約：若有額外復活次數，不受死靈術次數限制
-  const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
-  if (!usingContract && state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) return fail('No necro actions left this turn')
+
   const posKey = `${pos.x},${pos.y}`
   const stack = state.corpsesByPos[posKey]
   if (!stack || stack.length === 0) return fail('No corpses here')
@@ -236,9 +289,19 @@ export function canRevive(state: GameState, pos: Pos): GuardResult {
   if (!corpse) return fail('No corpses here')
   if (corpse.ownerSide !== state.turn.side) return fail('Not your corpse')
 
+  // 後勤：召侍在場且卒屍骸可免費復活（不消耗死靈術次數）
+  const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
+  const lr = corpse.base === 'soldier' ? findLogisticsRevive(state) : null
+  const usingLogisticsRevive = !!lr
+
+  if (!usingContract && !usingLogisticsRevive && state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) {
+    return fail('No necro actions left this turn')
+  }
+
   const cost = getReviveGoldCost(corpse.base)
+  const effectiveGoldCost = usingLogisticsRevive ? 0 : cost
   const r = state.resources[state.turn.side]
-  if (r.gold < cost) return fail('Not enough gold')
+  if (r.gold < effectiveGoldCost) return fail('Not enough gold')
 
   return ok()
 }

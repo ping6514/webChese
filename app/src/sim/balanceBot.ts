@@ -227,10 +227,54 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         enchantedSoulIds.push(p.soulId)
         enchantGoldSpent += getSoulCard(p.soulId)?.costGold ?? 0
       } else {
-        // Fallback: revive at a random corpse position
-        const posKey = pick(Object.keys(state.corpsesByPos), rng)
+        // Fallback: prefer soldier corpses if any ally has a tiered aura (iron_guard synergy)
+        const hasTieredAura = myUnits.some((u: any) => {
+          const card = getSoulCard((u.enchant?.soulId as string) ?? '')
+          return card?.abilities.some((a: any) =>
+            a.type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS' || a.type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA'
+          )
+        })
+        const corpseKeys = Object.keys(state.corpsesByPos)
+        const soldierCorpseKeys = hasTieredAura
+          ? corpseKeys.filter(k => {
+              const stack = (state.corpsesByPos as Record<string, any[]>)[k]
+              const top = stack?.[stack.length - 1]
+              return top?.base === 'soldier' && top?.ownerSide === side
+            })
+          : []
+        const posKey = pick(soldierCorpseKeys.length > 0 ? soldierCorpseKeys : corpseKeys, rng)
         if (posKey) {
           const parts = posKey.split(',')
+          const x0 = Number(parts[0])
+          const y0 = Number(parts[1])
+          if (isFinite(x0) && isFinite(y0)) {
+            const pos = { x: x0, y: y0 }
+            if (canRevive(state, pos).ok) actions.push({ type: 'REVIVE', pos })
+          }
+        }
+      }
+
+      // LOGISTICS_REVIVE: 召侍允許免費額外復活卒，不消耗死靈術次數
+      // 若己方有可用的 LOGISTICS_REVIVE，嘗試再復活一個卒
+      const lrUnit = myUnits.find((u: any) => {
+        const card = getSoulCard((u.enchant?.soulId as string) ?? '')
+        if (!card) return false
+        return card.abilities.some((a: any) => {
+          if (a.type !== 'LOGISTICS_REVIVE') return false
+          const perTurn = Number(a.perTurn ?? 1)
+          const used = (state.turnFlags.abilityUsed as Record<string, number>)?.[`${u.id as string}:LOGISTICS_REVIVE`] ?? 0
+          return used < perTurn
+        })
+      })
+      if (lrUnit) {
+        // Find a soldier corpse owned by this side
+        const soldierKey = Object.keys(state.corpsesByPos).find(k => {
+          const stack = (state.corpsesByPos as Record<string, any[]>)[k]
+          const top = stack?.[stack.length - 1]
+          return top?.base === 'soldier' && top?.ownerSide === side
+        })
+        if (soldierKey) {
+          const parts = soldierKey.split(',')
           const x0 = Number(parts[0])
           const y0 = Number(parts[1])
           if (isFinite(x0) && isFinite(y0)) {

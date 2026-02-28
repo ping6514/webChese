@@ -85,6 +85,9 @@ export type GameState = {
     lastStandContractBonus: number
     lastStandNoEnchantUnitIds: string[]
     darkMoonScopeActive: boolean
+    deathChainActive: boolean
+    deathChainKillCount: number
+    sealedUnitIds: string[]
   }
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
@@ -295,6 +298,9 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       lastStandContractBonus: 0,
       lastStandNoEnchantUnitIds: [],
       darkMoonScopeActive: false,
+      deathChainActive: false,
+      deathChainKillCount: 0,
+      sealedUnitIds: [],
     },
     hands: {
       red: { souls: [], items: [] },

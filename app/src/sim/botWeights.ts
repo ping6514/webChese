@@ -12,6 +12,17 @@ export const BASE_WEIGHTS = {
     'styx_knight_yanling': 60,
     'dark_moon_knight_yingzi': 55,
     'styx_rook_feiyan': 50,
+    // ── 鐵衛氏族初始權重 ──────────────────────────────────────────
+    'iron_guard_elephant_junlingxiang': 95,  // 全軍 ATK 氣場：核心強度
+    'iron_guard_elephant_tiegu': 90,          // 全軍減傷氣場：防禦核心
+    'iron_guard_rook_tieche': 88,             // 無視阻擋 + 免費射擊
+    'iron_guard_cannon_baobingpao': 85,       // 高 ATK + 宮內傷害
+    'iron_guard_rook_junhua': 82,             // 軍勢傷害 + 軍援
+    'iron_guard_cannon_paobinghua': 80,       // 連鎖 + 傷害加成
+    'iron_guard_knight_lianjunma': 75,        // 移動後射擊 + 相鄰卒加傷
+    'iron_guard_knight_qibingling': 70,       // 軍援
+    'iron_guard_advisor_junhu': 62,           // 整編（免費移動卒）
+    'iron_guard_advisor_zhaoshi': 62,         // 後勤（免費復活卒）
     default: 30,
   } as Record<string, number>,
 
@@ -40,36 +51,40 @@ export const BASE_WEIGHTS = {
 export const DYNAMIC_WEIGHTS: typeof BASE_WEIGHTS = {
   "buyPriority": {
     "default": 30,
-    "styx_knight_xueyan": 75,
-    "eternal_night_cannon_suigu": 171,
-    "dark_moon_rook_lanhua": 207,
-    "styx_rook_feiyan": 193,
-    "eternal_night_knight_hunling": 73,
-    "dark_moon_knight_yingzi": 81,
-    "eternal_night_elephant_gulingxiang": 166,
-    "dark_moon_advisor_yingji": 212,
-    "dark_moon_cannon_yehua": 178,
-    "styx_rook_mingyanche": 190,
-    "eternal_night_knight_xuegu": 105,
-    "styx_cannon_mingleipao": 135,
-    "dark_moon_elephant_youji": 181,
+    "styx_elephant_mingleixiang": 115,
+    "iron_guard_cannon_baobingpao": 190,
+    "styx_cannon_baoyan": 185,
+    "dark_moon_knight_yingzi": 140,
+    "styx_rook_mingyanche": 176,
+    "iron_guard_rook_tieche": 195,
+    "iron_guard_elephant_junlingxiang": 186,
+    "iron_guard_advisor_zhaoshi": 192,
+    "iron_guard_advisor_junhu": 179,
+    "iron_guard_elephant_tiegu": 185,
+    "styx_rook_feiyan": 169,
     "eternal_night_rook_minggouche": 147,
-    "eternal_night_advisor_guhu": 163,
-    "styx_elephant_mingleixiang": 132,
-    "dark_moon_advisor_yeji": 169,
-    "styx_elephant_mingyanxiang": 149,
-    "dark_moon_cannon_fenghua": 160,
-    "styx_advisor_minghu": 164,
-    "dark_moon_elephant_yueji": 169,
-    "eternal_night_cannon_minggupao": 142,
-    "dark_moon_rook_yinghua": 126,
-    "eternal_night_advisor_hunshi": 148,
-    "eternal_night_elephant_mingguxiang": 156,
-    "eternal_night_rook_guhua": 164,
-    "styx_cannon_baoyan": 126,
-    "styx_knight_yanling": 30,
-    "dark_moon_knight_wuying": 17,
-    "styx_advisor_yanshi": 127
+    "iron_guard_rook_junhua": 181,
+    "eternal_night_rook_guhua": 175,
+    "styx_elephant_mingyanxiang": 151,
+    "styx_knight_yanling": 117,
+    "styx_advisor_yanshi": 154,
+    "dark_moon_advisor_yeji": 168,
+    "dark_moon_elephant_youji": 171,
+    "eternal_night_elephant_mingguxiang": 161,
+    "dark_moon_advisor_yingji": 169,
+    "dark_moon_rook_lanhua": 171,
+    "eternal_night_advisor_hunshi": 149,
+    "styx_advisor_minghu": 139,
+    "dark_moon_cannon_fenghua": 164,
+    "iron_guard_cannon_paobinghua": 134,
+    "eternal_night_elephant_gulingxiang": 142,
+    "eternal_night_cannon_suigu": 156,
+    "eternal_night_cannon_minggupao": 126,
+    "styx_cannon_mingleipao": 113,
+    "dark_moon_cannon_yehua": 135,
+    "dark_moon_elephant_yueji": 154,
+    "eternal_night_advisor_guhu": 134,
+    "dark_moon_rook_yinghua": 87
   },
   "shootScoring": {
     "targetIsKing": -15000,
@@ -79,13 +94,13 @@ export const DYNAMIC_WEIGHTS: typeof BASE_WEIGHTS = {
     "canPierceExtra": -600,
     "canChainExtra": -500,
     "ignoreBlockingBonus": -400,
-    "myCorpsesBonusPer10": -354
+    "myCorpsesBonusPer10": -374
   },
   "moveScoring": {
     "distanceToEnemyKingPerTile": 60,
     "distanceToAnyEnemyPerTile": 40,
     "corpsesNearbyBonusPerCorpse": -35,
-    "palaceSafetyBonus": -260,
+    "palaceSafetyBonus": -255,
     "avoidEnemyRangeMalus": 300
   }
 }
@@ -95,36 +110,40 @@ export const DYNAMIC_WEIGHTS: typeof BASE_WEIGHTS = {
 export const OPPONENT_WEIGHTS: typeof BASE_WEIGHTS = {
   "buyPriority": {
     "default": 30,
-    "eternal_night_cannon_minggupao": 162,
-    "styx_rook_mingyanche": 204,
-    "eternal_night_rook_guhua": 198,
-    "dark_moon_knight_wuying": 57,
-    "eternal_night_knight_xuegu": 113,
-    "eternal_night_elephant_mingguxiang": 181,
-    "styx_knight_xueyan": 97,
-    "dark_moon_advisor_yingji": 216,
-    "styx_cannon_mingleipao": 145,
-    "styx_knight_yanling": 88,
-    "dark_moon_knight_yingzi": 62,
-    "dark_moon_rook_yinghua": 159,
-    "styx_cannon_baoyan": 161,
-    "styx_rook_feiyan": 176,
-    "dark_moon_elephant_youji": 182,
-    "styx_advisor_yanshi": 152,
-    "dark_moon_rook_lanhua": 189,
-    "dark_moon_elephant_yueji": 177,
-    "eternal_night_cannon_suigu": 140,
-    "styx_advisor_minghu": 163,
-    "eternal_night_rook_minggouche": 143,
-    "dark_moon_cannon_yehua": 161,
-    "eternal_night_advisor_guhu": 152,
-    "dark_moon_advisor_yeji": 159,
-    "dark_moon_cannon_fenghua": 161,
-    "eternal_night_advisor_hunshi": 148,
-    "eternal_night_elephant_gulingxiang": 137,
-    "styx_elephant_mingleixiang": 110,
-    "styx_elephant_mingyanxiang": 136,
-    "eternal_night_knight_hunling": 40
+    "styx_rook_mingyanche": 175,
+    "styx_rook_feiyan": 177,
+    "eternal_night_rook_minggouche": 150,
+    "styx_knight_yanling": 121,
+    "eternal_night_cannon_minggupao": 149,
+    "eternal_night_cannon_suigu": 175,
+    "styx_advisor_yanshi": 148,
+    "dark_moon_rook_lanhua": 188,
+    "iron_guard_rook_tieche": 200,
+    "iron_guard_elephant_tiegu": 191,
+    "iron_guard_rook_junhua": 181,
+    "iron_guard_cannon_paobinghua": 146,
+    "eternal_night_elephant_mingguxiang": 162,
+    "iron_guard_advisor_zhaoshi": 190,
+    "styx_cannon_mingleipao": 133,
+    "iron_guard_cannon_baobingpao": 173,
+    "dark_moon_elephant_youji": 167,
+    "eternal_night_advisor_guhu": 151,
+    "dark_moon_cannon_fenghua": 165,
+    "dark_moon_advisor_yingji": 171,
+    "dark_moon_advisor_yeji": 166,
+    "styx_elephant_mingleixiang": 87,
+    "dark_moon_elephant_yueji": 170,
+    "styx_cannon_baoyan": 159,
+    "iron_guard_elephant_junlingxiang": 185,
+    "dark_moon_rook_yinghua": 125,
+    "eternal_night_rook_guhua": 167,
+    "styx_advisor_minghu": 141,
+    "dark_moon_cannon_yehua": 152,
+    "iron_guard_advisor_junhu": 168,
+    "styx_elephant_mingyanxiang": 144,
+    "eternal_night_elephant_gulingxiang": 134,
+    "eternal_night_advisor_hunshi": 139,
+    "eternal_night_knight_hunling": -3
   },
   "shootScoring": {
     "targetIsKing": -15000,
@@ -134,13 +153,13 @@ export const OPPONENT_WEIGHTS: typeof BASE_WEIGHTS = {
     "canPierceExtra": -600,
     "canChainExtra": -500,
     "ignoreBlockingBonus": -400,
-    "myCorpsesBonusPer10": -355
+    "myCorpsesBonusPer10": -378
   },
   "moveScoring": {
     "distanceToEnemyKingPerTile": 60,
     "distanceToAnyEnemyPerTile": 40,
     "corpsesNearbyBonusPerCorpse": -35,
-    "palaceSafetyBonus": -260,
+    "palaceSafetyBonus": -254,
     "avoidEnemyRangeMalus": 300
   }
 }

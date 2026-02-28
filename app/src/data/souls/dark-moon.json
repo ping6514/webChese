@@ -205,11 +205,11 @@
       { "type": "AURA_DAMAGE_BONUS", "amount": 1, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" },
       {
         "type": "AURA_HP_REGEN_ON_KILL",
-        "amount": 1,
+        "amount": 3,
         "when": { "type": "CORPSES_GTE", "count": 3 }
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +1。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 1 點 HP。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +1。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
   },
   {
     "id": "dark_moon_elephant_youji",

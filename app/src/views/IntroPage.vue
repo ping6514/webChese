@@ -14,8 +14,11 @@ const selectedItem = ref<ItemCard | null>(null)
 const CLAN_META: Record<string, { name: string; color: string; borderColor: string; desc: string }> = {
   dark_moon:     { name: '暗月氏族', color: '#a855f7', borderColor: 'rgba(168,85,247,0.35)', desc: '以穿透射擊與越境能力見長。蘭華、影華等英雄可無視阻擋，在敵陣深處肆虐。' },
   styx:          { name: '冥河氏族', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.35)',  desc: '冥河氏族擅長以犧牲換取暴發。強大的波及與連鎖傷害讓一次攻擊波及多個目標。' },
-  eternal_night: { name: '永夜氏族', color: '#f97316', borderColor: 'rgba(249,115,22,0.35)',  desc: '永夜氏族以持久戰為核心。吸血恢復與堅韌防禦讓其在殘局中佔得優勢。' },
+  eternal_night: { name: '永夜氏族', color: '#4ade80', borderColor: 'rgba(74,222,128,0.35)',  desc: '永夜氏族以持久戰為核心。吸血恢復與堅韌防禦讓其在殘局中佔得優勢。' },
+  iron_guard:    { name: '鐵衛氏族', color: '#f97316', borderColor: 'rgba(249,115,22,0.35)', desc: '鐵衛氏族以卒的數量為核心。卒越多，全軍傷害與防禦越強。整編、後勤讓卒永不停歇。' },
 }
+
+const activeClanId = ref<string>('dark_moon')
 
 const BASE_CN: Record<string, string> = {
   king: '帥/將', advisor: '仕/士', elephant: '相/象',
@@ -30,17 +33,20 @@ const TIMING_CLASS: Record<string, string> = { buy: 'timingBuy', necro: 'timingN
 const allSouls = listSoulCards()
 const allItems = listItemCards()
 
-// Group souls by clan → then by base
-const clans = computed(() => {
-  return Object.keys(CLAN_META).map((clanId) => {
-    const cards = allSouls.filter((c) => c.clan === clanId)
-    const byBase: Record<string, SoulCard[]> = {}
-    for (const b of BASE_ORDER) {
-      const group = cards.filter((c) => c.base === b)
-      if (group.length) byBase[b] = group
-    }
-    return { id: clanId, ...CLAN_META[clanId], byBase }
-  })
+// All clan ids in display order
+const clanIds = Object.keys(CLAN_META)
+
+// Active clan data
+const activeClan = computed(() => {
+  const clanId = activeClanId.value
+  const meta = CLAN_META[clanId]!
+  const cards = allSouls.filter((c) => c.clan === clanId)
+  const byBase: Record<string, SoulCard[]> = {}
+  for (const b of BASE_ORDER) {
+    const group = cards.filter((c) => c.base === b)
+    if (group.length) byBase[b] = group
+  }
+  return { id: clanId, ...meta, byBase }
 })
 
 function selectSoul(c: SoulCard) {
@@ -90,7 +96,7 @@ function selectItem(c: ItemCard) {
           <div class="resourceGrid">
             <div class="resourceCard">
               <div class="resTitle">💰 財力</div>
-              <div class="resDesc">購買靈魂卡、道具卡、復活棋子的主要貨幣。每回合開始自動獲得收入（預設 +2）。上限 15。</div>
+              <div class="resDesc">購買靈魂卡、道具卡、復活棋子的主要貨幣。每回合開始自動獲得收入（+4）。上限 15。</div>
             </div>
             <div class="resourceCard">
               <div class="resTitle">✨ 魔力</div>
@@ -140,7 +146,7 @@ function selectItem(c: ItemCard) {
         <section class="ruleSection">
           <h2>👻 靈魂卡系統</h2>
           <ul>
-            <li>共分 3 個氏族：<strong>暗月氏族</strong>、<strong>冥河氏族</strong>、<strong>永夜氏族</strong>。</li>
+            <li>共分 4 個氏族：<strong>暗月氏族</strong>、<strong>冥河氏族</strong>、<strong>永夜氏族</strong>、<strong>鐵衛氏族</strong>。</li>
             <li>每種棋子類型有獨立的靈魂牌堆。購買時只能購入與棋子類型相符的靈魂卡（例如「車」只能買車型靈魂）。</li>
             <li>附魂後棋子的 HP、ATK、DEF 替換為靈魂卡數值，並獲得特殊能力。</li>
             <li>棋子死亡後靈魂卡進入己方墓場。可於死靈術階段復活並重新附魂。</li>
@@ -193,32 +199,43 @@ function selectItem(c: ItemCard) {
       <div class="cardLayout">
         <!-- ── Soul cards ────────────────────────────── -->
         <div v-if="activeCardTab === 'souls'" class="soulSection">
-          <div v-for="clan in clans" :key="clan.id" class="clanBlock">
-            <div class="clanHeader" :style="{ borderLeftColor: clan.color }">
-              <span class="clanName" :style="{ color: clan.color }">{{ clan.name }}</span>
-              <span class="clanDesc">{{ clan.desc }}</span>
-            </div>
-            <div v-for="(cards, base) in clan.byBase" :key="base" class="baseGroup">
-              <div class="baseLabel">{{ BASE_CN[base] ?? base }}</div>
-              <div class="cardGrid">
-                <div
-                  v-for="c in cards"
-                  :key="c.id"
-                  :class="['soulCard', selectedSoul?.id === c.id && 'cardSelected']"
-                  :style="{ borderColor: selectedSoul?.id === c.id ? clan.color : undefined }"
-                  @click="selectSoul(c)"
-                >
-                  <img v-if="c.image" :src="c.image" class="cardImg" :alt="c.name" />
-                  <div v-else class="cardImgEmpty">👻</div>
-                  <div class="cardMeta">
-                    <span class="cardName">{{ c.name }}</span>
-                    <span class="cardCost">{{ c.costGold }}G</span>
-                  </div>
-                  <div class="statRow">
-                    <span class="stat hp">❤ {{ c.stats.hp }}</span>
-                    <span class="stat atk">⚔ {{ c.stats.atk.value }}</span>
-                    <span class="stat def">🛡 {{ c.stats.def.map(d => d.value).join('/') }}</span>
-                  </div>
+          <!-- Clan tabs -->
+          <div class="clanTabs">
+            <button
+              v-for="cid in clanIds"
+              :key="cid"
+              type="button"
+              :class="['clanTab', activeClanId === cid && 'clanTabActive']"
+              :style="activeClanId === cid ? { borderColor: CLAN_META[cid]!.borderColor, color: CLAN_META[cid]!.color, background: `${CLAN_META[cid]!.borderColor}` } : {}"
+              @click="activeClanId = cid; selectedSoul = null"
+            >{{ CLAN_META[cid]!.name }}</button>
+          </div>
+          <!-- Clan description -->
+          <div class="clanHeader" :style="{ borderLeftColor: activeClan.color }">
+            <span class="clanName" :style="{ color: activeClan.color }">{{ activeClan.name }}</span>
+            <span class="clanDesc">{{ activeClan.desc }}</span>
+          </div>
+          <!-- Cards by base -->
+          <div v-for="(cards, base) in activeClan.byBase" :key="base" class="baseGroup">
+            <div class="baseLabel">{{ BASE_CN[base] ?? base }}</div>
+            <div class="cardGrid">
+              <div
+                v-for="c in cards"
+                :key="c.id"
+                :class="['soulCard', selectedSoul?.id === c.id && 'cardSelected']"
+                :style="{ borderColor: selectedSoul?.id === c.id ? activeClan.color : undefined }"
+                @click="selectSoul(c)"
+              >
+                <img v-if="c.image" :src="c.image" class="cardImg" :alt="c.name" />
+                <div v-else class="cardImgEmpty">👻</div>
+                <div class="cardMeta">
+                  <span class="cardName">{{ c.name }}</span>
+                  <span class="cardCost">{{ c.costGold }}G</span>
+                </div>
+                <div class="statRow">
+                  <span class="stat hp">❤ {{ c.stats.hp }}</span>
+                  <span class="stat atk">⚔ {{ c.stats.atk.value }}</span>
+                  <span class="stat def">🛡 {{ c.stats.def.map((d: any) => d.value).join('/') }}</span>
                 </div>
               </div>
             </div>
@@ -534,14 +551,32 @@ function selectItem(c: ItemCard) {
   text-transform: uppercase;
 }
 
+/* ── Clan tabs ───────────────────────────────────────── */
+.clanTabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.clanTab {
+  padding: 5px 16px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.clanTab:hover { color: var(--text); border-color: var(--border-strong); }
+.clanTabActive { font-weight: 800; }
+
 .cardGrid {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 10px;
-  overflow-x: auto;
   padding-bottom: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
 }
 
 .soulCard {
@@ -651,7 +686,7 @@ function selectItem(c: ItemCard) {
 .detailPanel {
   position: sticky;
   top: 70px;
-  width: 200px;
+  width: 300px;
   flex-shrink: 0;
   border-radius: 12px;
   border: 1px solid var(--border);
