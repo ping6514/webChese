@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { Side } from '../engine'
 
-export type GameMode = 'pvp' | 'pve'
+export type GameMode = 'pvp' | 'pve' | 'online'
 export type SideOrRandom = Side | 'random'
 export type Difficulty = 'easy' | 'hard'
 

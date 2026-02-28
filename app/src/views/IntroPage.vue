@@ -123,9 +123,9 @@ function selectItem(c: ItemCard) {
               <div class="phaseTag necro">⚗️ 死靈術</div>
               <div class="phaseDesc">
                 <ul>
-                  <li><strong>附魂（附魔）</strong>：將手牌靈魂卡附於己方棋子，棋子獲得靈魂的 HP、ATK、防禦與特殊能力。費用依靈魂卡標示。每回合限 2 次。</li>
-                  <li><strong>復活</strong>：支付財力，從墓場復活己方死亡棋子至原位。費用依棋子種類。每回合限 1 次。</li>
-                  <li><strong>血祭</strong>：犧牲一個己方棋子，獲得強力增益（詳見道具說明）。</li>
+                  <li><strong>附魂（附魔）</strong>：將手牌靈魂卡附於己方棋子，棋子獲得靈魂的 HP、ATK、防禦與特殊能力。費用依靈魂卡標示。每回合基礎 1 次（血之祭儀或道具可增加）。</li>
+                  <li><strong>復活</strong>：花費 3 財力，從墓場復活己方死亡棋子至原位。與附魂共享死靈術行動次數。</li>
+                  <li><strong>血之祭儀</strong>：帥失去 3 HP，本回合死靈術行動次數 +1。每回合限 1 次。</li>
                   <li><strong>使用「死靈」道具</strong>：使用手牌中時機為「死靈術」的道具卡。</li>
                 </ul>
               </div>
@@ -135,7 +135,7 @@ function selectItem(c: ItemCard) {
               <div class="phaseDesc">
                 <ul>
                   <li><strong>移動</strong>：每個單位每回合限移動一次，遵循象棋走法（帥原地）。</li>
-                  <li><strong>射擊（砲）</strong>：砲/附魂砲可在移動後或不移動時射擊，消耗 1 魔力，需有阻擋物（炮架）。</li>
+                  <li><strong>射擊</strong>：所有單位均可射擊，消耗 1 魔力。砲基底需要「炮架」（中間隔一個棋子）才能射擊；其他基底直線無阻擋射擊。靈魂卡能力可改變射擊規則（無視阻擋、貫通、連鎖等）。</li>
                   <li><strong>使用「戰鬥」道具</strong>：使用手牌中時機為「戰鬥」的道具卡。</li>
                 </ul>
               </div>

@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
 import { useThemeStore } from '../stores/theme'
+import { useConnection } from '../stores/connection'
 
 const router = useRouter()
 const setup = useGameSetup()
 const theme = useThemeStore()
+const conn = useConnection()
 
 const mode = ref<GameMode>(setup.mode)
 const playerSide = ref<SideOrRandom>(setup.playerSide)
@@ -14,7 +16,53 @@ const firstPlayer = ref<SideOrRandom>(setup.firstPlayer)
 const difficulty = ref<Difficulty>(setup.difficulty)
 
 const isPve = computed(() => mode.value === 'pve')
+const isOnline = computed(() => mode.value === 'online')
 
+// ── Online sub-state ───────────────────────────────────────────────────────
+type OnlineAction = 'create' | 'join'
+const onlineAction = ref<OnlineAction>('create')
+const joinRoomId = ref('')
+const onlineLoading = ref(false)
+const onlineError = ref('')
+const createdRoomId = ref('')
+
+// Auto-navigate when opponent joins (create mode: waiting → playing)
+watch(() => conn.status, (s) => {
+  if (s === 'playing' && mode.value === 'online') {
+    setup.mode = 'online'
+    router.push({ name: 'game' })
+  }
+})
+
+async function handleOnlineStart() {
+  onlineError.value = ''
+  onlineLoading.value = true
+  if (onlineAction.value === 'create') {
+    const roomId = await conn.createRoom()
+    if (!roomId) {
+      onlineError.value = conn.errorMsg ?? '建立失敗'
+    } else {
+      createdRoomId.value = roomId
+    }
+  } else {
+    const id = joinRoomId.value.trim().toUpperCase()
+    if (!id) { onlineLoading.value = false; onlineError.value = '請輸入房間碼'; return }
+    const ok = await conn.joinRoom(id)
+    if (ok) {
+      setup.mode = 'online'
+      router.push({ name: 'game' })
+    } else {
+      onlineError.value = conn.errorMsg ?? '加入失敗'
+    }
+  }
+  onlineLoading.value = false
+}
+
+function copyRoomId() {
+  navigator.clipboard.writeText(createdRoomId.value)
+}
+
+// ── Local game start ───────────────────────────────────────────────────────
 const buildLabel = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
   year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit',
@@ -62,84 +110,149 @@ function startGame() {
           <button
             type="button"
             :class="['opt-btn', mode === 'pvp' && 'active']"
-            @click="mode = 'pvp'"
+            @click="mode = 'pvp'; createdRoomId = ''"
           >雙人對戰</button>
           <button
             type="button"
             :class="['opt-btn', mode === 'pve' && 'active']"
-            @click="mode = 'pve'"
+            @click="mode = 'pve'; createdRoomId = ''"
           >對電腦</button>
+          <button
+            type="button"
+            :class="['opt-btn online-opt', mode === 'online' && 'active']"
+            @click="mode = 'online'; createdRoomId = ''; onlineError = ''"
+          >網路連線</button>
         </div>
       </div>
 
-      <!-- 先攻 -->
-      <div class="section">
-        <div class="section-label">先攻方</div>
-        <div class="btn-group">
-          <button
-            type="button"
-            :class="['opt-btn red-opt', firstPlayer === 'red' && 'active']"
-            @click="firstPlayer = 'red'"
-          >紅方</button>
-          <button
-            type="button"
-            :class="['opt-btn black-opt', firstPlayer === 'black' && 'active']"
-            @click="firstPlayer = 'black'"
-          >黑方</button>
-          <button
-            type="button"
-            :class="['opt-btn', firstPlayer === 'random' && 'active']"
-            @click="firstPlayer = 'random'"
-          >隨機</button>
+      <!-- ── 網路連線設定 ── -->
+      <template v-if="isOnline">
+        <div class="section">
+          <div class="section-label">連線方式</div>
+          <div class="btn-group">
+            <button
+              type="button"
+              :class="['opt-btn', onlineAction === 'create' && 'active']"
+              @click="onlineAction = 'create'; createdRoomId = ''; onlineError = ''"
+            >建立房間</button>
+            <button
+              type="button"
+              :class="['opt-btn', onlineAction === 'join' && 'active']"
+              @click="onlineAction = 'join'; createdRoomId = ''; onlineError = ''"
+            >加入房間</button>
+          </div>
         </div>
-      </div>
 
-      <!-- 玩家選邊（PVE 限定） -->
-      <div v-if="isPve" class="section">
-        <div class="section-label">我方陣營</div>
-        <div class="btn-group">
-          <button
-            type="button"
-            :class="['opt-btn red-opt', playerSide === 'red' && 'active']"
-            @click="playerSide = 'red'"
-          >紅方</button>
-          <button
-            type="button"
-            :class="['opt-btn black-opt', playerSide === 'black' && 'active']"
-            @click="playerSide = 'black'"
-          >黑方</button>
-          <button
-            type="button"
-            :class="['opt-btn', playerSide === 'random' && 'active']"
-            @click="playerSide = 'random'"
-          >隨機</button>
+        <!-- 加入房間：輸入房間碼 -->
+        <div v-if="onlineAction === 'join'" class="section">
+          <div class="section-label">房間碼</div>
+          <input
+            v-model="joinRoomId"
+            class="room-input"
+            placeholder="輸入 6 位房間碼"
+            maxlength="6"
+            autocomplete="off"
+            spellcheck="false"
+            @input="joinRoomId = (joinRoomId as string).toUpperCase()"
+          />
         </div>
-      </div>
 
-      <!-- 難度（PVE 限定） -->
-      <div v-if="isPve" class="section">
-        <div class="section-label">難度</div>
-        <div class="btn-group">
-          <button
-            type="button"
-            :class="['opt-btn', difficulty === 'easy' && 'active']"
-            @click="difficulty = 'easy'"
-          >
-            <span class="diff-label">簡單</span>
-            <span class="diff-desc">固定規則 AI</span>
-          </button>
-          <button
-            type="button"
-            :class="['opt-btn', difficulty === 'hard' && 'active']"
-            @click="difficulty = 'hard'"
-          >
-            <span class="diff-label">困難</span>
-            <span class="diff-desc">訓練強化 AI</span>
-          </button>
+        <!-- 等待對手（建立後顯示） -->
+        <div v-if="createdRoomId" class="waiting-box">
+          <div class="waiting-label">房間已建立，等待對手加入</div>
+          <div class="room-code-row">
+            <span class="room-code">{{ createdRoomId }}</span>
+            <button type="button" class="copy-btn" @click="copyRoomId" title="複製">複製</button>
+          </div>
+          <div class="waiting-dots">等待中<span class="dots">…</span></div>
         </div>
-      </div>
 
-      <button type="button" class="start-btn" @click="startGame">開始遊戲</button>
+        <!-- 錯誤訊息 -->
+        <div v-if="onlineError" class="error-msg">{{ onlineError }}</div>
+
+        <!-- 建立/加入 按鈕 -->
+        <button
+          v-if="!createdRoomId"
+          type="button"
+          class="start-btn"
+          :disabled="onlineLoading"
+          @click="handleOnlineStart"
+        >
+          {{ onlineLoading ? '連線中...' : onlineAction === 'create' ? '建立房間' : '加入房間' }}
+        </button>
+      </template>
+
+      <!-- ── 本機模式設定 ── -->
+      <template v-else>
+        <!-- 先攻 -->
+        <div class="section">
+          <div class="section-label">先攻方</div>
+          <div class="btn-group">
+            <button
+              type="button"
+              :class="['opt-btn red-opt', firstPlayer === 'red' && 'active']"
+              @click="firstPlayer = 'red'"
+            >紅方</button>
+            <button
+              type="button"
+              :class="['opt-btn black-opt', firstPlayer === 'black' && 'active']"
+              @click="firstPlayer = 'black'"
+            >黑方</button>
+            <button
+              type="button"
+              :class="['opt-btn', firstPlayer === 'random' && 'active']"
+              @click="firstPlayer = 'random'"
+            >隨機</button>
+          </div>
+        </div>
+
+        <!-- 玩家選邊（PVE 限定） -->
+        <div v-if="isPve" class="section">
+          <div class="section-label">我方陣營</div>
+          <div class="btn-group">
+            <button
+              type="button"
+              :class="['opt-btn red-opt', playerSide === 'red' && 'active']"
+              @click="playerSide = 'red'"
+            >紅方</button>
+            <button
+              type="button"
+              :class="['opt-btn black-opt', playerSide === 'black' && 'active']"
+              @click="playerSide = 'black'"
+            >黑方</button>
+            <button
+              type="button"
+              :class="['opt-btn', playerSide === 'random' && 'active']"
+              @click="playerSide = 'random'"
+            >隨機</button>
+          </div>
+        </div>
+
+        <!-- 難度（PVE 限定） -->
+        <div v-if="isPve" class="section">
+          <div class="section-label">難度</div>
+          <div class="btn-group">
+            <button
+              type="button"
+              :class="['opt-btn', difficulty === 'easy' && 'active']"
+              @click="difficulty = 'easy'"
+            >
+              <span class="diff-label">簡單</span>
+              <span class="diff-desc">固定規則 AI</span>
+            </button>
+            <button
+              type="button"
+              :class="['opt-btn', difficulty === 'hard' && 'active']"
+              @click="difficulty = 'hard'"
+            >
+              <span class="diff-label">困難</span>
+              <span class="diff-desc">訓練強化 AI</span>
+            </button>
+          </div>
+        </div>
+
+        <button type="button" class="start-btn" @click="startGame">開始遊戲</button>
+      </template>
     </div>
   </div>
 </template>
@@ -324,6 +437,12 @@ function startGame() {
   color: #e8d8a0;
 }
 
+.opt-btn.online-opt.active {
+  background: rgba(60, 140, 200, 0.18);
+  border-color: rgba(60, 140, 200, 0.55);
+  color: #a0c8e8;
+}
+
 .opt-btn.red-opt.active {
   background: rgba(200, 60, 60, 0.18);
   border-color: rgba(200, 60, 60, 0.55);
@@ -346,6 +465,92 @@ function startGame() {
   opacity: 0.6;
 }
 
+/* ── Online UI ───────────────────────────────── */
+.room-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.1rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-family: ui-monospace, monospace;
+  text-transform: uppercase;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.room-input:focus {
+  border-color: rgba(60, 140, 200, 0.6);
+}
+.room-input::placeholder {
+  opacity: 0.35;
+  letter-spacing: 0.05em;
+  font-size: 0.8rem;
+}
+
+.waiting-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(60, 140, 200, 0.08);
+  border: 1px solid rgba(60, 140, 200, 0.25);
+  border-radius: 10px;
+}
+
+.waiting-label {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  letter-spacing: 0.05em;
+}
+
+.room-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.room-code {
+  font-size: 1.75rem;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.3em;
+  color: #a0c8e8;
+  font-weight: 700;
+}
+
+.copy-btn {
+  padding: 4px 10px;
+  background: rgba(60, 140, 200, 0.15);
+  border: 1px solid rgba(60, 140, 200, 0.4);
+  border-radius: 6px;
+  color: #a0c8e8;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.copy-btn:hover {
+  background: rgba(60, 140, 200, 0.28);
+}
+
+.waiting-dots {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.error-msg {
+  font-size: 0.8rem;
+  color: #f4a0a0;
+  text-align: center;
+  padding: 6px;
+  background: rgba(200, 60, 60, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(200, 60, 60, 0.25);
+}
+
 .start-btn {
   margin-top: 4px;
   padding: 13px;
@@ -360,7 +565,12 @@ function startGame() {
   transition: background 0.15s;
 }
 
-.start-btn:hover {
+.start-btn:hover:not(:disabled) {
   background: rgba(200, 160, 60, 0.32);
+}
+
+.start-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

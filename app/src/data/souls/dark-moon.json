@@ -79,8 +79,8 @@
     "image": "/assets/cards/dark_moon/dark_moon_knight_wuying.jpg",
     "costGold": 5,
     "stats": {
-      "hp": 9,
-      "atk": { "key": "phys", "value": 2 },
+      "hp": 11,
+      "atk": { "key": "phys", "value": 3 },
       "def": [
         { "key": "phys", "value": 1 },
         { "key": "magic", "value": 0 }

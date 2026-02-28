@@ -119,10 +119,10 @@
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 2 }]
     },
     "abilities": [
-      { "type": "FORMATION_COMMAND", "radius": 1, "perTurn": 1 },
+      { "type": "FORMATION_COMMAND", "perTurn": 1 },
       { "type": "PALACE_GUARD", "amount": 1, "perTurn": 1 }
     ],
-    "text": "【整編】：自身周圍 1 格的卒，每回合可免費移動 1 次（不消耗魔力）。【宮護】：己方在宮內時，帥被攻擊時減傷 1 點（每回合限 1 次）。"
+    "text": "【整編】：全場己方所有卒，每回合可免費移動 1 次（不消耗魔力）。【宮護】：己方在宮內時，帥被攻擊時減傷 1 點（每回合限 1 次）。"
   },
   {
     "id": "iron_guard_advisor_zhaoshi",

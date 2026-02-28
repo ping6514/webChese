@@ -76,13 +76,10 @@ function findFormationCommandHelper(state: GameState, unitId: string): { allyId:
     if (!card) continue
     const ab = card.abilities.find((a) => a.type === 'FORMATION_COMMAND')
     if (!ab) continue
-    const radius = Number((ab as any).radius ?? 1)
     const perTurn = Number((ab as any).perTurn ?? 1)
     const key = `${u.id}:FORMATION_COMMAND`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0
     if (used >= perTurn) continue
-    const dist = Math.max(Math.abs(u.pos.x - unit.pos.x), Math.abs(u.pos.y - unit.pos.y))
-    if (dist > radius) continue
     return { allyId: u.id, abilityKey: key }
   }
   return null
