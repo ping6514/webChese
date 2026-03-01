@@ -15,11 +15,6 @@ export type ItemCard = {
 import rulebookItems from '../data/items/rulebook-items.json'
 
 function normalizePublicAssetUrl(p: string): string {
-  if (!p) return p
-  if (p.startsWith('/')) {
-    const base: string = (import.meta as any).env?.BASE_URL ?? '/'
-    return `${base}${p.slice(1)}`
-  }
   return p
 }
 
