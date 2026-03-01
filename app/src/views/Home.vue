@@ -26,6 +26,10 @@ const onlineLoading = ref(false)
 const onlineError = ref('')
 const createdRoomId = ref('')
 
+// Debug: check if env vars are baked in at build time
+const supabaseUrlOk = !!(import.meta.env.VITE_SUPABASE_URL)
+const supabaseKeyOk = !!(import.meta.env.VITE_SUPABASE_ANON_KEY)
+
 // Auto-navigate when opponent joins (create mode: waiting → playing)
 watch(() => conn.status, (s) => {
   if (s === 'playing' && mode.value === 'online') {
@@ -37,23 +41,27 @@ watch(() => conn.status, (s) => {
 async function handleOnlineStart() {
   onlineError.value = ''
   onlineLoading.value = true
-  if (onlineAction.value === 'create') {
-    const roomId = await conn.createRoom()
-    if (!roomId) {
-      onlineError.value = conn.errorMsg ?? '建立失敗'
+  try {
+    if (onlineAction.value === 'create') {
+      const roomId = await conn.createRoom()
+      if (!roomId) {
+        onlineError.value = conn.errorMsg ?? '建立失敗'
+      } else {
+        createdRoomId.value = roomId
+      }
     } else {
-      createdRoomId.value = roomId
+      const id = joinRoomId.value.trim().toUpperCase()
+      if (!id) { onlineLoading.value = false; onlineError.value = '請輸入房間碼'; return }
+      const ok = await conn.joinRoom(id)
+      if (ok) {
+        setup.mode = 'online'
+        router.push({ name: 'game' })
+      } else {
+        onlineError.value = conn.errorMsg ?? '加入失敗'
+      }
     }
-  } else {
-    const id = joinRoomId.value.trim().toUpperCase()
-    if (!id) { onlineLoading.value = false; onlineError.value = '請輸入房間碼'; return }
-    const ok = await conn.joinRoom(id)
-    if (ok) {
-      setup.mode = 'online'
-      router.push({ name: 'game' })
-    } else {
-      onlineError.value = conn.errorMsg ?? '加入失敗'
-    }
+  } catch (e) {
+    onlineError.value = `[JS Error] ${e instanceof Error ? e.message : String(e)}`
   }
   onlineLoading.value = false
 }
@@ -127,35 +135,6 @@ function startGame() {
 
       <!-- ── 網路連線設定 ── -->
       <template v-if="isOnline">
-        <div class="section">
-          <div class="section-label">連線方式</div>
-          <div class="btn-group">
-            <button
-              type="button"
-              :class="['opt-btn', onlineAction === 'create' && 'active']"
-              @click="onlineAction = 'create'; createdRoomId = ''; onlineError = ''"
-            >建立房間</button>
-            <button
-              type="button"
-              :class="['opt-btn', onlineAction === 'join' && 'active']"
-              @click="onlineAction = 'join'; createdRoomId = ''; onlineError = ''"
-            >加入房間</button>
-          </div>
-        </div>
-
-        <!-- 加入房間：輸入房間碼 -->
-        <div v-if="onlineAction === 'join'" class="section">
-          <div class="section-label">房間碼</div>
-          <input
-            v-model="joinRoomId"
-            class="room-input"
-            placeholder="輸入 6 位房間碼"
-            maxlength="6"
-            autocomplete="off"
-            spellcheck="false"
-            @input="joinRoomId = (joinRoomId as string).toUpperCase()"
-          />
-        </div>
 
         <!-- 等待對手（建立後顯示） -->
         <div v-if="createdRoomId" class="waiting-box">
@@ -167,19 +146,54 @@ function startGame() {
           <div class="waiting-dots">等待中<span class="dots">…</span></div>
         </div>
 
+        <!-- 主要行動（尚未建立房間時） -->
+        <template v-else>
+          <!-- 建立新房間 -->
+          <button
+            type="button"
+            class="start-btn online-create-btn"
+            :disabled="onlineLoading && onlineAction === 'create'"
+            @click="onlineAction = 'create'; handleOnlineStart()"
+          >
+            {{ onlineLoading && onlineAction === 'create' ? '連線中...' : '建立新房間' }}
+          </button>
+
+          <div class="online-divider">或</div>
+
+          <!-- 加入房間 -->
+          <div class="section">
+            <input
+              v-model="joinRoomId"
+              class="room-input"
+              placeholder="輸入 6 位房間碼"
+              maxlength="6"
+              autocomplete="off"
+              spellcheck="false"
+              @input="joinRoomId = (joinRoomId as string).toUpperCase()"
+            />
+            <button
+              type="button"
+              class="start-btn online-join-btn"
+              :disabled="onlineLoading && onlineAction === 'join'"
+              @click="onlineAction = 'join'; handleOnlineStart()"
+            >
+              {{ onlineLoading && onlineAction === 'join' ? '連線中...' : '加入房間' }}
+            </button>
+          </div>
+        </template>
+
         <!-- 錯誤訊息 -->
         <div v-if="onlineError" class="error-msg">{{ onlineError }}</div>
 
-        <!-- 建立/加入 按鈕 -->
-        <button
-          v-if="!createdRoomId"
-          type="button"
-          class="start-btn"
-          :disabled="onlineLoading"
-          @click="handleOnlineStart"
-        >
-          {{ onlineLoading ? '連線中...' : onlineAction === 'create' ? '建立房間' : '加入房間' }}
-        </button>
+        <!-- Env 狀態（debug） -->
+        <div class="env-debug">
+          <span :class="supabaseUrlOk ? 'env-ok' : 'env-fail'">
+            {{ supabaseUrlOk ? '✓' : '✗' }} SUPABASE_URL
+          </span>
+          <span :class="supabaseKeyOk ? 'env-ok' : 'env-fail'">
+            {{ supabaseKeyOk ? '✓' : '✗' }} SUPABASE_KEY
+          </span>
+        </div>
       </template>
 
       <!-- ── 本機模式設定 ── -->
@@ -541,6 +555,41 @@ function startGame() {
   opacity: 0.5;
 }
 
+.online-create-btn {
+  background: rgba(60, 140, 200, 0.18);
+  border-color: rgba(60, 140, 200, 0.5);
+  color: #a0c8e8;
+}
+.online-create-btn:hover:not(:disabled) {
+  background: rgba(60, 140, 200, 0.3);
+}
+.online-join-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.75);
+}
+.online-join-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.online-divider {
+  text-align: center;
+  font-size: 0.75rem;
+  opacity: 0.35;
+  letter-spacing: 0.15em;
+  margin: -6px 0;
+}
+
+.env-debug {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-family: ui-monospace, monospace;
+}
+.env-ok { color: #80c880; }
+.env-fail { color: #f4a0a0; font-weight: 700; }
+
 .error-msg {
   font-size: 0.8rem;
   color: #f4a0a0;
@@ -549,6 +598,7 @@ function startGame() {
   background: rgba(200, 60, 60, 0.1);
   border-radius: 6px;
   border: 1px solid rgba(200, 60, 60, 0.25);
+  word-break: break-all;
 }
 
 .start-btn {

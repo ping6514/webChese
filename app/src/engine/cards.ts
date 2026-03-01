@@ -27,7 +27,10 @@ export type SoulCard = {
 
 function normalizePublicAssetUrl(p: string): string {
   if (!p) return p
-  if (p.startsWith('/')) return `${import.meta.env.BASE_URL}${p.slice(1)}`
+  if (p.startsWith('/')) {
+    const base: string = (import.meta as any).env?.BASE_URL ?? '/'
+    return `${base}${p.slice(1)}`
+  }
   return p
 }
 
