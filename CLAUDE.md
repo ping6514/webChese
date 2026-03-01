@@ -2,27 +2,35 @@
 
 ## 專案概述
 2 人回合制策略遊戲：中國象棋底盤 + 靈魂附魔系統 + HP 射擊 + 屍骸資源循環。
-目前為**單機/本機對戰**模式，已部署至網路（靜態 hosting）。
+支援**本機對戰（PVP/PVE）** 與**線上對戰**模式，已部署至 Vercel。
 
 ## 目錄結構
 ```
-webChese/
+webChess/
 ├── app/                    # Vue 3 + Vite + TypeScript 主應用
-│   └── src/
-│       ├── engine/         # 核心引擎（reducer, guards, events, cards, items）
-│       ├── data/souls/     # 靈魂卡 JSON（dark-moon.json, styx.json, eternal-night.json, iron-guard.json）
-│       ├── data/items/     # 道具卡 JSON
-│       ├── sim/            # Bot 決策（balanceBot.ts）+ 訓練腳本（botWeights.ts, updateDynamicWeights.js）
-│       ├── stores/         # Pinia（game.ts, ui.ts）
-│       ├── components/     # UI 元件（BoardGrid, HandItems, EffectsModal...）
-│       └── views/          # 頁面（Game.vue, IntroPage.vue, HomePage.vue）
+│   ├── src/
+│   │   ├── engine/         # 核心引擎（reducer, guards, events, cards, items）
+│   │   ├── data/souls/     # 靈魂卡 JSON（dark-moon.json, styx.json, eternal-night.json, iron-guard.json）
+│   │   ├── data/items/     # 道具卡 JSON
+│   │   ├── sim/            # Bot 決策（balanceBot.ts）+ 訓練腳本（botWeights.ts, updateDynamicWeights.js）
+│   │   ├── stores/         # Pinia（gameSetup.ts, ui.ts, connection.ts）
+│   │   ├── components/     # UI 元件（BoardGrid, HandItems, TopBar, DebugMenuModal...）
+│   │   └── views/          # 頁面（Game.vue, IntroPage.vue, Home.vue）
+│   └── api/                # Vercel Serverless Functions（Node.js）
+│       ├── rooms/
+│       │   ├── create.ts          # POST /api/rooms/create
+│       │   └── [roomId]/
+│       │       ├── join.ts        # POST /api/rooms/:id/join
+│       │       ├── action.ts      # POST /api/rooms/:id/action
+│       │       └── state.ts       # GET  /api/rooms/:id/state
+│       └── _engine/               # 編譯後的 CJS 引擎（由 build-engine.mjs 產生）
 └── docs/                   # 規則文件（象棋桌遊規則NOW.md, 象棋桌遊開發計劃.md）
 ```
 
 ## 常用指令（在 `app/` 目錄執行）
 ```bash
 npm run dev           # 開發伺服器
-npm run build         # 型別檢查 + Vite 打包
+npm run build         # 引擎編譯 + 型別檢查 + Vite 打包（同時更新 api/_engine/）
 npm run test          # Vitest 跑完整測試套件（必須全綠才能 commit）
 npm run train         # Bot 自動訓練（10 輪，更新 botWeights.ts）
 npm run train:3       # 輕量訓練（3 輪）
@@ -34,6 +42,20 @@ npm run sim:balance   # 單次模擬報告
 - `engine/guards.ts`：所有 `can*()` 函數回傳 `{ ok, reason }`
 - `engine/events.ts`：引擎發出 Event 陣列，UI 讀 events 做 FX（浮字、高亮）
 - `TurnFlags`：每回合暫存狀態（freeShootBonus、itemNecroBonus 等），`NEXT_PHASE` 時重置
+- **NEXT_PHASE** 從 combat 一步到位：combat → turnEnd（autoTurnEnd）→ turnStart（autoTurnStart）→ buy（下一玩家）
+
+## 線上對戰架構（Vercel + Supabase）
+- **DB**：Supabase PostgreSQL，`rooms` 資料表（id, version, state_json, status, red_secret, black_secret）
+- **Serverless API**：`api/rooms/` 下的 Vercel functions
+  - `create`：隨機分配 side/firstSide，支援 `enabledClans` 自訂卡池
+  - `join`：joiner 加入，version +1，status → 'playing'
+  - `action`：驗證 secret → canDispatch → reduce → 更新 state_json（含 `_lastEvents`）
+  - `state`：version-gated（since= 參數），回傳 state + status
+- **同步機制**：Realtime（Supabase WebSocket）+ 4 秒 Polling 保底（hybrid adapter）
+- **前端 store**：`stores/connection.ts`（useConnection）
+  - `pollEvents`：對手操作事件（polling 更新時提取 state_json._lastEvents）
+  - `_suppressPollEvents`：sendAction 時防止自身事件被重複處理
+- **引擎編譯**：`src/engine/` → `api/_engine/`（CJS），每次 build 自動更新
 
 ## 遊戲數值（gameConfig.ts）
 | 參數 | 值 |
@@ -50,7 +72,14 @@ npm run sim:balance   # 單次模擬報告
 | 道具手牌上限 | 3 |
 
 ## 氏族（enabledClans）
-`dark_moon` · `styx` · `eternal_night` · `iron_guard`（4 氏族，各 10 張）
+| id | 名稱 | emoji |
+|---|---|---|
+| `dark_moon` | 暗月 | 🌙 |
+| `styx` | 冥河 | 💧 |
+| `eternal_night` | 永夜 | 🌑 |
+| `iron_guard` | 鐵衛 | 🛡️ |
+
+各氏族各 10 張靈魂卡。開房時可自訂啟用的氏族（至少 1 個）。
 
 ## Bot 訓練機制
 - `balanceBot.ts`：epsilon-greedy 決策，`weightsMode` 可選 base/dynamic/blend/opponent
@@ -65,4 +94,5 @@ npm run sim:balance   # 單次模擬報告
 ## 注意事項
 - 引擎測試全綠是 commit 前提，修改 engine/ 後必跑 `npm run test`
 - 規則文件（docs/）是設計參考，**以引擎實作為準**，兩者不符時優先修正文件
-- 目前無後端，無持久化，無線上對戰
+- 修改 engine/ 後必須跑 `npm run build` 重新編譯 `api/_engine/`，否則線上對戰使用舊引擎
+- 開發分支：`temp`，由開發者手動 merge 到線上環境

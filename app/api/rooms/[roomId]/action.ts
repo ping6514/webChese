@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { error: updateErr } = await supabase
     .from('rooms')
     .update({
-      state_json: result.state,
+      state_json: { ...result.state, _lastEvents: result.events },
       version: room.version + 1,
       updated_at: new Date().toISOString(),
     })

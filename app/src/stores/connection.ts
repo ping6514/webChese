@@ -50,6 +50,23 @@ function makePollingAdapter(intervalMs = 3000): SyncAdapter {
   }
 }
 
+// Realtime + polling hybrid: Realtime fires instantly when available,
+// polling fires every 4s as a safety net when Realtime is unreliable
+function makeHybridAdapter(roomId: string, getLocalVersion: () => number): SyncAdapter {
+  const rt = makeRealtimeAdapter(roomId, getLocalVersion)
+  const poll = makePollingAdapter(4000)
+  return {
+    start(onTick) {
+      rt.start(onTick)
+      poll.start(onTick)
+    },
+    stop() {
+      rt.stop()
+      poll.stop()
+    },
+  }
+}
+
 // ─── Connection store ──────────────────────────────────────────────────────
 
 export type SyncMode = 'realtime' | 'polling'
@@ -65,16 +82,22 @@ export const useConnection = defineStore('connection', {
     localVersion: -1,
     gameState: null as GameState | null,
     lastEvents: [] as unknown[],
+    pollEvents: [] as unknown[],   // events from opponent (via polling)
+    _suppressPollEvents: false,
     errorMsg: null as string | null,
     _adapter: null as SyncAdapter | null,
   }),
 
   actions: {
-    // ── Create a new room (become red) ──────────────────────────────────
-    async createRoom() {
+    // ── Create a new room ────────────────────────────────────────────────
+    async createRoom(enabledClans: string[] = ['dark_moon', 'styx', 'eternal_night', 'iron_guard']) {
       this.status = 'connecting'
       this.errorMsg = null
-      const res = await fetch('/api/rooms/create', { method: 'POST' })
+      const res = await fetch('/api/rooms/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabledClans }),
+      })
       if (!res.ok) {
         this.errorMsg = 'Failed to create room'
         this.status = 'error'
@@ -143,7 +166,10 @@ export const useConnection = defineStore('connection', {
       // Optimistic: update local state immediately with returned events
       this.lastEvents = data.events ?? []
       this.localVersion = data.version
+      // Suppress pollEvents during _fetchState so we don't re-emit our own events
+      this._suppressPollEvents = true
       await this._fetchState()
+      this._suppressPollEvents = false
       return { ok: true }
     },
 
@@ -176,7 +202,12 @@ export const useConnection = defineStore('connection', {
       if (res.status === 304) return // already latest
       if (!res.ok) return
       const data = await res.json()
-      this.gameState = data.state
+      // Strip internal _lastEvents from game state; expose via pollEvents instead
+      const rawEvents: unknown[] = (data.state as any)?._lastEvents ?? []
+      const cleanState = { ...data.state }
+      delete (cleanState as any)._lastEvents
+      this.gameState = cleanState
+      this.pollEvents = this._suppressPollEvents ? [] : rawEvents
       this.localVersion = data.version
       if (data.status === 'playing') this.status = 'playing'
       if (data.status === 'finished') this.status = 'idle'
@@ -187,7 +218,7 @@ export const useConnection = defineStore('connection', {
       if (!this.roomId) return
       const adapter: SyncAdapter =
         this.syncMode === 'realtime'
-          ? makeRealtimeAdapter(this.roomId, () => this.localVersion)
+          ? makeHybridAdapter(this.roomId, () => this.localVersion)
           : makePollingAdapter(3000)
       adapter.start(() => this._fetchState())
       this._adapter = adapter

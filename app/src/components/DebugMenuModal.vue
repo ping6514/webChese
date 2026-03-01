@@ -7,6 +7,7 @@ export default defineComponent({
     open: { type: Boolean, required: true },
     matchSeed: { type: String, required: true },
     enabledClans: { type: Array as () => string[], required: true },
+    isOnline: { type: Boolean, default: false },
   },
   emits: ['close', 'apply', 'open-events', 'go-home'],
   data() {
@@ -67,12 +68,12 @@ export default defineComponent({
       </div>
 
       <!-- ── Divider ──────────────────────────────────── -->
-      <button type="button" class="advancedToggle" @click="showAdvanced = !showAdvanced">
+      <button v-if="!isOnline" type="button" class="advancedToggle" @click="showAdvanced = !showAdvanced">
         {{ showAdvanced ? '▲' : '▼' }} 開發者設定
       </button>
 
       <!-- ── Advanced settings ────────────────────────── -->
-      <div v-if="showAdvanced" class="advancedSection">
+      <div v-if="!isOnline && showAdvanced" class="advancedSection">
         <div class="settingBlock">
           <div class="settingLabel mono">匹配種子 (matchSeed)</div>
           <input v-model="seed" class="input mono" type="text" placeholder="seed string" />

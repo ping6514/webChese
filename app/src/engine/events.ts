@@ -84,6 +84,15 @@ export type ItemUsedEvent = {
   targetUnitId?: string
 }
 
+export type SoulBoughtEvent = {
+  type: 'SOUL_BOUGHT'
+  side: Side
+  soulId: string
+  soulName: string
+  base: string
+  source: 'deck' | 'display' | 'graveyard'
+}
+
 export type Event =
   | UnitMovedEvent
   | PhaseChangedEvent
@@ -97,3 +106,4 @@ export type Event =
   | RevivedEvent
   | AbilityTriggeredEvent
   | ItemUsedEvent
+  | SoulBoughtEvent

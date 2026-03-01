@@ -59,7 +59,7 @@ function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) 
 const state = ref<GameState>(
   setup.mode === 'online' && conn.gameState
     ? conn.gameState
-    : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer } as any })
+    : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer, enabledClans: setup.enabledClans } as any })
 )
 const lastError = ref<string | null>(null)
 const lastEvents = ref<string[]>([])
@@ -69,10 +69,68 @@ const onlineWaiting = ref(false)
 const sideSplashVisible = ref(false)
 const sideSplashText = ref('')
 
-// Sync server state → local state in online mode
+const CLAN_LABELS: Record<string, string> = {
+  dark_moon: '🌙暗月',
+  styx: '💧冥河',
+  eternal_night: '🌑永夜',
+  iron_guard: '🛡️鐵衛',
+}
+const PHASE_LABELS: Record<string, string> = {
+  buy: '購買', necro: '死靈術', combat: '戰鬥', turnEnd: '回合結束', turnStart: '換手',
+}
+
+function eventToText(e: Record<string, unknown>): string {
+  const s = (side: unknown) => side === 'red' ? '🔴紅' : '⚫黑'
+  switch (e.type) {
+    case 'PHASE_CHANGED': {
+      const to = e.to as string
+      if (to === 'buy' || to === 'necro' || to === 'combat')
+        return `── ${s(e.side)}方 ${PHASE_LABELS[to] ?? to}階段 ──`
+      if (to === 'turnStart') return `──────── 換手 ────────`
+      return ''
+    }
+    case 'SOUL_BOUGHT':
+      return `${s(e.side)}方 購買靈魂「${e.soulName}」(${e.base}) [${e.source === 'deck' ? '盲抽' : e.source === 'display' ? '展示' : '盜取'}]`
+    case 'ENCHANTED':
+      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 附魔 ${e.unitId} ← ${e.soulId}`
+    case 'REVIVED':
+      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 復活 ${e.unitId}`
+    case 'UNIT_MOVED':
+      return `移動 (${(e.from as any)?.x},${(e.from as any)?.y})→(${(e.to as any)?.x},${(e.to as any)?.y})`
+    case 'SHOT_FIRED':
+      return `射擊 ${e.attackerId} → ${e.targetUnitId}`
+    case 'DAMAGE_DEALT':
+      return `傷害 ${e.targetUnitId} -${e.amount}`
+    case 'UNIT_HP_CHANGED': {
+      const delta = (e.to as number) - (e.from as number)
+      return `${e.unitId} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`
+    }
+    case 'UNIT_KILLED':
+      return `💀 ${e.unitId} 陣亡`
+    case 'ABILITY_TRIGGERED':
+      return `⚡ ${e.text ?? e.abilityType ?? e.unitId}`
+    case 'ITEM_USED':
+      return `${s(e.side)}方 使用道具「${e.itemName}」`
+    case 'RESOURCES_CHANGED':
+      return `${s(e.side)}方 財力${e.gold} 魔力${e.mana}`
+    default:
+      return JSON.stringify(e)
+  }
+}
+
+// Sync server state → local state in online mode; process opponent events
 watch(
   () => conn.gameState,
-  (gs) => { if (gs && setup.mode === 'online') state.value = gs },
+  (gs) => {
+    if (!gs || setup.mode !== 'online') return
+    state.value = gs
+    if (conn.pollEvents.length > 0) {
+      const evts = conn.pollEvents as Record<string, unknown>[]
+      processEvents(evts as unknown[], state.value, undefined)
+      const lines = evts.map(eventToText).filter(Boolean)
+      lastEvents.value = [...lastEvents.value, ...lines].slice(-300)
+    }
+  },
   { immediate: true },
 )
 
@@ -746,7 +804,9 @@ function cancelSacrificeMode() {
 onMounted(() => {
   // Show side assignment splash in online mode
   if (setup.mode === 'online' && conn.side) {
-    sideSplashText.value = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
+    sideSplashText.value = `${sideLabel}\n${clans}`
     sideSplashVisible.value = true
     setTimeout(() => { sideSplashVisible.value = false }, 5000)
   }
@@ -1183,7 +1243,7 @@ async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
   processEvents(conn.lastEvents as unknown[], state.value, prevState)
   lastEvents.value = [
     ...lastEvents.value,
-    ...(conn.lastEvents as unknown[]).map((e) => JSON.stringify(e)),
+    ...(conn.lastEvents as Record<string, unknown>[]).map(eventToText).filter(Boolean),
   ].slice(-300)
 }
 
@@ -1204,7 +1264,7 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
   state.value = res.state
 
   processEvents(res.events as unknown[], res.state, prevState)
-  lastEvents.value = [...lastEvents.value, ...res.events.map((e) => JSON.stringify(e))].slice(-300)
+  lastEvents.value = [...lastEvents.value, ...(res.events as Record<string, unknown>[]).map(eventToText).filter(Boolean)].slice(-300)
 }
 
 function onEnchantDrop(payload: { unitId: string; soulId: string }) {
@@ -1429,7 +1489,7 @@ function applyDebugSettings(payload: { matchSeed: string; enabledClans: string[]
   lastEvents.value = []
 }
 
-const eventLogText = computed(() => lastEvents.value.join('\n'))
+const eventLogText = computed(() => [...lastEvents.value].reverse().join('\n'))
 
 function openEventLog() {
   eventLogOpen.value = true
@@ -1462,7 +1522,7 @@ async function copyEventLog() {
     <!-- 入場陣營 Splash（線上模式） -->
     <Transition name="side-splash">
       <div v-if="sideSplashVisible" class="sideSplash" :class="conn.side === 'red' ? 'splashRed' : 'splashGreen'">
-        {{ sideSplashText }}
+        <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">{{ line }}</div>
       </div>
     </Transition>
 
@@ -1474,7 +1534,7 @@ async function copyEventLog() {
 
     <div class="topbarWrap">
       <TopBar
-        title="webChese"
+        title="webChess"
         :connection-status="onlineConnStatus"
         :current-side="currentSide"
         :current-phase="currentPhase"
@@ -1746,6 +1806,7 @@ async function copyEventLog() {
       :open="debugOpen"
       :match-seed="debugMatchSeed"
       :enabled-clans="debugEnabledClans"
+      :is-online="setup.mode === 'online'"
       @close="closeDebugMenu"
       @apply="applyDebugSettings"
       @open-events="openEventLog"
@@ -2164,6 +2225,7 @@ async function copyEventLog() {
 
 .splashRed   { color: #ffb0b2; }
 .splashGreen { color: #b7eb8f; }
+.splashClanLine { font-size: 1.2rem; font-weight: 600; margin-top: 12px; letter-spacing: 0.1em; opacity: 0.85; }
 
 .side-splash-enter-active { transition: opacity 0.5s ease; }
 .side-splash-leave-active { transition: opacity 1.2s ease; }

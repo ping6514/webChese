@@ -26,6 +26,21 @@ const onlineLoading = ref(false)
 const onlineError = ref('')
 const createdRoomId = ref('')
 
+const ALL_CLANS = [
+  { id: 'dark_moon',     label: '🌙 暗月' },
+  { id: 'styx',          label: '💧 冥河' },
+  { id: 'eternal_night', label: '🌑 永夜' },
+  { id: 'iron_guard',    label: '🛡️ 鐵衛' },
+]
+const selectedClans = ref<string[]>(['dark_moon', 'styx', 'eternal_night', 'iron_guard'])
+function toggleClan(id: string) {
+  const next = selectedClans.value.includes(id)
+    ? selectedClans.value.filter((c) => c !== id)
+    : [...selectedClans.value, id]
+  // 至少保留一個氏族
+  if (next.length > 0) selectedClans.value = next
+}
+
 // Debug: check if env vars are baked in at build time
 const supabaseUrlOk = !!(import.meta.env.VITE_SUPABASE_URL)
 const supabaseKeyOk = !!(import.meta.env.VITE_SUPABASE_ANON_KEY)
@@ -43,7 +58,7 @@ async function handleOnlineStart() {
   onlineLoading.value = true
   try {
     if (onlineAction.value === 'create') {
-      const roomId = await conn.createRoom()
+      const roomId = await conn.createRoom(selectedClans.value)
       if (!roomId) {
         onlineError.value = conn.errorMsg ?? '建立失敗'
       } else {
@@ -81,6 +96,7 @@ function startGame() {
   setup.playerSide = playerSide.value
   setup.firstPlayer = firstPlayer.value
   setup.difficulty = difficulty.value
+  setup.enabledClans = selectedClans.value
   setup.resolve()
   router.push({ name: 'game' })
 }
@@ -148,6 +164,20 @@ function startGame() {
 
         <!-- 主要行動（尚未建立房間時） -->
         <template v-else>
+          <!-- 氏族卡池選擇 -->
+          <div class="section">
+            <div class="section-label">卡池氏族 <span class="clan-hint">（至少選 1 個）</span></div>
+            <div class="btn-group">
+              <button
+                v-for="c in ALL_CLANS"
+                :key="c.id"
+                type="button"
+                :class="['opt-btn', 'clan-btn', selectedClans.includes(c.id) && 'active']"
+                @click="toggleClan(c.id)"
+              >{{ c.label }}</button>
+            </div>
+          </div>
+
           <!-- 建立新房間 -->
           <button
             type="button"
@@ -262,6 +292,20 @@ function startGame() {
               <span class="diff-label">困難</span>
               <span class="diff-desc">訓練強化 AI</span>
             </button>
+          </div>
+        </div>
+
+        <!-- 氏族卡池選擇（本機模式） -->
+        <div class="section">
+          <div class="section-label">卡池氏族 <span class="clan-hint">（至少選 1 個）</span></div>
+          <div class="btn-group">
+            <button
+              v-for="c in ALL_CLANS"
+              :key="c.id"
+              type="button"
+              :class="['opt-btn', 'clan-btn', selectedClans.includes(c.id) && 'active']"
+              @click="toggleClan(c.id)"
+            >{{ c.label }}</button>
           </div>
         </div>
 
@@ -579,6 +623,22 @@ function startGame() {
   opacity: 0.9;
   letter-spacing: 0.15em;
   margin: -6px 0;
+}
+
+.clan-hint {
+  font-size: 0.7rem;
+  opacity: 0.55;
+  font-weight: 400;
+}
+.clan-btn {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 8px 4px;
+}
+.clan-btn.active {
+  background: rgba(145, 202, 255, 0.16);
+  border-color: rgba(145, 202, 255, 0.55);
+  color: #91caff;
 }
 
 .env-debug {

@@ -14,8 +14,9 @@
 ## Item System
 - [x] Item discard pile exists in engine state: `state.itemDiscard` (shared)
 - [x] `DISCARD_ITEM_FROM_HAND` pushes item id into `state.itemDiscard`
-- [ ] Add `USE_ITEM` action and effect resolution
-- [ ] After `USE_ITEM`, push used item into `state.itemDiscard`
+- [x] `USE_ITEM_FROM_HAND` action + effect resolution for all 8 items
+- [x] After `USE_ITEM_FROM_HAND`, used item pushed into `state.itemDiscard`
+- [x] Item use UI: target-unit mode, target-corpse mode, no-target confirm, bone-refine 2-choice UI
 
 ## Board UX
 - [x] Hover invalid move target shows red highlight and tooltip with MOVE guard reason
@@ -45,6 +46,21 @@
 ## Tests
 - [x] Update item tests for new default item buy action limit (override `buyItemActionsPerTurn` in test state)
 - [ ] Add tests for `REVIVE` gold cost (success + insufficient gold)
+
+## Online Multiplayer
+- [x] Vercel Serverless API: create / join / action / state endpoints
+- [x] Supabase PostgreSQL `rooms` table for game state persistence
+- [x] Random side assignment (red/black) + first-mover by server on room create
+- [x] Hybrid sync adapter: Supabase Realtime + 4s polling fallback
+- [x] `_lastEvents` propagation: opponent events decoded as `pollEvents` in client
+- [x] `_suppressPollEvents` flag prevents double-processing own events
+- [x] Disconnect + localStorage reconnect on page reload
+- [x] Clan selection UI on room create (online + local PVP/PVE)
+- [x] Side splash on game start shows player colour + enabled clans
+- [x] Online gear menu hides developer settings
+- [ ] Surrender / resign action
+- [ ] Room expiry / cleanup (old rooms linger in Supabase)
+- [ ] Spectator / observer mode
 
 ## Known Constraints
 - [ ] Node.js version: Vite build requires Node 20.19+ (Node 18 will fail `vite build`)

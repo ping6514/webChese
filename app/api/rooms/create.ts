@@ -11,7 +11,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const creatorSecret = genSecret()
     const creatorSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
     const firstSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
-    const initialState = createInitialState({ rules: { firstSide } as any })
+    const ALL_CLANS = ['dark_moon', 'styx', 'eternal_night', 'iron_guard']
+    const rawClans: unknown = req.body?.enabledClans
+    const enabledClans: string[] = Array.isArray(rawClans) && rawClans.length > 0
+      ? (rawClans as string[]).filter((c) => ALL_CLANS.includes(c))
+      : ALL_CLANS
+    const safeClans = enabledClans.length > 0 ? enabledClans : ALL_CLANS
+    const initialState = createInitialState({ rules: { firstSide, enabledClans: safeClans } as any })
 
     const { error } = await supabase.from('rooms').insert({
       id: roomId,

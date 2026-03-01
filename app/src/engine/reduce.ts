@@ -738,10 +738,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
+      const deckCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: deckCard?.name ?? soulId, base: action.base, source: 'deck' },
           {
             type: 'RESOURCES_CHANGED',
             side,
@@ -830,10 +832,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       nextState = refillDisplayByBase(nextState, action.base)
 
+      const displayCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: displayCard?.name ?? soulId, base: action.base, source: 'display' },
           {
             type: 'RESOURCES_CHANGED',
             side,
@@ -899,10 +903,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
+      const gyCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: gyCard?.name ?? soulId, base: gyCard?.base ?? '', source: 'graveyard' },
           {
             type: 'RESOURCES_CHANGED',
             side,
