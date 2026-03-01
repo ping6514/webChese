@@ -158,6 +158,16 @@ const isOnlineOpponentTurn = computed(() =>
   setup.mode === 'online' && !isMyTurn.value
 )
 
+// 把 conn.status 對應到 TopBar 的 connectionStatus 格式（非線上模式傳 null 不顯示）
+const onlineConnStatus = computed(() => {
+  if (setup.mode !== 'online') return null
+  if (onlineWaiting.value) return 'lagging' as const
+  if (conn.status === 'playing') return 'connected' as const
+  if (conn.status === 'connecting' || conn.status === 'waiting') return 'connecting' as const
+  if (conn.status === 'error') return 'disconnected' as const
+  return 'connecting' as const
+})
+
 // ── NPC computed & watcher ────────────────────────────────────────────────────
 const npcSide = computed<'red' | 'black' | null>(() => {
   if (setup.mode !== 'pve') return null
@@ -1460,7 +1470,7 @@ async function copyEventLog() {
     <div class="topbarWrap">
       <TopBar
         title="webChese"
-        :connection-status="ui.connectionStatus"
+        :connection-status="onlineConnStatus"
         :current-side="currentSide"
         :current-phase="currentPhase"
         :necro-actions-used="necroActionsUsed"
