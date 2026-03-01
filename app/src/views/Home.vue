@@ -395,7 +395,7 @@ function startGame() {
 .card {
   width: min(440px, 95vw);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(50, 50, 50, 0.7);
   border-radius: 14px;
   padding: 24px 28px 28px;
   display: flex;
@@ -574,8 +574,9 @@ function startGame() {
 
 .online-divider {
   text-align: center;
+  color: #e8c83c;
   font-size: 0.75rem;
-  opacity: 0.35;
+  opacity: 0.9;
   letter-spacing: 0.15em;
   margin: -6px 0;
 }
