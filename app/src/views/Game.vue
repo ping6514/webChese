@@ -231,7 +231,8 @@ function showPhaseToast(text: string) {
 watch(
   () => state.value.turn.phase,
   (phase, prev) => {
-    if (phase === 'buy' && prev !== 'buy' && !isNpcTurn.value) ui.openShop()
+    if (phase === 'buy' && prev !== 'buy' && !isNpcTurn.value && isMyTurn.value) ui.openShop()
+    if (phase === 'necro') ui.closeShop()
 
     if (phase === 'combat') ui.setHandCollapsedOverride(true)
     else ui.setHandCollapsedOverride(null)
@@ -402,13 +403,17 @@ onUnmounted(() => {
 })
 
 const resources = computed(() => state.value.resources)
-const handItems = computed(() => state.value.hands[state.value.turn.side].items)
+// In online mode show only own side's hand; in local/NPC mode show the current-turn side
+const mySide = computed(() =>
+  setup.mode === 'online' && conn.side ? conn.side : state.value.turn.side,
+)
+const handItems = computed(() => state.value.hands[mySide.value].items)
 
 const selectedSoulId = ref<string>('')
 const detailSoulId = ref<string | null>(null)
 
 const handSoulCards = computed(() =>
-  state.value.hands[state.value.turn.side].souls.map((id) => getSoulCard(id)).filter((c): c is NonNullable<typeof c> => !!c),
+  state.value.hands[mySide.value].souls.map((id) => getSoulCard(id)).filter((c): c is NonNullable<typeof c> => !!c),
 )
 
 const shopBases = computed<PieceBase[]>(() => {

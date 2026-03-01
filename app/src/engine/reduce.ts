@@ -948,6 +948,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       // Auto processing phases
       if (nextState.turn.phase === 'turnEnd') {
         nextState = autoTurnEnd(nextState, events)
+        // Advance directly to turnStart so the block below runs in one pass
+        nextState = { ...nextState, turn: { ...nextState.turn, phase: 'turnStart' } }
       }
 
       if (nextState.turn.phase === 'turnStart') {
