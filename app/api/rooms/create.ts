@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createServerClient, genId, genSecret } from '../_supabaseServer'
-import { createInitialState } from '../../src/engine'
+import { createInitialState } from '../_engine/engine'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
