@@ -105,6 +105,7 @@ export function useSelection(opts: { getState: () => GameState }) {
   return {
     selectedUnitId,
     selectedCell,
+    selectedCellKey,
     selectedUnit,
     legalMoves,
     shootableTargetIds,

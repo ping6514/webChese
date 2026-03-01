@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git stash)",
+      "Bash(git stash pop)",
+      "Bash(npx vitest run --reporter=verbose)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(npm install @supabase/supabase-js)",
+      "Bash(npm install --save-dev @vercel/node)",
+      "Bash(npx tsc -p tsconfig.engine-cjs.json)",
+      "Bash(npx vue-tsc -b)",
+      "Bash(node -e \"const e = require\\(''./api/_engine/engine''\\); const s = e.createInitialState\\(\\); console.log\\(''OK, units:'', Object.keys\\(s.units\\).length\\)\")",
+      "Bash(git add app/.gitignore app/api/rooms/[roomId]/action.ts app/api/rooms/create.ts app/api/test-engine.ts app/package.json app/scripts/build-engine.mjs app/tsconfig.engine-cjs.json)",
+      "Bash(git commit:*)",
+      "Bash(git push)",
+      "Bash(ls d:/workspace/webChese/app/api/rooms/[roomId]/)",
+      "Bash(git add app/api/rooms/[roomId]/join.ts)",
+      "Bash(git add app/api/rooms/create.ts \"app/api/rooms/[roomId]/join.ts\" app/src/components/TopBar.vue app/src/views/Game.vue)",
+      "Bash(git add app/src/components/TopBar.vue app/src/views/Game.vue)",
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}

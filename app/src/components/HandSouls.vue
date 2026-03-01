@@ -85,7 +85,7 @@ export default defineComponent({
 }
 
 .handEmpty {
-  font-size: 13px;
+  font-size: 0.8125rem;
   opacity: 0.4;
   padding: 12px 0;
   text-align: center;
@@ -104,8 +104,8 @@ export default defineComponent({
   width: 150px;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-1);
   cursor: pointer;
   display: grid;
   gap: 7px;
@@ -136,17 +136,17 @@ export default defineComponent({
 }
 
 .baseChip {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   padding: 1px 7px;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
 }
 
 .costChip {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 1px 7px;
   border-radius: 6px;
@@ -162,27 +162,27 @@ export default defineComponent({
   height: 130px;
   object-fit: cover;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--border);
 }
 
 .cardImgEmpty {
   width: 100%;
   height: 130px;
   border-radius: 8px;
-  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
-  font-size: 32px;
-  background: rgba(255, 255, 255, 0.03);
+  font-size: 2rem;
+  background: var(--bg-surface-3);
 }
 
 /* ── Name ────────────────────────────────────────────────────────────── */
 .cardName {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   line-height: 1.3;
   word-break: break-all;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text);
 }
 
 /* ── Actions ─────────────────────────────────────────────────────────── */
@@ -192,19 +192,19 @@ export default defineComponent({
 }
 
 .returnBtn {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 7px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.12s;
 }
 .returnBtn:not(:disabled):hover {
-  background: rgba(255, 255, 255, 0.15);
-  color: rgba(255, 255, 255, 0.95);
+  background: var(--bg-surface-1);
+  color: var(--text);
 }
 .returnBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 </style>

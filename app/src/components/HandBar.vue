@@ -127,9 +127,9 @@ export default defineComponent({
   bottom: 8px;
   z-index: 15;
   margin-top: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-strong);
   border-radius: 14px;
-  background: rgba(10, 12, 24, 0.88);
+  background: var(--bg-modal);
   backdrop-filter: blur(8px);
   overflow: hidden;
 }
@@ -140,7 +140,7 @@ export default defineComponent({
   align-items: center;
   gap: 6px;
   padding: 8px 10px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border);
 }
 
 .tabBtn {
@@ -148,34 +148,34 @@ export default defineComponent({
   align-items: center;
   gap: 6px;
   padding: 6px 14px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 .tabBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--bg-surface-1);
+  color: var(--text);
 }
 .tabBtn.active {
   background: rgba(145, 202, 255, 0.14);
   border-color: rgba(145, 202, 255, 0.7);
-  color: rgba(145, 202, 255, 0.95);
+  color: var(--accent-blue);
 }
 
 .badge {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 800;
   min-width: 18px;
   height: 18px;
   padding: 0 4px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -183,24 +183,24 @@ export default defineComponent({
 }
 .badge.badgeActive {
   background: rgba(145, 202, 255, 0.25);
-  color: rgba(145, 202, 255, 0.95);
+  color: var(--accent-blue);
 }
 
 .collapseBtn {
   margin-left: auto;
   padding: 5px 12px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
 }
 .collapseBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--bg-surface-1);
+  color: var(--text);
 }
 
 /* ── Content area ────────────────────────────────────────────────────── */

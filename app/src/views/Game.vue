@@ -5,7 +5,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, watchEffect } from 'vue'
 import { useRouter } from 'vue-router'
 import { decideActions, type BotContext } from '../sim/balanceBot'
 import { useGameSetup } from '../stores/gameSetup'
@@ -37,6 +37,7 @@ import ConfirmModal from '../components/ConfirmModal.vue'
 import CardDetailModal from '../components/CardDetailModal.vue'
 import ShootPreviewModal from '../components/ShootPreviewModal.vue'
 import AllUnitsModal from '../components/AllUnitsModal.vue'
+import EffectsModal from '../components/EffectsModal.vue'
 import HandBar from '../components/HandBar.vue'
 import SidePanel from '../components/SidePanel.vue'
 import DebugMenuModal from '../components/DebugMenuModal.vue'
@@ -46,18 +47,92 @@ import { usePendingConfirm } from '../usePendingConfirm'
 import { useSelection } from '../useSelection'
 import { useShootPreview } from '../useShootPreview'
 import { useUiStore } from '../stores/ui'
+import { useConnection } from '../stores/connection'
 import { countCorpses } from '../engine/corpses'
 
 // ── NPC / Game setup ──────────────────────────────────────────────────────────
 const setup = useGameSetup()
+const conn = useConnection()
 
 function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) }
 
-const state = ref<GameState>(createInitialState({
-  rules: { firstSide: setup.resolvedFirstPlayer } as any,
-}))
+const state = ref<GameState>(
+  setup.mode === 'online' && conn.gameState
+    ? conn.gameState
+    : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer, enabledClans: setup.enabledClans } as any })
+)
 const lastError = ref<string | null>(null)
 const lastEvents = ref<string[]>([])
+
+// ── Online mode ────────────────────────────────────────────────────────────────
+const onlineWaiting = ref(false)
+const sideSplashVisible = ref(false)
+const sideSplashText = ref('')
+
+const CLAN_LABELS: Record<string, string> = {
+  dark_moon: '🌙暗月',
+  styx: '💧冥河',
+  eternal_night: '🌑永夜',
+  iron_guard: '🛡️鐵衛',
+}
+const PHASE_LABELS: Record<string, string> = {
+  buy: '購買', necro: '死靈術', combat: '戰鬥', turnEnd: '回合結束', turnStart: '換手',
+}
+
+function eventToText(e: Record<string, unknown>): string {
+  const s = (side: unknown) => side === 'red' ? '🔴紅' : '⚫黑'
+  switch (e.type) {
+    case 'PHASE_CHANGED': {
+      const to = e.to as string
+      if (to === 'buy' || to === 'necro' || to === 'combat')
+        return `── ${s(e.side)}方 ${PHASE_LABELS[to] ?? to}階段 ──`
+      if (to === 'turnStart') return `──────── 換手 ────────`
+      return ''
+    }
+    case 'SOUL_BOUGHT':
+      return `${s(e.side)}方 購買靈魂「${e.soulName}」(${e.base}) [${e.source === 'deck' ? '盲抽' : e.source === 'display' ? '展示' : '盜取'}]`
+    case 'ENCHANTED':
+      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 附魔 ${e.unitId} ← ${e.soulId}`
+    case 'REVIVED':
+      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 復活 ${e.unitId}`
+    case 'UNIT_MOVED':
+      return `移動 (${(e.from as any)?.x},${(e.from as any)?.y})→(${(e.to as any)?.x},${(e.to as any)?.y})`
+    case 'SHOT_FIRED':
+      return `射擊 ${e.attackerId} → ${e.targetUnitId}`
+    case 'DAMAGE_DEALT':
+      return `傷害 ${e.targetUnitId} -${e.amount}`
+    case 'UNIT_HP_CHANGED': {
+      const delta = (e.to as number) - (e.from as number)
+      return `${e.unitId} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`
+    }
+    case 'UNIT_KILLED':
+      return `💀 ${e.unitId} 陣亡`
+    case 'ABILITY_TRIGGERED':
+      return `⚡ ${e.text ?? e.abilityType ?? e.unitId}`
+    case 'ITEM_USED':
+      return `${s(e.side)}方 使用道具「${e.itemName}」`
+    case 'RESOURCES_CHANGED':
+      return `${s(e.side)}方 財力${e.gold} 魔力${e.mana}`
+    default:
+      return JSON.stringify(e)
+  }
+}
+
+// Sync server state → local state in online mode; process opponent events
+watch(
+  () => conn.gameState,
+  (gs) => {
+    if (!gs || setup.mode !== 'online') return
+    state.value = gs
+    if (conn.pollEvents.length > 0) {
+      const evts = conn.pollEvents as Record<string, unknown>[]
+      processEvents(evts as unknown[], state.value, undefined)
+      const lines = evts.map(eventToText).filter(Boolean)
+      lastEvents.value = [...lastEvents.value, ...lines].slice(-300)
+    }
+  },
+  { immediate: true },
+)
 
 type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
 type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
@@ -79,7 +154,7 @@ const eventLogOpen = ref(false)
 type SidebarSize = 'sm' | 'md' | 'lg'
 const SIDEBAR_WIDTHS: Record<SidebarSize, number> = { sm: 220, md: 340, lg: 500 }
 const SIDEBAR_LABELS: Record<SidebarSize, string> = { sm: '◀◀', md: '◀▶', lg: '▶▶' }
-const sidebarSize = ref<SidebarSize>('md')
+const sidebarSize = ref<SidebarSize>('lg')
 function cycleSidebarWidth() {
   sidebarSize.value = sidebarSize.value === 'sm' ? 'md' : sidebarSize.value === 'md' ? 'lg' : 'sm'
 }
@@ -87,13 +162,10 @@ const mainGridStyle = computed(() => ({ gridTemplateColumns: `1fr ${SIDEBAR_WIDT
 
 // ── Board scale toggle ─────────────────────────────────────────────────────────
 type BoardScale = 50 | 75 | 100
-const boardScale = ref<BoardScale>(100)
+const boardScale = ref<BoardScale>(75)
 const BOARD_SCALE_LABELS: Record<BoardScale, string> = { 50: '50%', 75: '75%', 100: '100%' }
-function cycleBoardScale() {
-  boardScale.value = boardScale.value === 100 ? 75 : boardScale.value === 75 ? 50 : 100
-}
 const boardScaleStyle = computed(() =>
-  boardScale.value === 100 ? {} : { zoom: boardScale.value / 100 }
+  boardScale.value === 100 ? {} : { width: `${boardScale.value}%` }
 )
 const debugMatchSeed = ref<string>(state.value.rules.matchSeed)
 const debugEnabledClans = ref<string[]>(state.value.rules.enabledClans)
@@ -111,6 +183,9 @@ function closeShop() {
 }
 
 const allUnitsOpen = computed(() => ui.allUnitsOpen)
+const effectsOpen = ref(false)
+function openEffects() { effectsOpen.value = true }
+function closeEffects() { effectsOpen.value = false }
 
 const currentSide = computed(() => state.value.turn.side)
 const currentPhase = computed(() => state.value.turn.phase)
@@ -132,6 +207,24 @@ watch(
   },
   { immediate: true },
 )
+
+// ── Online turn control ────────────────────────────────────────────────────────
+const isMyTurn = computed(() =>
+  setup.mode !== 'online' || conn.side === state.value.turn.side
+)
+const isOnlineOpponentTurn = computed(() =>
+  setup.mode === 'online' && !isMyTurn.value
+)
+
+// 把 conn.status 對應到 TopBar 的 connectionStatus 格式（非線上模式傳 null 不顯示）
+const onlineConnStatus = computed(() => {
+  if (setup.mode !== 'online') return null
+  if (onlineWaiting.value) return 'lagging' as const
+  if (conn.status === 'playing') return 'connected' as const
+  if (conn.status === 'connecting' || conn.status === 'waiting') return 'connecting' as const
+  if (conn.status === 'error') return 'disconnected' as const
+  return 'connecting' as const
+})
 
 // ── NPC computed & watcher ────────────────────────────────────────────────────
 const npcSide = computed<'red' | 'black' | null>(() => {
@@ -196,7 +289,8 @@ function showPhaseToast(text: string) {
 watch(
   () => state.value.turn.phase,
   (phase, prev) => {
-    if (phase === 'buy' && prev !== 'buy' && !isNpcTurn.value) ui.openShop()
+    if (phase === 'buy' && prev !== 'buy' && !isNpcTurn.value && isMyTurn.value) ui.openShop()
+    if (phase === 'necro') ui.closeShop()
 
     if (phase === 'combat') ui.setHandCollapsedOverride(true)
     else ui.setHandCollapsedOverride(null)
@@ -231,6 +325,7 @@ const {
 const {
   selectedUnitId,
   selectedCell,
+  selectedCellKey,
   selectedUnit,
   legalMoves,
   shootableTargetIds,
@@ -355,16 +450,29 @@ const shootChainEligibleEnemyIds = computed(() => {
   return out
 })
 
-const turnTintClass = computed(() => (currentSide.value === 'red' ? 'turn-red' : 'turn-green'))
+watchEffect(() => {
+  document.body.style.backgroundImage =
+    currentSide.value === 'red'
+      ? 'linear-gradient(180deg, rgba(255, 77, 79, 0.25) 0%, rgba(0,0,0,0) 50%)'
+      : 'linear-gradient(180deg, rgba(82, 196, 26, 0.25) 0%, rgba(0,0,0,0) 50%)'
+})
+onUnmounted(() => {
+  document.body.style.backgroundImage = ''
+  if (setup.mode === 'online') conn.disconnect()
+})
 
 const resources = computed(() => state.value.resources)
-const handItems = computed(() => state.value.hands[state.value.turn.side].items)
+// In online mode show only own side's hand; in local/NPC mode show the current-turn side
+const mySide = computed(() =>
+  setup.mode === 'online' && conn.side ? conn.side : state.value.turn.side,
+)
+const handItems = computed(() => state.value.hands[mySide.value].items)
 
 const selectedSoulId = ref<string>('')
 const detailSoulId = ref<string | null>(null)
 
 const handSoulCards = computed(() =>
-  state.value.hands[state.value.turn.side].souls.map((id) => getSoulCard(id)).filter((c): c is NonNullable<typeof c> => !!c),
+  state.value.hands[mySide.value].souls.map((id) => getSoulCard(id)).filter((c): c is NonNullable<typeof c> => !!c),
 )
 
 const shopBases = computed<PieceBase[]>(() => {
@@ -404,6 +512,91 @@ const kingHp = computed(() => {
 const necroActionsUsed = computed(() => state.value.turnFlags.necroActionsUsed ?? 0)
 const necroActionsMax = computed(() => state.value.limits.necroActionsPerTurn + (state.value.turnFlags.necroBonusActions ?? 0))
 
+// ── Active buff indicator ─────────────────────────────────────────────────────
+function highestTierAmount(tiers: { count: number; amount: number }[], n: number): number {
+  const sorted = [...tiers].sort((a, b) => b.count - a.count)
+  for (const t of sorted) { if (n >= t.count) return t.amount }
+  return 0
+}
+
+type BuffEntry = { label: string; kind: 'aura' | 'free' | 'buff' }
+
+const activeBuffs = computed((): BuffEntry[] => {
+  const s = state.value
+  const side = s.turn.side
+  const phase = s.turn.phase
+  const buffs: BuffEntry[] = []
+
+  const soldierCount = Object.values(s.units).filter((u) => u.side === side && u.base === 'soldier').length
+
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    for (const ab of card.abilities) {
+      const type = ab.type
+
+      if (type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') {
+        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (amt > 0) buffs.push({ label: `${card.name}：全軍 ATK +${amt}`, kind: 'aura' })
+      }
+
+      if (type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
+        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (amt > 0) buffs.push({ label: `${card.name}：全軍 減傷 -${amt}`, kind: 'aura' })
+      }
+
+      if (type === 'FORMATION_COMMAND' && phase === 'combat') {
+        const perTurn = Number((ab as any).perTurn ?? 1)
+        const used = s.turnFlags.abilityUsed?.[`${u.id}:FORMATION_COMMAND`] ?? 0
+        if (used < perTurn) buffs.push({ label: `${card.name}（整編）：相鄰卒可免費移動`, kind: 'free' })
+      }
+
+      if (type === 'LOGISTICS_REVIVE' && phase === 'necro') {
+        const perTurn = Number((ab as any).perTurn ?? 1)
+        const used = s.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
+        if (used < perTurn) buffs.push({ label: `${card.name}（後勤）：可免費復活 1 個卒`, kind: 'free' })
+      }
+
+      if (type === 'FREE_SHOOT' && phase === 'combat') {
+        const when = (ab as any).when
+        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
+        if (conditionOk) {
+          const perTurn = Number((ab as any).perTurn ?? 1)
+          const used = s.turnFlags.abilityUsed?.[`${u.id}:FREE_SHOOT`] ?? 0
+          if (used < perTurn) buffs.push({ label: `${card.name}：可免費射擊 ×${perTurn - used}`, kind: 'free' })
+        }
+      }
+
+      if (type === 'IGNORE_BLOCKING') {
+        const when = (ab as any).when
+        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
+        if (conditionOk && phase === 'combat') buffs.push({ label: `${card.name}：無視阻擋`, kind: 'buff' })
+      }
+    }
+  }
+
+  // TurnFlags 額外狀態
+  if ((s.turnFlags.freeShootBonus ?? 0) > 0)
+    buffs.push({ label: `魂能超載：下次射擊免費 ×${s.turnFlags.freeShootBonus}`, kind: 'free' })
+  if ((s.turnFlags.enchantGoldDiscount ?? 0) > 0)
+    buffs.push({ label: `冥魂灌注：附魔 -${s.turnFlags.enchantGoldDiscount}G`, kind: 'buff' })
+  if ((s.turnFlags.itemNecroBonus ?? 0) > 0)
+    buffs.push({ label: `冥魂灌注：死靈術 +${s.turnFlags.itemNecroBonus}`, kind: 'buff' })
+  if ((s.turnFlags.necroBonusActions ?? 0) > 0)
+    buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
+  if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
+    buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
+  if (s.turnFlags.darkMoonScopeActive)
+    buffs.push({ label: '暗月窺視：可選任意墳場卡', kind: 'buff' })
+  if (s.turnFlags.deathChainActive)
+    buffs.push({ label: '死亡連鎖：擊殺 +1 魔力', kind: 'aura' })
+
+  return buffs
+})
+
 const selectedEnchantSoul = computed(() => {
   const soulId = selectedUnit.value?.enchant?.soulId
   if (!soulId) return null
@@ -431,7 +624,7 @@ const BASE_IMAGES: Partial<Record<PieceBase, string>> = {
   soldier:  '/assets/cards/base/soldier.jpg',
 }
 
-type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string; pos: { x: number; y: number } }
+type UnitRow = { id: string; side: 'red' | 'black'; base: PieceBase; hpCurrent: number; name: string; image?: string; pos: { x: number; y: number }; dead?: boolean }
 
 function toUnitRow(u: GameState['units'][string]): UnitRow {
   const soul = u.enchant?.soulId ? getSoulCard(u.enchant.soulId) : null
@@ -446,26 +639,50 @@ function toUnitRow(u: GameState['units'][string]): UnitRow {
   }
 }
 
+// 從 corpsesByPos 建立死亡單位列表（每個位置的頂部屍骸各一筆）
+function deadUnitRowsForSide(side: 'red' | 'black'): UnitRow[] {
+  const out: UnitRow[] = []
+  for (const [posKey, stack] of Object.entries(state.value.corpsesByPos)) {
+    for (let i = stack.length - 1; i >= 0; i--) {
+      const corpse = stack[i]
+      if (!corpse || corpse.ownerSide !== side) continue
+      const [xs, ys] = posKey.split(',')
+      const pos = { x: Number(xs), y: Number(ys) }
+      out.push({
+        id: `dead:${posKey}:${i}`,
+        side,
+        base: corpse.base,
+        hpCurrent: 0,
+        name: corpse.base,
+        image: BASE_IMAGES[corpse.base],
+        pos,
+        dead: true,
+      })
+    }
+  }
+  return out
+}
+
 const myUnitRows = computed(() => {
   const side = state.value.turn.side
-  const out: UnitRow[] = []
+  const alive: UnitRow[] = []
   for (const u of Object.values(state.value.units)) {
     if (u.side !== side) continue
-    out.push(toUnitRow(u))
+    alive.push(toUnitRow(u))
   }
-  out.sort((a, b) => a.id.localeCompare(b.id))
-  return out
+  alive.sort((a, b) => a.id.localeCompare(b.id))
+  return [...alive, ...deadUnitRowsForSide(side)]
 })
 
 const enemyUnitRows = computed(() => {
   const enemy = state.value.turn.side === 'red' ? 'black' : 'red'
-  const out: UnitRow[] = []
+  const alive: UnitRow[] = []
   for (const u of Object.values(state.value.units)) {
     if (u.side !== enemy) continue
-    out.push(toUnitRow(u))
+    alive.push(toUnitRow(u))
   }
-  out.sort((a, b) => a.id.localeCompare(b.id))
-  return out
+  alive.sort((a, b) => a.id.localeCompare(b.id))
+  return [...alive, ...deadUnitRowsForSide(enemy)]
 })
 
 const enchantGuard = computed(() => {
@@ -586,6 +803,15 @@ function cancelSacrificeMode() {
 }
 
 onMounted(() => {
+  // Show side assignment splash in online mode
+  if (setup.mode === 'online' && conn.side) {
+    const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
+    sideSplashText.value = `${sideLabel}\n${clans}`
+    sideSplashVisible.value = true
+    setTimeout(() => { sideSplashVisible.value = false }, 5000)
+  }
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && ui.interactionMode.kind !== 'idle') {
       ui.clearInteractionMode()
@@ -685,6 +911,22 @@ function onUseItem(itemId: string) {
       ui.startUseItemTargetCorpse(itemId)
       break
     }
+    case 'item_nether_seal': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side !== side)
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '沒有可封印的敵方單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
+    case 'item_soul_detach_needle': {
+      const validUnitIds = Object.values(state.value.units)
+        .filter((u) => u.side !== side && !!u.enchant)
+        .map((u) => u.id)
+      if (validUnitIds.length === 0) { lastError.value = '敵方沒有附魔單位'; return }
+      ui.startUseItemTargetUnit(itemId, validUnitIds)
+      break
+    }
     default: {
       // 無目標道具：直接彈出確認
       setPending({
@@ -701,7 +943,12 @@ function boneRefineChoose(choice: 'gold' | 'mana') {
   setPending({
     action: { type: 'USE_ITEM_FROM_HAND', itemId: 'item_bone_refine', targetPos: boneRefineChoicePos.value, choice },
     title: '骸骨煉化',
-    detail: choice === 'gold' ? '移除屍骸 → 獲得 +3 財力' : '移除屍骸 → 獲得 +2 魔力',
+    detail: (() => {
+      const eff = getItemCard('item_bone_refine')?.effect
+      return choice === 'gold'
+        ? `移除屍骸 → 獲得 +${eff?.goldAmount ?? 9} 財力`
+        : `移除屍骸 → 獲得 +${eff?.manaAmount ?? 2} 魔力`
+    })(),
   })
   boneRefineChoicePos.value = null
   ui.clearInteractionMode()
@@ -782,6 +1029,17 @@ function closeAllUnits() {
 
 function selectCellFromUnits(unitId: string) {
   closeAllUnits()
+  // dead row IDs are formatted "dead:x,y:stackIndex"
+  if (unitId.startsWith('dead:')) {
+    const posKey = unitId.split(':')[1] ?? ''
+    const [xs, ys] = posKey.split(',')
+    const pos = { x: Number(xs), y: Number(ys) }
+    if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+      ui.setSelectedUnitId(null)
+      ui.setSelectedCell(pos)
+    }
+    return
+  }
   const u = state.value.units[unitId]
   if (!u) return
   ui.setSelectedUnitId(unitId)
@@ -789,20 +1047,8 @@ function selectCellFromUnits(unitId: string) {
 }
 
 
-function dispatch(action: Parameters<typeof reduce>[1]) {
-  const prevState = state.value
-  const res = reduce(state.value, action)
-  if (res.ok === false) {
-    lastError.value = res.error
-    return
-  }
-
-  lastError.value = null
-  state.value = res.state
-
-  const nextState = res.state
-
-  for (const e of res.events) {
+function processEvents(events: unknown[], nextState: GameState, prevState?: GameState) {
+  for (const e of events) {
     if ((e as any).type === 'ITEM_USED') {
       // 道具使用：在己方帥的位置顯示道具名稱浮字
       const itemName = String((e as any).itemName ?? '')
@@ -934,7 +1180,7 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
           fxKilledUnitIds.value = fxKilledUnitIds.value.filter((id) => id !== unitId)
         }, 760)
 
-        const pos = prevState.units[unitId]?.pos
+        const pos = prevState?.units[unitId]?.pos
         if (pos) {
           const key = `${pos.x},${pos.y}`
           fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
@@ -970,16 +1216,56 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
   }
 
   // Fallback: if engine didn't emit UNIT_KILLED but a unit disappeared this dispatch, still show killed FX.
-  for (const [unitId, prevU] of Object.entries(prevState.units)) {
-    if (nextState.units[unitId]) continue
-    const key = `${prevU.pos.x},${prevU.pos.y}`
-    fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
-    window.setTimeout(() => {
-      fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
-    }, 760)
+  if (prevState) {
+    for (const [unitId, prevU] of Object.entries(prevState.units)) {
+      if (nextState.units[unitId]) continue
+      const key = `${prevU.pos.x},${prevU.pos.y}`
+      fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
+      window.setTimeout(() => {
+        fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
+      }, 760)
+    }
+  }
+}
+
+async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
+  if (onlineWaiting.value) return
+  onlineWaiting.value = true
+  const prevState = state.value
+  const result = await conn.sendAction(action)
+  onlineWaiting.value = false
+  if (!result.ok) {
+    lastError.value = result.error ?? 'Server error'
+    return
+  }
+  lastError.value = null
+  // Apply updated state immediately (watch will also fire but no-ops)
+  if (conn.gameState) state.value = conn.gameState
+  processEvents(conn.lastEvents as unknown[], state.value, prevState)
+  lastEvents.value = [
+    ...lastEvents.value,
+    ...(conn.lastEvents as Record<string, unknown>[]).map(eventToText).filter(Boolean),
+  ].slice(-300)
+}
+
+function dispatch(action: Parameters<typeof reduce>[1]) {
+  if (setup.mode === 'online') {
+    dispatchOnline(action)
+    return
   }
 
-  lastEvents.value = [...lastEvents.value, ...res.events.map((e) => JSON.stringify(e))].slice(-300)
+  const prevState = state.value
+  const res = reduce(state.value, action)
+  if (res.ok === false) {
+    lastError.value = res.error
+    return
+  }
+
+  lastError.value = null
+  state.value = res.state
+
+  processEvents(res.events as unknown[], res.state, prevState)
+  lastEvents.value = [...lastEvents.value, ...(res.events as Record<string, unknown>[]).map(eventToText).filter(Boolean)].slice(-300)
 }
 
 function onEnchantDrop(payload: { unitId: string; soulId: string }) {
@@ -1204,7 +1490,7 @@ function applyDebugSettings(payload: { matchSeed: string; enabledClans: string[]
   lastEvents.value = []
 }
 
-const eventLogText = computed(() => lastEvents.value.join('\n'))
+const eventLogText = computed(() => [...lastEvents.value].reverse().join('\n'))
 
 function openEventLog() {
   eventLogOpen.value = true
@@ -1225,9 +1511,7 @@ async function copyEventLog() {
 </script>
 
 <template>
-  <div class="page" :class="turnTintClass">
-    <!-- 視窗固定背景色調 -->
-    <div class="turnBg" :class="turnTintClass" />
+  <div class="page">
 
     <!-- 階段切換 Toast -->
     <Transition name="phase-toast">
@@ -1236,19 +1520,30 @@ async function copyEventLog() {
       </div>
     </Transition>
 
+    <!-- 入場陣營 Splash（線上模式） -->
+    <Transition name="side-splash">
+      <div v-if="sideSplashVisible" class="sideSplash" :class="conn.side === 'red' ? 'splashRed' : 'splashGreen'">
+        <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">{{ line }}</div>
+      </div>
+    </Transition>
+
     <!-- NPC 回合鎖定：防止玩家誤點 -->
     <div v-if="isNpcTurn" class="npc-overlay" />
 
+    <!-- 線上對戰：對手回合 / 等待伺服器回應時鎖定 -->
+    <div v-if="isOnlineOpponentTurn || onlineWaiting" class="npc-overlay" />
+
     <div class="topbarWrap">
       <TopBar
-        title="webChese"
-        :connection-status="ui.connectionStatus"
+        title="webChess"
+        :connection-status="onlineConnStatus"
         :current-side="currentSide"
         :current-phase="currentPhase"
         :necro-actions-used="necroActionsUsed"
         :necro-actions-max="necroActionsMax"
         :king-hp="kingHp"
         :resources="resources"
+        :online-side="setup.mode === 'online' ? conn.side : null"
         @cycle-connection="cycleConnection"
         @open-menu="openMenu"
         @next-phase="nextPhase"
@@ -1264,6 +1559,16 @@ async function copyEventLog() {
           @click="botSpeedLabel = s"
         >{{ s }}</button>
       </div>
+    </div>
+
+    <!-- 主動效果提示條 -->
+    <div v-if="activeBuffs.length > 0" class="buffBar">
+      <span
+        v-for="(b, i) in activeBuffs"
+        :key="i"
+        class="buffPill"
+        :class="`buffPill--${b.kind}`"
+      >{{ b.label }}</span>
     </div>
 
     <div v-if="enchantMode" class="actionStatusBar">
@@ -1286,11 +1591,23 @@ async function copyEventLog() {
       <button type="button" @click="cancelBoneRefine()">取消 (Esc)</button>
     </div>
 
-    <div v-if="boneRefineChoicePos" class="actionStatusBar">
-      <div class="mono">骸骨煉化：選擇增益（位置 {{ boneRefineChoicePos.x }},{{ boneRefineChoicePos.y }}）</div>
-      <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">+3 財力</button>
-      <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">+2 魔力</button>
-      <button type="button" @click="cancelBoneRefine()">取消</button>
+    <!-- 骸骨煉化：選擇增益彈窗 -->
+    <div v-if="boneRefineChoicePos" class="boneRefineOverlay" @click.self="cancelBoneRefine()">
+      <div class="boneRefineModal">
+        <div class="boneRefineTitle">骸骨煉化</div>
+        <div class="boneRefineDesc">移除屍骸，選擇獲得的增益：</div>
+        <div class="boneRefineBtns">
+          <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">
+            <span class="choiceIcon">💰</span>
+            <span class="choiceMain">+{{ getItemCard('item_bone_refine')?.effect?.goldAmount ?? 9 }} 財力</span>
+          </button>
+          <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">
+            <span class="choiceIcon">💧</span>
+            <span class="choiceMain">+{{ getItemCard('item_bone_refine')?.effect?.manaAmount ?? 2 }} 魔力</span>
+          </button>
+        </div>
+        <button type="button" class="boneRefineCancel" @click="cancelBoneRefine()">取消</button>
+      </div>
     </div>
 
     <main class="main" :style="mainGridStyle">
@@ -1307,10 +1624,11 @@ async function copyEventLog() {
           >{{ BOARD_SCALE_LABELS[s] }}</button>
         </div>
 
-        <div class="boardScaleWrap" :style="boardScaleStyle">
+        <div class="boardScaleWrap" :style="boardScaleStyle" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
         <BoardGrid
           :state="state"
           :selected-unit-id="selectedUnitId"
+          :selected-cell-pos-key="selectedCellKey"
           :legal-moves="legalMoves"
           :shootable-target-ids="shootableTargetIds"
           :highlight-unit-ids="enchantMode ? enchantableUnitIds : sacrificeMode ? sacrificeTargetableUnitIds : ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds : []"
@@ -1399,6 +1717,7 @@ async function copyEventLog() {
           @blood-ritual="bloodRitual"
           @open-shop="openShop"
           @open-units="openAllUnits"
+          @open-effects="openEffects"
           @next-phase="nextPhase"
           @open-events="openEventLog"
         />
@@ -1437,6 +1756,12 @@ async function copyEventLog() {
       @close="closeAllUnits"
       @show-unit-detail="showUnitDetail"
       @select-cell="selectCellFromUnits"
+    />
+
+    <EffectsModal
+      :open="effectsOpen"
+      :state="state"
+      @close="closeEffects"
     />
 
     <CardDetailModal
@@ -1483,9 +1808,11 @@ async function copyEventLog() {
       :open="debugOpen"
       :match-seed="debugMatchSeed"
       :enabled-clans="debugEnabledClans"
+      :is-online="setup.mode === 'online'"
       @close="closeDebugMenu"
       @apply="applyDebugSettings"
       @open-events="openEventLog"
+      @go-home="router.push({ name: 'home' })"
     />
 
     <EventLogModal :open="eventLogOpen" :text="eventLogText" @close="closeEventLog" @copy="copyEventLog" />
@@ -1505,9 +1832,9 @@ async function copyEventLog() {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(16, 18, 32, 0.88);
+  background: var(--bg-topbar);
   backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  border-bottom: 1px solid var(--border);
   padding: 8px 14px;
   overflow: visible;
 }
@@ -1522,14 +1849,14 @@ async function copyEventLog() {
 }
 
 .speedLabel {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.65;
   margin-right: 2px;
 }
 
 .speedBtn {
   padding: 2px 10px;
-  font-size: 12px;
+  font-size: 0.75rem;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(255, 255, 255, 0.06);
@@ -1550,21 +1877,6 @@ async function copyEventLog() {
   color: rgba(145, 202, 255, 0.95) !important;
 }
 
-.turnBg {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: background 0.5s ease;
-}
-
-.turnBg.turn-red {
-  background: linear-gradient(180deg, rgba(255, 77, 79, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
-}
-
-.turnBg.turn-green {
-  background: linear-gradient(180deg, rgba(82, 196, 26, 0.13) 0%, rgba(0, 0, 0, 0) 45%);
-}
 
 .main {
   display: grid;
@@ -1586,7 +1898,7 @@ async function copyEventLog() {
 
 .scaleBtn {
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -1606,7 +1918,17 @@ async function copyEventLog() {
 }
 
 .boardScaleWrap {
-  transition: zoom 0.2s ease;
+  transition: width 0.2s ease, box-shadow 0.5s ease;
+  margin: 0 auto;
+  border-radius: 12px;
+}
+
+.boardWrap--red {
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.35), 0 0 32px rgba(255, 77, 79, 0.18);
+}
+
+.boardWrap--green {
+  box-shadow: 0 0 0 2px rgba(82, 196, 26, 0.35), 0 0 32px rgba(82, 196, 26, 0.18);
 }
 
 .sidePanel {
@@ -1625,7 +1947,7 @@ async function copyEventLog() {
   margin-left: auto;
   margin-bottom: 8px;
   padding: 3px 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   border-radius: 999px;
@@ -1661,7 +1983,7 @@ async function copyEventLog() {
 }
 
 .corpseRow {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.9;
 }
 
@@ -1682,7 +2004,7 @@ async function copyEventLog() {
   background: #fafafa;
   color: #111;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-  font-size: 12px;
+  font-size: 0.75rem;
   min-height: 80px;
   overflow: auto;
 }
@@ -1706,14 +2028,117 @@ async function copyEventLog() {
   background: rgba(30, 34, 55, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.95);
 }
+
+/* ── Buff 指示條 ─────────────────────────────────────────────────────── */
+.buffBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  padding: 5px 10px;
+}
+
+.buffPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.buffPill--aura {
+  background: rgba(82, 196, 26, 0.16);
+  border: 1px solid rgba(82, 196, 26, 0.45);
+  color: #95de64;
+}
+
+.buffPill--free {
+  background: rgba(250, 173, 20, 0.16);
+  border: 1px solid rgba(250, 173, 20, 0.45);
+  color: #ffd666;
+}
+
+.buffPill--buff {
+  background: rgba(100, 181, 246, 0.16);
+  border: 1px solid rgba(100, 181, 246, 0.45);
+  color: #90caf9;
+}
+
+/* ── 骸骨煉化彈窗 ─────────────────────────────────────────────────────── */
+.boneRefineOverlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-modal-overlay);
+  display: grid;
+  place-items: center;
+  z-index: 55;
+  backdrop-filter: blur(3px);
+}
+
+.boneRefineModal {
+  width: min(320px, 90vw);
+  background: var(--bg-modal-strong);
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  padding: 22px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+}
+
+.boneRefineTitle {
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+.boneRefineDesc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.boneRefineBtns {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.boneRefineBtns .choiceBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px;
+}
+
+.choiceIcon { font-size: 1.5rem; line-height: 1; }
+.choiceMain { font-size: 0.9375rem; font-weight: 800; }
+
+.boneRefineCancel {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+.boneRefineCancel:hover { color: var(--text-muted); }
 
 .choiceBtn {
   padding: 6px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -1747,7 +2172,7 @@ async function copyEventLog() {
   z-index: 9100;
   padding: 10px 28px;
   border-radius: 999px;
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 800;
   letter-spacing: 0.06em;
   pointer-events: none;
@@ -1783,4 +2208,29 @@ async function copyEventLog() {
   opacity: 0;
   transform: translateX(-50%) translateY(8px) scale(0.96);
 }
+
+/* ── Side assignment splash (online mode) ──────────────────────────────── */
+.sideSplash {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  text-shadow: 0 0 40px currentColor;
+}
+
+.splashRed   { color: #ffb0b2; }
+.splashGreen { color: #b7eb8f; }
+.splashClanLine { font-size: 1.2rem; font-weight: 600; margin-top: 12px; letter-spacing: 0.1em; opacity: 0.85; }
+
+.side-splash-enter-active { transition: opacity 0.5s ease; }
+.side-splash-leave-active { transition: opacity 1.2s ease; }
+.side-splash-enter-from,
+.side-splash-leave-to { opacity: 0; }
 </style>

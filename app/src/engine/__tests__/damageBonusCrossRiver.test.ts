@@ -32,6 +32,9 @@ describe('DAMAGE_BONUS: cross river gating', () => {
         lastStandContractBonus: 0,
         lastStandNoEnchantUnitIds: [],
         darkMoonScopeActive: false,
+        deathChainActive: false,
+        deathChainKillCount: 0,
+        sealedUnitIds: [],
       },
       resources: {
         ...s0.resources,
@@ -85,6 +88,6 @@ describe('DAMAGE_BONUS: cross river gating', () => {
     if (!exec1.ok) return
     const dmg1 = 10 - (exec1.state.units[target0.id]?.hpCurrent ?? 10)
 
-    expect(dmg1).toBe(dmg0 + 1)
+    expect(dmg1).toBe(dmg0 + 2)
   })
 })

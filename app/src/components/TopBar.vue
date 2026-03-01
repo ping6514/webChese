@@ -12,7 +12,7 @@ export default defineComponent({
   name: 'TopBar',
   props: {
     title: { type: String, required: true },
-    connectionStatus: { type: String as () => 'connecting' | 'connected' | 'disconnected' | 'lagging', required: true },
+    connectionStatus: { type: String as () => 'connecting' | 'connected' | 'disconnected' | 'lagging' | null, default: null },
     currentSide: { type: String as () => Side, required: true },
     currentPhase: { type: String as () => Phase, required: true },
     necroActionsUsed: { type: Number, required: true },
@@ -25,6 +25,7 @@ export default defineComponent({
       type: Object as () => { red: Resources; black: Resources },
       required: true,
     },
+    onlineSide: { type: String as () => 'red' | 'black' | null, default: null },
   },
   emits: ['cycle-connection', 'open-menu', 'next-phase'],
   methods: {
@@ -55,7 +56,7 @@ export default defineComponent({
     <!-- LEFT: BLACK player (horizontal) -->
     <div class="playerRow" :class="{ activeRow: currentSide === 'black', rowBlack: true }">
       <span class="dot dotBlack" />
-      <span class="playerName">BLACK</span>
+      <span class="playerName">BLACK<span v-if="onlineSide" class="youTag">{{ onlineSide === 'black' ? '(你)' : '(敵)' }}</span></span>
       <span class="statChip hp">❤️ <b>{{ kingHp.black ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.black.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.black.mana }}</b></span>
@@ -66,10 +67,10 @@ export default defineComponent({
     <div class="center">
       <div class="topRow">
         <span class="gameTitle">{{ title }}</span>
-        <button type="button" class="conn" @click="$emit('cycle-connection')">
+        <div v-if="connectionStatus !== null" class="conn">
           <span class="connDot" :class="connectionStatus" />
-          <span>{{ connectionStatus }}</span>
-        </button>
+          <span class="connLabel">{{ connectionStatus === 'connected' ? '線上對戰' : connectionStatus === 'connecting' ? '連線中...' : connectionStatus === 'lagging' ? '等待回應...' : '已斷線' }}</span>
+        </div>
         <button type="button" class="iconBtn" title="Menu" @click="$emit('open-menu')">
           <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
             <path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.32-.02-.63-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.65l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.06 7.06 0 0 0-1.63-.94l-.36-2.54A.5.5 0 0 0 12.9 1h-3.8a.5.5 0 0 0-.49.42l-.36 2.54c-.58.23-1.12.54-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L1.71 7.5a.5.5 0 0 0 .12.65l2.03 1.58c-.05.31-.07.62-.07.94s.02.63.07.94L1.83 14.5a.5.5 0 0 0-.12.65l1.92 3.32c.13.22.39.31.6.22l2.39-.96c.5.4 1.05.71 1.63.94l.36 2.54c.04.24.25.42.49.42h3.8c.24 0 .45-.18.49-.42l.36-2.54c.58-.23 1.12-.54 1.63-.94l2.39.96c.22.09.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.65l-2.03-1.56ZM11 15.5A3.5 3.5 0 1 1 11 8.5a3.5 3.5 0 0 1 0 7Z"/>
@@ -106,7 +107,7 @@ export default defineComponent({
     <!-- RIGHT: RED player (horizontal) -->
     <div class="playerRow" :class="{ activeRow: currentSide === 'red', rowRed: true }">
       <span class="dot dotRed" />
-      <span class="playerName">RED</span>
+      <span class="playerName">RED<span v-if="onlineSide" class="youTag">{{ onlineSide === 'red' ? '(你)' : '(敵)' }}</span></span>
       <span class="statChip hp">❤️ <b>{{ kingHp.red ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.red.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.red.mana }}</b></span>
@@ -188,6 +189,14 @@ export default defineComponent({
 .statChip.gold b { color: #e8d070; }
 .statChip.mana b { color: #91caff; }
 .statChip.store b{ color: rgba(255, 255, 255, 0.7); }
+
+.youTag {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
 
 /* ── Center ──────────────────────────────────────────────────────────── */
 .center {

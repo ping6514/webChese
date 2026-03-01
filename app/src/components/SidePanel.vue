@@ -48,7 +48,7 @@ export default defineComponent({
     bloodRitualGuard: { type: Object as () => GuardResult, required: true },
     lastEvents: { type: Array as () => string[], required: true },
   },
-  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'next-phase', 'open-events'],
+  emits: ['show-soul-detail', 'revive', 'blood-ritual', 'open-shop', 'open-units', 'open-effects', 'next-phase', 'open-events'],
 })
 </script>
 
@@ -58,6 +58,7 @@ export default defineComponent({
     <div class="quickActions">
       <button type="button" class="actionBtn" @click="$emit('open-shop')">🛒 商店</button>
       <button type="button" class="actionBtn" @click="$emit('open-units')">📋 單位</button>
+      <button type="button" class="actionBtn actionBtnFx" @click="$emit('open-effects')">⚡ 效果</button>
     </div>
 
     <!-- Blood ritual (necro only) -->
@@ -116,8 +117,17 @@ export default defineComponent({
 /* ── Quick actions ───────────────────────────────────────────────────── */
 .quickActions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.actionBtnFx {
+  border-color: rgba(250, 173, 20, 0.3) !important;
+  color: #ffd666 !important;
+}
+.actionBtnFx:hover {
+  background: rgba(250, 173, 20, 0.1) !important;
+  border-color: rgba(250, 173, 20, 0.55) !important;
 }
 
 .actionBtn {
@@ -125,15 +135,15 @@ export default defineComponent({
   border-radius: 10px;
   font-size: 14px;
   font-weight: 800;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-surface-2);
+  color: var(--text);
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 .actionBtn:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.35);
+  background: var(--bg-surface-1);
+  border-color: var(--border-focus);
 }
 
 /* ── Blood ritual ────────────────────────────────────────────────────── */
@@ -184,12 +194,12 @@ export default defineComponent({
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
   cursor: pointer;
 }
-.eventsOpenBtn:hover { background: rgba(255, 255, 255, 0.12); }
+.eventsOpenBtn:hover { background: var(--bg-surface-1); }
 
 .eventsArea {
   width: 100%;
@@ -201,9 +211,9 @@ export default defineComponent({
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   font-size: 10px;
   line-height: 1.5;
-  background: rgba(0, 0, 0, 0.25);
-  color: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 6px 8px;
 }

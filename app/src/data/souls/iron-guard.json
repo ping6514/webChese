@@ -1,0 +1,179 @@
+[
+  {
+    "id": "iron_guard_rook_junhua",
+    "clan": "iron_guard",
+    "base": "rook",
+    "name": "軍華",
+    "image": "/assets/cards/iron_guard/iron_guard_rook_junhua.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
+    },
+    "abilities": [
+      { "type": "SOLDIERS_TIERED_DAMAGE_BONUS", "tiers": [{ "count": 3, "amount": 1 }, { "count": 5, "amount": 2 }] },
+      { "type": "ARMY_RALLY" }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時傷害 +1；≥ 5 時傷害 +2。【軍援】：射擊時聯動目標相鄰 1 格內的「卒」進行追加攻擊。"
+  },
+  {
+    "id": "iron_guard_rook_tieche",
+    "clan": "iron_guard",
+    "base": "rook",
+    "name": "鐵車",
+    "image": "/assets/cards/iron_guard/iron_guard_rook_tieche.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 1 }]
+    },
+    "abilities": [
+      { "type": "IGNORE_BLOCKING", "mode": "all", "when": { "type": "SOLDIERS_GTE", "count": 3 } },
+      { "type": "FREE_SHOOT", "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 5 } }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時獲得【無視阻擋】；≥ 5 時，射擊變為【免費】（每回合限 1 次）。"
+  },
+  {
+    "id": "iron_guard_knight_qibingling",
+    "clan": "iron_guard",
+    "base": "knight",
+    "name": "騎兵靈",
+    "image": "/assets/cards/iron_guard/iron_guard_knight_qibingling.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
+    },
+    "abilities": [
+      { "type": "ARMY_RALLY" }
+    ],
+    "text": "【軍援】：射擊時聯動目標相鄰 1 格內的「卒」進行追加攻擊。"
+  },
+  {
+    "id": "iron_guard_knight_lianjunma",
+    "clan": "iron_guard",
+    "base": "knight",
+    "name": "聯軍馬",
+    "image": "/assets/cards/iron_guard/iron_guard_knight_lianjunma.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
+    },
+    "abilities": [
+      { "type": "MOVE_THEN_SHOOT", "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
+      { "type": "DAMAGE_BONUS_PER_ADJACENT_SOLDIER", "radius": 1, "amountPer": 1, "max": 2 }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時獲得「移動後射擊」；自身周圍 1 格每多 1 個卒，傷害額外 +1（上限 +2）。"
+  },
+  {
+    "id": "iron_guard_cannon_paobinghua",
+    "clan": "iron_guard",
+    "base": "cannon",
+    "name": "炮兵華",
+    "image": "/assets/cards/iron_guard/iron_guard_cannon_paobinghua.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [{ "key": "phys", "value": 0 }, { "key": "magic", "value": 1 }]
+    },
+    "abilities": [
+      { "type": "CHAIN", "radius": 1, "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
+      { "type": "DAMAGE_BONUS", "amount": 1, "when": { "type": "SOLDIERS_GTE", "count": 5 } }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時獲得【連鎖】（彈跳 1 次）；≥ 5 時，射擊傷害額外 +1。"
+  },
+  {
+    "id": "iron_guard_cannon_baobingpao",
+    "clan": "iron_guard",
+    "base": "cannon",
+    "name": "爆兵砲",
+    "image": "/assets/cards/iron_guard/iron_guard_cannon_baobingpao.jpg",
+    "costGold": 8,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 4 },
+      "def": [{ "key": "phys", "value": 0 }, { "key": "magic", "value": 1 }]
+    },
+    "abilities": [
+      { "type": "IGNORE_BLOCKING", "mode": "all", "when": { "type": "SOLDIERS_GTE", "count": 4 } },
+      { "type": "DAMAGE_BONUS", "amount": 1, "when": { "type": "SOLDIERS_GTE", "count": 5 }, "targetWhen": { "type": "TARGET_IN_PALACE" } }
+    ],
+    "text": "【軍勢】：卒 ≥ 4 時獲得【無視阻擋】；≥ 5 時，對「宮內」目標傷害額外 +1。"
+  },
+  {
+    "id": "iron_guard_advisor_junhu",
+    "clan": "iron_guard",
+    "base": "advisor",
+    "name": "軍護",
+    "image": "/assets/cards/iron_guard/iron_guard_advisor_junhu.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 1 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 2 }]
+    },
+    "abilities": [
+      { "type": "FORMATION_COMMAND", "perTurn": 1 },
+      { "type": "PALACE_GUARD", "amount": 1, "perTurn": 1 }
+    ],
+    "text": "【整編】：全場己方所有卒，每回合可免費移動 1 次（不消耗魔力）。【宮護】：己方在宮內時，帥被攻擊時減傷 1 點（每回合限 1 次）。"
+  },
+  {
+    "id": "iron_guard_advisor_zhaoshi",
+    "clan": "iron_guard",
+    "base": "advisor",
+    "name": "召侍",
+    "image": "/assets/cards/iron_guard/iron_guard_advisor_zhaoshi.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 1 }]
+    },
+    "abilities": [
+      { "type": "LOGISTICS_REVIVE", "perTurn": 1 },
+      { "type": "PALACE_GUARD", "amount": 1, "perTurn": 1 }
+    ],
+    "text": "【後勤】：每回合可免費復活 1 個卒（不消耗財力及死靈術次數）。【宮護】：己方在宮內時，帥被攻擊時減傷 1 點（每回合限 1 次）。"
+  },
+  {
+    "id": "iron_guard_elephant_junlingxiang",
+    "clan": "iron_guard",
+    "base": "elephant",
+    "name": "軍靈相",
+    "image": "/assets/cards/iron_guard/iron_guard_elephant_junlingxiang.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [{ "key": "phys", "value": 0 }, { "key": "magic", "value": 2 }]
+    },
+    "abilities": [
+      { "type": "SOLDIERS_TIERED_AURA_DAMAGE_BONUS", "tiers": [{ "count": 3, "amount": 1 }, { "count": 5, "amount": 2 }] }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時，全場己方 ATK +1；≥ 5 時，ATK 改為 +2。"
+  },
+  {
+    "id": "iron_guard_elephant_tiegu",
+    "clan": "iron_guard",
+    "base": "elephant",
+    "name": "鐵骨相",
+    "image": "/assets/cards/iron_guard/iron_guard_elephant_tiegu.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [{ "key": "phys", "value": 0 }, { "key": "magic", "value": 2 }]
+    },
+    "abilities": [
+      { "type": "SOLDIERS_TIERED_DMG_REDUCTION_AURA", "tiers": [{ "count": 3, "amount": 1 }, { "count": 5, "amount": 2 }] }
+    ],
+    "text": "【軍勢】：卒 ≥ 3 時，全場己方受傷 -1；≥ 5 時，受傷 -2（最低為 0）。"
+  }
+]

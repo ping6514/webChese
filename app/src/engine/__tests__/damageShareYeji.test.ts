@@ -46,6 +46,9 @@ describe('DAMAGE_SHARE: dark_moon_advisor_yeji shares damage', () => {
         lastStandContractBonus: 0,
         lastStandNoEnchantUnitIds: [],
         darkMoonScopeActive: false,
+        deathChainActive: false,
+        deathChainKillCount: 0,
+        sealedUnitIds: [],
       },
       resources: {
         ...s0.resources,

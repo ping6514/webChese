@@ -259,7 +259,7 @@ export default defineComponent({
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
   padding: 20px;
@@ -272,10 +272,10 @@ export default defineComponent({
   max-height: min(92vh, 920px);
   overflow: auto;
   border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(16, 18, 32, 0.98);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-modal-strong);
   padding: 20px;
-  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
 }
 
 .modalHead {
@@ -284,7 +284,7 @@ export default defineComponent({
   gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid var(--border);
 }
 
 .modalTitle {
@@ -306,13 +306,13 @@ export default defineComponent({
   padding: 6px 16px;
   border-radius: 8px;
   font-weight: 700;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.85);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s;
 }
-.closeBtn:hover { background: rgba(255, 255, 255, 0.15); }
+.closeBtn:hover { background: var(--bg-surface-1); }
 
 .grid {
   display: grid;
@@ -322,10 +322,10 @@ export default defineComponent({
 }
 
 .panel {
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-surface-2);
 }
 
 .panelTitle {
@@ -335,7 +335,7 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.95);
+  color: var(--text);
 }
 
 .deckCount {

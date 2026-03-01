@@ -62,6 +62,9 @@ describe('AURA_IGNORE_BLOCKING', () => {
         lastStandContractBonus: 0,
         lastStandNoEnchantUnitIds: [],
         darkMoonScopeActive: false,
+        deathChainActive: false,
+        deathChainKillCount: 0,
+        sealedUnitIds: [],
       },
       resources: {
         ...s0.resources,

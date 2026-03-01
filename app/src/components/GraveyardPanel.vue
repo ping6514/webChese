@@ -24,7 +24,7 @@ export default defineComponent({
       <span class="panelTitle">⚰️ 靈魂卡墓場</span>
       <div class="panelMeta">
         <span class="countBadge red">🔴 {{ red.length }}</span>
-        <span class="countBadge black">⚫ {{ black.length }}</span>
+        <span class="countBadge green">🟢 {{ black.length }}</span>
         <span class="expandIcon">{{ expanded ? '▲' : '▼' }}</span>
       </div>
     </div>
@@ -48,7 +48,7 @@ export default defineComponent({
 
       <!-- Black graveyard -->
       <div class="column">
-        <div class="colHead black">⚫ 黑方 <span class="colCount">{{ black.length }}</span></div>
+        <div class="colHead green">🟢 黑方 <span class="colCount">{{ black.length }}</span></div>
         <div class="chipList">
           <div v-if="black.length === 0" class="emptyMsg">空</div>
           <button
@@ -86,7 +86,7 @@ export default defineComponent({
 .panelHead:hover { background: rgba(255, 255, 255, 0.05); }
 
 .panelTitle {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   opacity: 0.65;
   letter-spacing: 0.05em;
@@ -100,7 +100,7 @@ export default defineComponent({
 }
 
 .countBadge {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 999px;
@@ -110,14 +110,14 @@ export default defineComponent({
   color: #ff9c9e;
   border: 1px solid rgba(255, 77, 79, 0.3);
 }
-.countBadge.black {
-  background: rgba(255, 255, 255, 0.07);
-  color: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+.countBadge.green {
+  background: rgba(82, 196, 26, 0.12);
+  color: #95de64;
+  border: 1px solid rgba(82, 196, 26, 0.3);
 }
 
 .expandIcon {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.45;
   margin-left: 2px;
 }
@@ -139,7 +139,7 @@ export default defineComponent({
 }
 
 .colHead {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   margin-bottom: 6px;
   display: flex;
@@ -147,10 +147,10 @@ export default defineComponent({
   gap: 4px;
 }
 .colHead.red { color: #ff9c9e; }
-.colHead.black { color: rgba(255, 255, 255, 0.6); }
+.colHead.green { color: #95de64; }
 
 .colCount {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.65;
   font-weight: 400;
 }
@@ -167,7 +167,7 @@ export default defineComponent({
 .chip {
   padding: 3px 7px;
   border-radius: 6px;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   text-align: left;
   cursor: pointer;
@@ -185,20 +185,20 @@ export default defineComponent({
 .chipRed:hover { background: rgba(255, 77, 79, 0.22); }
 
 .chipBlack {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.75);
+  background: rgba(82, 196, 26, 0.08);
+  border: 1px solid rgba(82, 196, 26, 0.22);
+  color: #b7eb8f;
 }
-.chipBlack:hover { background: rgba(255, 255, 255, 0.12); }
+.chipBlack:hover { background: rgba(82, 196, 26, 0.18); }
 
 .moreChip {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.5;
   padding: 2px 4px;
 }
 
 .emptyMsg {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.35;
   padding: 4px 0;
 }

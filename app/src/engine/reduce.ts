@@ -6,6 +6,7 @@ import type { GameState } from './state'
 import { getUnitAt } from './state'
 import { BASE_STATS } from './state'
 import { getReviveGoldCost } from './state'
+import { FREE_SHOOT_MANA_SENTINEL, HOLY_GRAIL_HEAL_AMOUNT, DEATH_CHAIN_MAX_KILLS } from './gameConfig'
 import { isLegalMove } from './legalMoves'
 import { buildShotPlan, executeShotPlan } from './shotPlan'
 import { getSoulCard } from './cards'
@@ -64,6 +65,46 @@ export type ReduceErr = {
 
 export type ReduceResult = ReduceOk | ReduceErr
 
+// ── FORMATION_COMMAND helper ──────────────────────────────────────────────────
+function findFormationCommandHelper(state: GameState, unitId: string): { allyId: string; abilityKey: string } | null {
+  const unit = state.units[unitId]
+  if (!unit || unit.base !== 'soldier') return null
+  for (const u of Object.values(state.units)) {
+    if (u.side !== unit.side || u.id === unit.id) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    const ab = card.abilities.find((a) => a.type === 'FORMATION_COMMAND')
+    if (!ab) continue
+    const perTurn = Number((ab as any).perTurn ?? 1)
+    const key = `${u.id}:FORMATION_COMMAND`
+    const used = state.turnFlags.abilityUsed?.[key] ?? 0
+    if (used >= perTurn) continue
+    return { allyId: u.id, abilityKey: key }
+  }
+  return null
+}
+
+// ── LOGISTICS_REVIVE helper ───────────────────────────────────────────────────
+function findLogisticsReviveHelper(state: GameState): { allyId: string; abilityKey: string } | null {
+  for (const u of Object.values(state.units)) {
+    if (u.side !== state.turn.side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+    if (!ab) continue
+    const perTurn = Number((ab as any).perTurn ?? 1)
+    const key = `${u.id}:LOGISTICS_REVIVE`
+    const used = state.turnFlags.abilityUsed?.[key] ?? 0
+    if (used >= perTurn) continue
+    return { allyId: u.id, abilityKey: key }
+  }
+  return null
+}
+
 function clamp(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, n))
 }
@@ -121,6 +162,77 @@ function autoTurnEnd(state: GameState, events: Event[]): GameState {
   return next
 }
 
+function nextPhaseOf(p: GameState['turn']['phase']): GameState['turn']['phase'] {
+  switch (p) {
+    case 'turnStart': return 'buy'
+    case 'buy':       return 'necro'
+    case 'necro':     return 'combat'
+    case 'combat':    return 'turnEnd'
+    case 'turnEnd':   return 'turnStart'
+    default: {
+      const _exhaustive: never = p
+      return _exhaustive
+    }
+  }
+}
+
+function reduceNextPhase(state: GameState): ReduceResult {
+  const events: Event[] = []
+  const side = state.turn.side
+  const from = state.turn.phase
+
+  let nextState: GameState = {
+    ...state,
+    turn: { ...state.turn, phase: nextPhaseOf(state.turn.phase) },
+  }
+
+  if (nextState.turn.phase === 'turnEnd') {
+    nextState = autoTurnEnd(nextState, events)
+    nextState = { ...nextState, turn: { ...nextState.turn, phase: 'turnStart' } }
+  }
+
+  if (nextState.turn.phase === 'turnStart') {
+    const nextSide = side === 'red' ? 'black' : 'red'
+    nextState = {
+      ...nextState,
+      turn: { ...nextState.turn, side: nextSide },
+      status: {
+        ...nextState.status,
+        kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
+      },
+      turnFlags: {
+        ...nextState.turnFlags,
+        shotUsed: {},
+        movedThisTurn: {},
+        soulReturnUsedCount: 0,
+        abilityUsed: {},
+        soulBuyUsed: false,
+        buySoulActionsUsed: 0,
+        buyItemActionsUsed: 0,
+        necroActionsUsed: 0,
+        bloodRitualUsed: false,
+        necroBonusActions: 0,
+        freeShootBonus: 0,
+        enchantGoldDiscount: 0,
+        itemNecroBonus: 0,
+        lastStandContractBonus: 0,
+        lastStandNoEnchantUnitIds: [],
+        darkMoonScopeActive: false,
+        deathChainActive: false,
+        deathChainKillCount: 0,
+        sealedUnitIds: [],
+      },
+    }
+    nextState = autoTurnStart(nextState, events)
+    nextState = { ...nextState, turn: { ...nextState.turn, phase: 'buy' } }
+    events.push({ type: 'PHASE_CHANGED', side: nextState.turn.side, from: 'turnStart', to: 'buy' })
+    return { ok: true, state: nextState, events }
+  }
+
+  events.push({ type: 'PHASE_CHANGED', side, from, to: nextState.turn.phase })
+  return { ok: true, state: nextState, events }
+}
+
 export function reduce(state: GameState, action: Action): ReduceResult {
   switch (action.type) {
     case 'MOVE': {
@@ -131,7 +243,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       const r = state.resources[state.turn.side]
       const cost = state.rules.moveManaCost
-      if (r.mana < cost) return { ok: false, error: 'Not enough mana' }
+
+      // 整編：周圍有 FORMATION_COMMAND 的卒免費移動（不消耗魔力）
+      const fcHelper = unit.base === 'soldier' ? findFormationCommandHelper(state, unit.id) : null
+      const effectiveCost = fcHelper ? 0 : cost
+
+      if (r.mana < effectiveCost) return { ok: false, error: 'Not enough mana' }
       if (!isOnBoard(action.to)) return { ok: false, error: 'Target position out of board' }
 
       const occupied = getUnitAt(state, action.to)
@@ -143,9 +260,14 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         ...state.resources,
         [state.turn.side]: {
           ...r,
-          mana: r.mana - cost,
+          mana: r.mana - effectiveCost,
         },
       }
+
+      const prevAbilityUsed = state.turnFlags.abilityUsed ?? {}
+      const nextAbilityUsed = fcHelper
+        ? { ...prevAbilityUsed, [fcHelper.abilityKey]: (prevAbilityUsed[fcHelper.abilityKey] ?? 0) + 1 }
+        : prevAbilityUsed
 
       const nextState: GameState = {
         ...state,
@@ -156,6 +278,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
             ...state.turnFlags.movedThisTurn,
             [unit.id]: true,
           },
+          abilityUsed: nextAbilityUsed,
         },
         units: {
           ...state.units,
@@ -166,25 +289,26 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
-      return {
-        ok: true,
-        state: nextState,
-        events: [
-          {
-            type: 'UNIT_MOVED',
-            unitId: unit.id,
-            from: unit.pos,
-            to: { ...action.to },
-          },
-          {
-            type: 'RESOURCES_CHANGED',
-            side: state.turn.side,
-            gold: nextState.resources[state.turn.side].gold,
-            mana: nextState.resources[state.turn.side].mana,
-            storageMana: nextState.resources[state.turn.side].storageMana,
-          },
-        ],
+      const moveEvents: Event[] = [
+        {
+          type: 'UNIT_MOVED',
+          unitId: unit.id,
+          from: unit.pos,
+          to: { ...action.to },
+        },
+        {
+          type: 'RESOURCES_CHANGED',
+          side: state.turn.side,
+          gold: nextState.resources[state.turn.side].gold,
+          mana: nextState.resources[state.turn.side].mana,
+          storageMana: nextState.resources[state.turn.side].storageMana,
+        },
+      ]
+      if (fcHelper) {
+        moveEvents.push({ type: 'ABILITY_TRIGGERED', unitId: fcHelper.allyId, abilityType: 'FORMATION_COMMAND', text: '整編' })
       }
+
+      return { ok: true, state: nextState, events: moveEvents }
     }
 
     case 'BLOOD_RITUAL': {
@@ -305,13 +429,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           ...state.resources,
           [state.turn.side]: {
             ...state.resources[state.turn.side],
-            mana: Math.max(state.resources[state.turn.side].mana, 9999),
+            mana: Math.max(state.resources[state.turn.side].mana, FREE_SHOOT_MANA_SENTINEL),
           },
         },
       } : state
 
       const planRes = buildShotPlan(stateForShot, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
-      if (!planRes.ok) return { ok: false, error: planRes.error }
+      if (!planRes.ok) return { ok: false, error: (planRes as { ok: false; error: string }).error }
 
       const execRes = executeShotPlan(stateForShot, planRes.plan)
       if (!execRes.ok) return execRes
@@ -345,7 +469,27 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         })
       }
 
-      return { ok: true, state: finalState, events: [...buildEvents, ...execRes.events] }
+      // 死亡連鎖：本回合每擊殺一個單位恢復 1 點魔力（最多 3 次）
+      const afterEvents: Event[] = []
+      if (finalState.turnFlags.deathChainActive ?? false) {
+        const shootSide = state.turn.side
+        const killedCount = execRes.events.filter((e) => e.type === 'UNIT_KILLED').length
+        if (killedCount > 0) {
+          const usedSoFar = finalState.turnFlags.deathChainKillCount ?? 0
+          const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
+          if (allowed > 0) {
+            const r = finalState.resources[shootSide]
+            const newMana = Math.min(r.mana + allowed, finalState.limits.manaMax)
+            finalState = {
+              ...finalState,
+              resources: { ...finalState.resources, [shootSide]: { ...r, mana: newMana } },
+              turnFlags: { ...finalState.turnFlags, deathChainKillCount: usedSoFar + killedCount },
+            }
+            afterEvents.push({ type: 'RESOURCES_CHANGED', side: shootSide, gold: finalState.resources[shootSide].gold, mana: newMana, storageMana: finalState.resources[shootSide].storageMana })
+          }
+        }
+      }
+      return { ok: true, state: finalState, events: [...buildEvents, ...execRes.events, ...afterEvents] }
     }
 
     case 'SACRIFICE': {
@@ -356,7 +500,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (!src || !tgt) return { ok: false, error: 'Unit not found' }
 
       const g = canSacrifice(state, src.id, tgt.id, action.range)
-      if (!g.ok) return { ok: false, error: g.reason }
+      if (!g.ok) return { ok: false, error: (g as { ok: false; reason: string }).reason }
 
       const nextState0: GameState = {
         ...state,
@@ -410,6 +554,23 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
 
       nextState = killUnit(nextState, tgt.id, events)
+      // 死亡連鎖：sacrifice 擊殺也觸發
+      if (nextState.turnFlags.deathChainActive ?? false) {
+        const sacSide = state.turn.side
+        const killedCount = events.filter((e) => e.type === 'UNIT_KILLED').length
+        const usedSoFar = nextState.turnFlags.deathChainKillCount ?? 0
+        const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
+        if (allowed > 0) {
+          const r = nextState.resources[sacSide]
+          const newMana = Math.min(r.mana + allowed, nextState.limits.manaMax)
+          nextState = {
+            ...nextState,
+            resources: { ...nextState.resources, [sacSide]: { ...r, mana: newMana } },
+            turnFlags: { ...nextState.turnFlags, deathChainKillCount: usedSoFar + killedCount },
+          }
+          events.push({ type: 'RESOURCES_CHANGED', side: sacSide, gold: nextState.resources[sacSide].gold, mana: newMana, storageMana: nextState.resources[sacSide].storageMana })
+        }
+      }
       return { ok: true, state: nextState, events }
     }
     case 'ENCHANT': {
@@ -498,12 +659,6 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
     case 'REVIVE': {
       if (state.turn.phase !== 'necro') return { ok: false, error: 'Not in necro phase' }
-      // 死戰契約：若有額外復活次數，不受死靈術次數限制
-      const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
-      const necroMax = state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0) + (state.turnFlags.itemNecroBonus ?? 0)
-      if (!usingContract && state.turnFlags.necroActionsUsed >= necroMax) {
-        return { ok: false, error: 'No necro actions left this turn' }
-      }
 
       const side = state.turn.side
       const r = state.resources[side]
@@ -522,8 +677,19 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (!corpse) return { ok: false, error: 'Invalid corpse index' }
       if (corpse.ownerSide !== state.turn.side) return { ok: false, error: 'Not your corpse' }
 
+      // 死戰契約 & 後勤（召侍）：可跳過死靈術次數與財力限制
+      const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
+      const lrHelper = corpse.base === 'soldier' ? findLogisticsReviveHelper(state) : null
+      const usingLogisticsRevive = !!lrHelper
+
+      const necroMax = state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0) + (state.turnFlags.itemNecroBonus ?? 0)
+      if (!usingContract && !usingLogisticsRevive && state.turnFlags.necroActionsUsed >= necroMax) {
+        return { ok: false, error: 'No necro actions left this turn' }
+      }
+
       const cost = getReviveGoldCost(corpse.base)
-      if (r.gold < cost) return { ok: false, error: 'Not enough gold' }
+      const effectiveGoldCost = usingLogisticsRevive ? 0 : cost
+      if (r.gold < effectiveGoldCost) return { ok: false, error: 'Not enough gold' }
 
       // Create a deterministic new unit id without relying on time/random.
       let reviveIdx = 0
@@ -545,6 +711,11 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         nextCorpsesByPos[posKey] = nextStack
       }
 
+      const prevAbilityUsedRevive = state.turnFlags.abilityUsed ?? {}
+      const nextAbilityUsedRevive = lrHelper
+        ? { ...prevAbilityUsedRevive, [lrHelper.abilityKey]: (prevAbilityUsedRevive[lrHelper.abilityKey] ?? 0) + 1 }
+        : prevAbilityUsedRevive
+
       const nextState: GameState = {
         ...state,
         corpsesByPos: nextCorpsesByPos,
@@ -552,7 +723,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           ...state.resources,
           [side]: {
             ...r,
-            gold: r.gold - cost,
+            gold: r.gold - effectiveGoldCost,
           },
         },
         units: {
@@ -570,28 +741,31 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         turnFlags: {
           ...state.turnFlags,
           // 死戰契約：不計入死靈術次數，但該單位本回合不可附魔
-          necroActionsUsed: usingContract ? state.turnFlags.necroActionsUsed : state.turnFlags.necroActionsUsed + 1,
+          // 後勤：不計入死靈術次數，直接免費
+          necroActionsUsed: (usingContract || usingLogisticsRevive) ? state.turnFlags.necroActionsUsed : state.turnFlags.necroActionsUsed + 1,
           lastStandContractBonus: usingContract ? Math.max(0, (state.turnFlags.lastStandContractBonus ?? 0) - 1) : (state.turnFlags.lastStandContractBonus ?? 0),
           lastStandNoEnchantUnitIds: usingContract
             ? [...(state.turnFlags.lastStandNoEnchantUnitIds ?? []), unitId]
             : (state.turnFlags.lastStandNoEnchantUnitIds ?? []),
+          abilityUsed: nextAbilityUsedRevive,
         },
       }
 
-      return {
-        ok: true,
-        state: nextState,
-        events: [
-          { type: 'REVIVED', unitId, pos: { ...action.pos } },
-          {
-            type: 'RESOURCES_CHANGED',
-            side,
-            gold: nextState.resources[side].gold,
-            mana: nextState.resources[side].mana,
-            storageMana: nextState.resources[side].storageMana,
-          },
-        ],
+      const reviveEvents: Event[] = [
+        { type: 'REVIVED', unitId, pos: { ...action.pos } },
+        {
+          type: 'RESOURCES_CHANGED',
+          side,
+          gold: nextState.resources[side].gold,
+          mana: nextState.resources[side].mana,
+          storageMana: nextState.resources[side].storageMana,
+        },
+      ]
+      if (lrHelper) {
+        reviveEvents.push({ type: 'ABILITY_TRIGGERED', unitId: lrHelper.allyId, abilityType: 'LOGISTICS_REVIVE', text: '後勤' })
       }
+
+      return { ok: true, state: nextState, events: reviveEvents }
     }
     case 'BUY_SOUL_FROM_DECK': {
       if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
@@ -636,10 +810,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
+      const deckCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: deckCard?.name ?? soulId, base: action.base, source: 'deck' },
           {
             type: 'RESOURCES_CHANGED',
             side,
@@ -728,10 +904,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       nextState = refillDisplayByBase(nextState, action.base)
 
+      const displayCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: displayCard?.name ?? soulId, base: action.base, source: 'display' },
           {
             type: 'RESOURCES_CHANGED',
             side,
@@ -797,10 +975,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
+      const gyCard = getSoulCard(soulId)
       return {
         ok: true,
         state: nextState,
         events: [
+          { type: 'SOUL_BOUGHT', side, soulId, soulName: gyCard?.name ?? soulId, base: gyCard?.base ?? '', source: 'graveyard' },
           {
             type: 'RESOURCES_CHANGED',
             side,
@@ -811,98 +991,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         ],
       }
     }
-    case 'NEXT_PHASE': {
-      const events: Event[] = []
-      const side = state.turn.side
-      const from = state.turn.phase
-
-      const nextPhase = (p: GameState['turn']['phase']): GameState['turn']['phase'] => {
-        switch (p) {
-          case 'turnStart':
-            return 'buy'
-          case 'buy':
-            return 'necro'
-          case 'necro':
-            return 'combat'
-          case 'combat':
-            return 'turnEnd'
-          case 'turnEnd':
-            return 'turnStart'
-          default: {
-            const _exhaustive: never = p
-            return _exhaustive
-          }
-        }
-      }
-
-      let nextState: GameState = {
-        ...state,
-        turn: {
-          ...state.turn,
-          phase: nextPhase(state.turn.phase),
-        },
-      }
-
-      // Auto processing phases
-      if (nextState.turn.phase === 'turnEnd') {
-        nextState = autoTurnEnd(nextState, events)
-      }
-
-      if (nextState.turn.phase === 'turnStart') {
-        // swap side first, then apply turn start income for the new side
-        const nextSide = side === 'red' ? 'black' : 'red'
-        nextState = {
-          ...nextState,
-          turn: {
-            ...nextState.turn,
-            side: nextSide,
-          },
-          status: {
-            ...nextState.status,
-            kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
-          },
-          turnFlags: {
-            ...nextState.turnFlags,
-            shotUsed: {},
-            movedThisTurn: {},
-            soulReturnUsedCount: 0,
-            abilityUsed: {},
-            soulBuyUsed: false,
-            buySoulActionsUsed: 0,
-            buyItemActionsUsed: 0,
-            necroActionsUsed: 0,
-            bloodRitualUsed: false,
-            necroBonusActions: 0,
-            freeShootBonus: 0,
-            enchantGoldDiscount: 0,
-            itemNecroBonus: 0,
-            lastStandContractBonus: 0,
-            lastStandNoEnchantUnitIds: [],
-            darkMoonScopeActive: false,
-          },
-        }
-        nextState = autoTurnStart(nextState, events)
-
-        // after auto turn start, immediately enter buy and wait for player
-        nextState = {
-          ...nextState,
-          turn: {
-            ...nextState.turn,
-            phase: 'buy',
-          },
-        }
-        events.push({ type: 'PHASE_CHANGED', side: nextState.turn.side, from: 'turnStart', to: 'buy' })
-
-        return {
-          ok: true,
-          state: nextState,
-          events,
-        }
-      }
-
-      events.push({ type: 'PHASE_CHANGED', side, from, to: nextState.turn.phase })
-      return { ok: true, state: nextState, events }
-    }
+    case 'NEXT_PHASE':
+      return reduceNextPhase(state)
     case 'USE_ITEM_FROM_HAND': {
       const side = state.turn.side
       const hand = state.hands[side].items
@@ -941,7 +1031,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           const baseStats = BASE_STATS[unit.base]
           const hpMax = unit.enchant ? (getSoulCard(unit.enchant.soulId)?.stats.hp ?? baseStats.hp) : baseStats.hp
           const from = unit.hpCurrent
-          const to = Math.min(hpMax, unit.hpCurrent + 4)
+          const to = Math.min(hpMax, unit.hpCurrent + HOLY_GRAIL_HEAL_AMOUNT)
           nextState = {
             ...nextState,
             units: { ...nextState.units, [unit.id]: { ...unit, hpCurrent: to } },
@@ -962,10 +1052,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           const nextCorpsesByPos = { ...nextState.corpsesByPos }
           if (nextStack.length === 0) delete nextCorpsesByPos[posKey]
           else nextCorpsesByPos[posKey] = nextStack
+          const goldAmt = item.effect?.goldAmount ?? 9
+          const manaAmt = item.effect?.manaAmount ?? 2
           const r = nextState.resources[side]
           const nextR = action.choice === 'gold'
-            ? { ...r, gold: Math.min(r.gold + 3, nextState.limits.goldMax) }
-            : { ...r, mana: Math.min(r.mana + 2, nextState.limits.manaMax) }
+            ? { ...r, gold: Math.min(r.gold + goldAmt, nextState.limits.goldMax) }
+            : { ...r, mana: Math.min(r.mana + manaAmt, nextState.limits.manaMax) }
           nextState = {
             ...nextState,
             corpsesByPos: nextCorpsesByPos,
@@ -1071,6 +1163,79 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           }
           const king = Object.values(nextState.units).find((u) => u.side === side && u.base === 'king')
           if (king) events.push({ type: 'ABILITY_TRIGGERED', unitId: king.id, abilityType: 'dark_moon_scope', text: '暗月窺視' })
+          break
+        }
+        case 'item_death_chain': {
+          nextState = {
+            ...nextState,
+            turnFlags: { ...nextState.turnFlags, deathChainActive: true },
+          }
+          const king = Object.values(nextState.units).find((u) => u.side === side && u.base === 'king')
+          if (king) events.push({ type: 'ABILITY_TRIGGERED', unitId: king.id, abilityType: 'death_chain', text: '死亡連鎖' })
+          break
+        }
+        case 'item_nether_seal': {
+          if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
+          const target = nextState.units[action.targetUnitId]
+          if (!target) return { ok: false, error: 'Unit not found' }
+          if (target.side === side) return { ok: false, error: '只能封印敵方單位' }
+          nextState = {
+            ...nextState,
+            turnFlags: {
+              ...nextState.turnFlags,
+              sealedUnitIds: [...(nextState.turnFlags.sealedUnitIds ?? []), action.targetUnitId],
+            },
+          }
+          events.push({ type: 'ABILITY_TRIGGERED', unitId: action.targetUnitId, abilityType: 'nether_seal', text: '冥鎖封印' })
+          break
+        }
+        case 'item_cage_plunder': {
+          const enemySide = side === 'red' ? 'black' : 'red'
+          const enemySouls = nextState.hands[enemySide].souls
+          if (enemySouls.length === 0) return { ok: false, error: '敵方牢籠沒有靈魂卡' }
+          if (nextState.hands[side].souls.length >= 5) return { ok: false, error: '己方牢籠已有 5 張' }
+          const idx = Math.floor(Math.random() * enemySouls.length)
+          const stolen = enemySouls[idx]
+          nextState = {
+            ...nextState,
+            hands: {
+              ...nextState.hands,
+              [enemySide]: { ...nextState.hands[enemySide], souls: enemySouls.filter((_, i) => i !== idx) },
+              [side]: { ...nextState.hands[side], souls: [...nextState.hands[side].souls, stolen] },
+            },
+          }
+          const king = Object.values(nextState.units).find((u) => u.side === side && u.base === 'king')
+          if (king) events.push({ type: 'ABILITY_TRIGGERED', unitId: king.id, abilityType: 'cage_plunder', text: '牢籠掠奪' })
+          break
+        }
+        case 'item_soul_detach_needle': {
+          if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
+          const target = nextState.units[action.targetUnitId]
+          if (!target) return { ok: false, error: 'Unit not found' }
+          if (target.side === side) return { ok: false, error: '只能選擇敵方單位' }
+          if (!target.enchant) return { ok: false, error: '該單位未附魔' }
+          const enemySide = target.side
+          const strippedSoulId = target.enchant.soulId
+          const baseStats = BASE_STATS[target.base]
+          const strippedUnit = {
+            ...target,
+            hpCurrent: baseStats.hp,
+            atk: { key: baseStats.atkKey, value: baseStats.atk },
+            def: baseStats.def.map((d) => ({ ...d })),
+            enchant: undefined,
+          }
+          nextState = {
+            ...nextState,
+            units: { ...nextState.units, [target.id]: strippedUnit },
+            hands: {
+              ...nextState.hands,
+              [enemySide]: {
+                ...nextState.hands[enemySide],
+                souls: [...nextState.hands[enemySide].souls, strippedSoulId],
+              },
+            },
+          }
+          events.push({ type: 'ABILITY_TRIGGERED', unitId: target.id, abilityType: 'soul_detach_needle', text: '靈魂剝離' })
           break
         }
         default:

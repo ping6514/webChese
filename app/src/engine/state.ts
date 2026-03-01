@@ -85,6 +85,9 @@ export type GameState = {
     lastStandContractBonus: number
     lastStandNoEnchantUnitIds: string[]
     darkMoonScopeActive: boolean
+    deathChainActive: boolean
+    deathChainKillCount: number
+    sealedUnitIds: string[]
   }
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
@@ -213,7 +216,9 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
 
   const secondStart: Resources = {
     gold: rules.startGoldSecond,
-    mana: rules.startMana,
+    // 後手方第一個回合會經過 autoTurnStart（+incomeMana），所以初始 mana=0
+    // 避免後手第一回合 mana = startMana + incomeMana（即 6）的 bug
+    mana: 0,
     storageMana: 0,
   }
 
@@ -293,6 +298,9 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       lastStandContractBonus: 0,
       lastStandNoEnchantUnitIds: [],
       darkMoonScopeActive: false,
+      deathChainActive: false,
+      deathChainKillCount: 0,
+      sealedUnitIds: [],
     },
     hands: {
       red: { souls: [], items: [] },

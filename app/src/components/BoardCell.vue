@@ -8,6 +8,7 @@ type UnitView = {
   hp: number
   enchantName: string | null
   enchantImage: string | null
+  baseImage: string | null
 }
 
 type FloatText = {
@@ -93,9 +94,13 @@ export default defineComponent({
     </div>
 
     <div v-if="unit?.enchantName" class="tip">
-      <div class="tipRow">{{ unit.enchantName }}</div>
+      <div class="tipRow">{{ unit.label }}</div>
       <img v-if="unit.enchantImage" class="tipImg" :src="unit.enchantImage" alt="" />
       <div v-else class="tipNoImg mono">no img</div>
+    </div>
+    <div v-else-if="unit?.baseImage" class="tip">
+      <div class="tipRow">{{ unit.label }}</div>
+      <img class="tipImg" :src="unit.baseImage" alt="" />
     </div>
 
     <div v-if="!unit && titleText" class="tip tip-invalid">
@@ -107,9 +112,9 @@ export default defineComponent({
 <style scoped>
 .cell {
   aspect-ratio: 1 / 1;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(255, 255, 255, 0.04);
-  color: #f0f0f0;
+  border: 1px solid var(--cell-border);
+  background: var(--cell-bg);
+  color: var(--text);
   text-align: left;
   padding: 4px 6px;
   border-radius: 6px;
@@ -136,46 +141,40 @@ export default defineComponent({
   border-color: rgba(240, 200, 255, 0.9);
 }
 
-.pierceBadge {
+.pierceBadge,
+.splashBadge,
+.chainBadge {
   position: absolute;
-  top: 4px;
-  right: 4px;
   z-index: 45;
   padding: 1px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(200, 230, 255, 0.5);
+  border: 1px solid;
+  font-size: 0.6875rem;
+  font-weight: 900;
+}
+
+.pierceBadge {
+  top: 4px;
+  right: 4px;
+  border-color: rgba(200, 230, 255, 0.5);
   background: rgba(145, 202, 255, 0.16);
   color: rgba(230, 246, 255, 0.95);
-  font-size: 11px;
-  font-weight: 900;
 }
 
 .splashBadge {
-  position: absolute;
   top: 4px;
   left: 4px;
-  z-index: 45;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 200, 140, 0.5);
+  border-color: rgba(255, 200, 140, 0.5);
   background: rgba(255, 140, 0, 0.14);
   color: rgba(255, 232, 205, 0.95);
-  font-size: 11px;
-  font-weight: 900;
 }
 
 .chainBadge {
-  position: absolute;
   top: 26px;
   left: 4px;
-  z-index: 45;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(220, 160, 255, 0.5);
+  border-color: rgba(220, 160, 255, 0.5);
   background: rgba(186, 85, 211, 0.14);
   color: rgba(245, 232, 255, 0.95);
-  font-size: 11px;
-  font-weight: 900;
 }
 
 .killedOverlay {
@@ -622,7 +621,7 @@ export default defineComponent({
   top: 38%;
   transform: translateX(-50%);
   font-weight: 900;
-  font-size: 18px;
+  font-size: 1.125rem;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.55);
   animation: floatUp 760ms ease-out 1;
 }
@@ -686,7 +685,7 @@ export default defineComponent({
 
 .unit.enchanted {
   font-weight: 800;
-  font-size: 15px;
+  font-size: 0.9375rem;
   letter-spacing: 0.2px;
 }
 
@@ -698,11 +697,11 @@ export default defineComponent({
   top: -6px;
   transform: translateY(-100%);
   z-index: 999;
-  background: rgba(0, 0, 0, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: var(--bg-modal);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 6px 8px;
-  color: rgba(255, 255, 255, 0.92);
+  color: var(--text);
   min-width: 180px;
   pointer-events: none;
   transition: opacity 120ms ease;
@@ -723,7 +722,7 @@ export default defineComponent({
 }
 
 .tipRow {
-  font-size: 11px;
+  font-size: 0.6875rem;
   line-height: 14px;
   white-space: nowrap;
 }
@@ -745,13 +744,14 @@ export default defineComponent({
   border: 1px dashed rgba(255, 255, 255, 0.18);
   display: grid;
   place-items: center;
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.8;
 }
 
 .cell-selected {
-  border-color: rgba(145, 202, 255, 0.85);
-  background: rgba(145, 202, 255, 0.12);
+  border-color: rgba(145, 202, 255, 1);
+  background: rgba(145, 202, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(145, 202, 255, 0.55), 0 0 10px rgba(145, 202, 255, 0.2);
 }
 
 .cell-legal {
@@ -778,7 +778,7 @@ export default defineComponent({
   position: absolute;
   top: 2px;
   right: 2px;
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 1px 4px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
@@ -787,7 +787,7 @@ export default defineComponent({
 }
 
 .unit {
-  font-size: 18px;
+  font-size: 1.125rem;
   line-height: 20px;
   position: absolute;
   inset: 0;

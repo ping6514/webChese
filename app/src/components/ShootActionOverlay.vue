@@ -127,8 +127,8 @@ export default defineComponent({
   gap: 8px;
   padding: 10px;
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-modal);
   backdrop-filter: blur(10px);
   z-index: 90;
   pointer-events: auto;
@@ -138,9 +138,9 @@ export default defineComponent({
 }
 
 .shootBtn {
-  background: rgba(30, 30, 30, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  color: rgba(245, 245, 245, 0.92);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
   padding: 8px 14px;
   border-radius: 15px;
   font-weight: 800;
@@ -149,8 +149,8 @@ export default defineComponent({
 }
 
 .shootBtn:hover {
-  border-color: rgba(255, 255, 255, 0.26);
-  background: rgba(40, 40, 40, 0.95);
+  border-color: var(--border-focus);
+  background: var(--bg-surface-1);
 }
 
 .shootBtn:disabled {

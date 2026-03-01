@@ -115,10 +115,13 @@ function isLegalShootByBase(
       return { ok: true }
     }
     case 'soldier': {
-      // forward 1
       const forwardDy = attacker.side === 'red' ? -1 : 1
-      if (tx !== ax || ty !== ay + forwardDy) return { ok: false, error: 'Out of range' }
-      return { ok: true }
+      const hasCrossed = attacker.side === 'red' ? ay <= 4 : ay >= 5
+      // forward 1
+      if (tx === ax && ty === ay + forwardDy) return { ok: true }
+      // after crossing river: left/right 1
+      if (hasCrossed && ty === ay && Math.abs(tx - ax) === 1) return { ok: true }
+      return { ok: false, error: 'Out of range' }
     }
     default: {
       return { ok: false, error: 'Out of range' }

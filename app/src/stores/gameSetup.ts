@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import type { Side } from '../engine'
 
-export type GameMode = 'pvp' | 'pve'
+export type GameMode = 'pvp' | 'pve' | 'online'
 export type SideOrRandom = Side | 'random'
 export type Difficulty = 'easy' | 'hard'
 
@@ -11,6 +11,7 @@ export const useGameSetup = defineStore('gameSetup', {
     playerSide: 'random' as SideOrRandom,  // PVE：玩家選哪方
     firstPlayer: 'random' as SideOrRandom,  // 先攻方
     difficulty: 'hard' as Difficulty,
+    enabledClans: ['dark_moon', 'styx', 'eternal_night', 'iron_guard'] as string[],
     // 隨機解析後的最終值（開局時 resolve() 後設定）
     resolvedPlayerSide: 'red' as Side,
     resolvedFirstPlayer: 'red' as Side,

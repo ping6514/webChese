@@ -98,7 +98,7 @@ describe('styx abilities', () => {
     const kingHp0 = s.units[kingId]!.hpCurrent
 
     // Artificially reduce king hp to ensure healing is visible
-    s.units[kingId] = { ...s.units[kingId]!, hpCurrent: Math.max(1, kingHp0 - 2) }
+    s.units[kingId] = { ...s.units[kingId]!, hpCurrent: Math.max(1, kingHp0 - 6) }
     const kingHpStart = s.units[kingId]!.hpCurrent
 
     const planRes = buildShotPlan(s, attackerId, targetId)
@@ -116,10 +116,10 @@ describe('styx abilities', () => {
     expect(after.units[targetId]).toBeUndefined()
 
     const kingHp1 = after.units[kingId]!.hpCurrent
-    expect(kingHp1).toBe(kingHpStart + 1)
+    expect(kingHp1).toBe(kingHpStart + 4)
 
     const hpEvents = exec.events.filter((e) => e.type === 'UNIT_HP_CHANGED') as any[]
-    expect(hpEvents.some((e) => e.unitId === kingId && e.reason === 'HEAL_KING_ON_KILL' && e.from === kingHpStart && e.to === kingHpStart + 1)).toBe(true)
+    expect(hpEvents.some((e) => e.unitId === kingId && e.reason === 'HEAL_KING_ON_KILL' && e.from === kingHpStart && e.to === kingHpStart + 4)).toBe(true)
 
     // cap check: set king to max, then perform another kill and assert HP doesn't exceed max.
     const maxHp = 15

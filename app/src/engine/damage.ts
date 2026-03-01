@@ -1,10 +1,24 @@
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
 import { getDefValueInState } from './stats'
-import { countCorpses } from './corpses'
+import { countCorpses, countSoldiers } from './corpses'
 
 export function crossedRiver(side: 'red' | 'black', y: number): boolean {
   return side === 'red' ? y <= 4 : y >= 5
+}
+
+function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
+  if (pos.x < 3 || pos.x > 5) return false
+  if (side === 'red') return pos.y >= 7 && pos.y <= 9
+  return pos.y >= 0 && pos.y <= 2
+}
+
+function getHighestTierAmount(tiers: { count: number; amount: number }[], soldierCount: number): number {
+  const sorted = [...tiers].sort((a, b) => b.count - a.count)
+  for (const tier of sorted) {
+    if (soldierCount >= tier.count) return tier.amount
+  }
+  return 0
 }
 
 export function computeRawDamage(state: GameState, attackerId: string, targetUnitId: string, diceValue?: number): number {
@@ -63,16 +77,65 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
         for (const ab of card.abilities) {
           if (ab.type !== 'DAMAGE_BONUS') continue
           const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
-            if (Number.isFinite(need) && need > 0) {
-              const corpses = countCorpses(state, attacker.side)
-              if (corpses < need) continue
+          if (when) {
+            const whenType = String(when.type ?? '')
+            if (whenType === 'CORPSES_GTE') {
+              const need = Number(when.count ?? 0)
+              if (Number.isFinite(need) && need > 0) {
+                if (countCorpses(state, attacker.side) < need) continue
+              }
             }
+            if (whenType === 'SOLDIERS_GTE') {
+              const need = Number(when.count ?? 0)
+              if (Number.isFinite(need) && need > 0) {
+                if (countSoldiers(state, attacker.side) < need) continue
+              }
+            }
+          }
+          const targetWhen = (ab as any).targetWhen
+          if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
+            const tgt = state.units[targetUnitId]
+            if (!tgt || !palaceContains(tgt.side, tgt.pos)) continue
           }
           const amount = Number((ab as any).amount ?? 0)
           if (Number.isFinite(amount) && amount > 0) bonus += amount
         }
+      }
+    }
+  }
+
+  // SOLDIERS_TIERED_DAMAGE_BONUS (own unit)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'SOLDIERS_TIERED_DAMAGE_BONUS') continue
+        const tiers = (ab as any).tiers as { count: number; amount: number }[]
+        if (!Array.isArray(tiers)) continue
+        const soldiers = countSoldiers(state, attacker.side)
+        const amount = getHighestTierAmount(tiers, soldiers)
+        if (amount > 0) bonus += amount
+      }
+    }
+  }
+
+  // DAMAGE_BONUS_PER_ADJACENT_SOLDIER (聯軍馬)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER') continue
+        const radius = Number((ab as any).radius ?? 1)
+        const amountPer = Number((ab as any).amountPer ?? 1)
+        const maxBonus = Number((ab as any).max ?? 999)
+        let soldierCount = 0
+        for (const u of Object.values(state.units)) {
+          if (u.side !== attacker.side) continue
+          if (u.base !== 'soldier') continue
+          if (Math.max(Math.abs(u.pos.x - attacker.pos.x), Math.abs(u.pos.y - attacker.pos.y)) <= radius) soldierCount++
+        }
+        const amount = Math.min(maxBonus, soldierCount * amountPer)
+        if (amount > 0) bonus += amount
       }
     }
   }
@@ -143,6 +206,24 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
     }
   }
 
+  // SOLDIERS_TIERED_AURA_DAMAGE_BONUS (軍靈相 - all allies ATK+N when soldiers >= threshold)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== attacker.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities) {
+      if (ab.type !== 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') continue
+      const tiers = (ab as any).tiers as { count: number; amount: number }[]
+      if (!Array.isArray(tiers)) continue
+      const soldiers = countSoldiers(state, auraUnit.side)
+      const amount = getHighestTierAmount(tiers, soldiers)
+      if (amount > 0) bonus += amount
+      break // one aura source per unit is enough
+    }
+  }
+
   // MINGLEI
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
@@ -161,6 +242,29 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
     }
   }
 
+  // SOLDIERS_TIERED_DMG_REDUCTION_AURA (鐵骨相 - reduce incoming damage when soldiers >= threshold)
+  let dmgReduction = 0
+  const targetUnitForReduction = state.units[targetUnitId]
+  if (targetUnitForReduction) {
+    for (const auraUnit of Object.values(state.units)) {
+      if (auraUnit.side !== targetUnitForReduction.side) continue
+      const auraSoulId = auraUnit.enchant?.soulId
+      if (!auraSoulId) continue
+      const auraCard = getSoulCard(auraSoulId)
+      if (!auraCard) continue
+      for (const ab of auraCard.abilities) {
+        if (ab.type !== 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') continue
+        const tiers = (ab as any).tiers as { count: number; amount: number }[]
+        if (!Array.isArray(tiers)) continue
+        const soldiers = countSoldiers(state, auraUnit.side)
+        const amount = getHighestTierAmount(tiers, soldiers)
+        dmgReduction = Math.max(dmgReduction, amount)
+        break
+      }
+    }
+  }
+
   const dice = Number.isFinite(diceValue as any) ? Math.floor(diceValue as number) : state.rules.diceFixed
-  return Math.max(1, dice + attacker.atk.value + bonus - defValue)
+  const beforeReduction = Math.max(1, dice + attacker.atk.value + bonus - defValue)
+  return Math.max(0, beforeReduction - dmgReduction)
 }

@@ -109,9 +109,9 @@ export default defineComponent({
 
 .cellCard {
   padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--bg-surface-1);
   display: grid;
   gap: 10px;
 }
@@ -129,8 +129,8 @@ export default defineComponent({
   gap: 4px;
   padding: 8px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
 }
 
 .cellUnitRow {
@@ -190,8 +190,8 @@ export default defineComponent({
   font-weight: 900;
   padding: 1px 7px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
 }
 
 .corpseList {
@@ -201,8 +201,8 @@ export default defineComponent({
   overflow: auto;
   padding: 6px;
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border);
+  background: var(--bg-surface-2);
 }
 
 .corpseRow {
