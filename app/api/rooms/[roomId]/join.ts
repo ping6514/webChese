@@ -19,7 +19,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const blackSecret = genSecret()
   const { error } = await supabase
     .from('rooms')
-    .update({ black_secret: blackSecret, status: 'playing' })
+    .update({ black_secret: blackSecret, status: 'playing', version: 1 })
     .eq('id', roomId)
 
   if (error) return res.status(500).json({ error: error.message })
