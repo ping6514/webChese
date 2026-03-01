@@ -24,11 +24,11 @@ export function buildShotPlan(state: GameState, attackerId: string, targetUnitId
 
   for (const h of handlers) {
     const res = h.onBeforeShootValidate?.({ state, attackerId, targetUnitId, shootRules, events })
-    if (res && !res.ok) return res
+    if (res && !res.ok) return { ok: false, error: (res as { ok: false; error: string }).error }
   }
 
   const check = canShoot(state, attackerId, targetUnitId, shootRules)
-  if (!check.ok) return { ok: false, error: check.error }
+  if (!check.ok) return { ok: false, error: (check as { ok: false; error: string }).error }
 
   const plan: ShotPlan = {
     attackerId,

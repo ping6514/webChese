@@ -363,7 +363,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       } : state
 
       const planRes = buildShotPlan(stateForShot, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
-      if (!planRes.ok) return { ok: false, error: planRes.error }
+      if (!planRes.ok) return { ok: false, error: (planRes as { ok: false; error: string }).error }
 
       const execRes = executeShotPlan(stateForShot, planRes.plan)
       if (!execRes.ok) return execRes
@@ -428,7 +428,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (!src || !tgt) return { ok: false, error: 'Unit not found' }
 
       const g = canSacrifice(state, src.id, tgt.id, action.range)
-      if (!g.ok) return { ok: false, error: g.reason }
+      if (!g.ok) return { ok: false, error: (g as { ok: false; reason: string }).reason }
 
       const nextState0: GameState = {
         ...state,

@@ -222,7 +222,8 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
   } : state
 
   const planRes = buildShotPlan(stateForCheck, attackerId, targetUnitId, extraTargetUnitId)
-  return planRes.ok ? ok() : fail(planRes.error)
+  if (!planRes.ok) return fail((planRes as { ok: false; error: string }).error)
+  return ok()
 }
 
 export function canEnchant(state: GameState, unitId: string, soulId: string): GuardResult {
