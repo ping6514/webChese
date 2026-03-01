@@ -1,5 +1,6 @@
 import type { Event } from './events'
 import { BASE_STATS, type GameState } from './state'
+import { SHOT_INSTANCE_PRIORITY } from './gameConfig'
 import { canShoot } from './shooting'
 import { getDefValueInState } from './stats'
 import { getEffectHandlers, type ShotPlan } from './effects'
@@ -53,19 +54,11 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
   const events: Event[] = []
 
-  const instancePriority: Record<string, number> = {
-    direct: 0,
-    chain: 1,
-    splash: 2,
-    pierce: 3,
-    counter: 4,
-  }
-
   const sortedInstances = [...plan.instances].sort((a, b) => {
     const ak = String((a as any).kind ?? '')
     const bk = String((b as any).kind ?? '')
-    const ap = instancePriority[ak] ?? 999
-    const bp = instancePriority[bk] ?? 999
+    const ap = SHOT_INSTANCE_PRIORITY[ak] ?? 999
+    const bp = SHOT_INSTANCE_PRIORITY[bk] ?? 999
     if (ap !== bp) return ap - bp
 
     const asrc = String((a as any).sourceUnitId ?? '')

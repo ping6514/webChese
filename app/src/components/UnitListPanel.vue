@@ -70,9 +70,10 @@ export default defineComponent({
         <button
           type="button"
           class="locateBtn"
+          :class="{ locateBtnDead: u.dead }"
           :title="u.dead ? '選擇屍骸格（可執行復活）' : '在棋盤上定位'"
           @click.stop="$emit('select-cell', u.id)"
-        >📍</button>
+        >{{ u.dead ? '🪦' : '📍' }}</button>
       </div>
     </div>
   </div>
@@ -126,9 +127,17 @@ export default defineComponent({
 .unitRow.sideRed   { border-left: 3px solid rgba(255, 77, 79, 0.6); }
 
 .unitRow.dead {
-  opacity: 0.4;
   border-left-color: rgba(255, 255, 255, 0.2) !important;
   background: rgba(0, 0, 0, 0.15);
+}
+
+.unitRow.dead .imgCell,
+.unitRow.dead .infoCell {
+  opacity: 0.45;
+}
+
+.unitRow.dead .locateBtn {
+  opacity: 1;
 }
 
 /* ── Image cell ──────────────────────────────────────────────────────── */
@@ -230,5 +239,10 @@ export default defineComponent({
 .locateBtn:hover {
   background: rgba(145, 202, 255, 0.2);
   border-color: rgba(145, 202, 255, 0.5);
+}
+
+.locateBtnDead:hover {
+  background: rgba(255, 165, 0, 0.2);
+  border-color: rgba(255, 165, 0, 0.5);
 }
 </style>

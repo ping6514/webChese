@@ -21,7 +21,7 @@
 
 ## Phase 1：引擎層重構（風險低，影響廣）
 
-### 1-A｜`gameConfig.ts` 新增魔法常數
+### ✅ 1-A｜`gameConfig.ts` 新增魔法常數
 
 **目的**：消滅引擎中散落的硬編碼數值，讓調整數值只需改一個地方。
 
@@ -72,7 +72,7 @@ case 'USE_ITEM_FROM_HAND': return reduceUseItem(state, action)
 
 ---
 
-### 1-C｜`reduce.ts` 拆分 — 回合相位轉換
+### ✅ 1-C｜`reduce.ts` 拆分 — 回合相位轉換
 
 **目的**：將 `NEXT_PHASE` 的五層巢狀 case 移至獨立函數，提升可讀性。
 
@@ -85,7 +85,7 @@ function reduceNextPhase(state: GameState): ReduceResult { ... }
 
 ---
 
-### 1-D｜`shotPlan.ts` — 優先度 map 移至 `gameConfig.ts`
+### ✅ 1-D｜`shotPlan.ts` — 優先度 map 移至 `gameConfig.ts`
 
 **目前**（shotPlan.ts 第 56-62 行）：
 ```ts
@@ -246,7 +246,7 @@ export function useActiveBuffs(state: Ref<GameState>, side: Ref<Side>) {
 
 ---
 
-### 3-B｜`BoardCell.vue` badge CSS 統一
+### ✅ 3-B｜`BoardCell.vue` badge CSS 統一
 
 **目前問題**：pierceBadge / splashBadge / chainBadge 三組 CSS 結構完全相同，各約 14 行。
 
@@ -256,7 +256,7 @@ export function useActiveBuffs(state: Ref<GameState>, side: Ref<Side>) {
 
 ---
 
-### 3-D｜`UnitListPanel.vue` 陣亡單位定位按鈕修復（Bug Fix）
+### ✅ 3-D｜`UnitListPanel.vue` 陣亡單位定位按鈕修復（Bug Fix）
 
 **問題描述**：
 - 陣亡單位列（`.unitRow.dead`）套用 `opacity: 0.4`，整行包含 📍 按鈕全部半透明，**視覺上看起來不可互動**
@@ -298,6 +298,24 @@ function showUnitDetail(unitId: string) {
 ```
 
 **影響檔案**：`components/UnitListPanel.vue`（CSS + template）、`views/Game.vue`（showUnitDetail）
+
+---
+
+### ✅ 3-E｜射擊相關 UI 補上基礎棋子圖片（Bug Fix）
+
+**問題描述**：
+- 射擊目標確認（`ShootPreviewModal`）或射擊結算時，未附魔（無 `enchant.image`）的單位顯示區塊**空白或只顯示文字代碼**，沒有兵種圖示
+- 基礎棋子圖（車/馬/砲/卒/仕/象/帥）應做為 fallback，與 `UnitListPanel` 的 `.unitImgEmpty` 邏輯對齊
+
+**修復方向**：
+
+① 確認 `ShootPreviewModal.vue` 中攻擊方/目標的 unit 圖片顯示邏輯
+- 若 `unit.image` 不存在 → fallback 顯示兵種漢字（帥/車/馬/砲/卒/仕/象），與 `UnitListPanel.unitImgEmpty` 一致
+- 確認 template 中圖片的 `v-if` / `v-else` 分支完整
+
+② 確認 `DamageFormulaToast.vue`（Phase 5-F 新元件）一開始就套用相同 fallback pattern，避免重複出現此問題
+
+**影響檔案**：`components/ShootPreviewModal.vue`（優先）、Phase 5-F 新元件設計規範
 
 ---
 

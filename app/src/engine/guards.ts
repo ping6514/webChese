@@ -8,6 +8,7 @@ import { isLegalMove } from './legalMoves'
 import { getSoulCard } from './cards'
 import { buildShotPlan } from './shotPlan'
 import { getItemCard } from './items'
+import { FREE_SHOOT_MANA_SENTINEL } from './gameConfig'
 
 export type GuardResult = { ok: true } | { ok: false; reason: string }
 
@@ -216,7 +217,7 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
       ...state.resources,
       [state.turn.side]: {
         ...state.resources[state.turn.side],
-        mana: Math.max(state.resources[state.turn.side].mana, 9999),
+        mana: Math.max(state.resources[state.turn.side].mana, FREE_SHOOT_MANA_SENTINEL),
       },
     },
   } : state

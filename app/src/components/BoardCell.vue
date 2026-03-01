@@ -141,46 +141,40 @@ export default defineComponent({
   border-color: rgba(240, 200, 255, 0.9);
 }
 
-.pierceBadge {
+.pierceBadge,
+.splashBadge,
+.chainBadge {
   position: absolute;
-  top: 4px;
-  right: 4px;
   z-index: 45;
   padding: 1px 6px;
   border-radius: 999px;
-  border: 1px solid rgba(200, 230, 255, 0.5);
-  background: rgba(145, 202, 255, 0.16);
-  color: rgba(230, 246, 255, 0.95);
+  border: 1px solid;
   font-size: 0.6875rem;
   font-weight: 900;
+}
+
+.pierceBadge {
+  top: 4px;
+  right: 4px;
+  border-color: rgba(200, 230, 255, 0.5);
+  background: rgba(145, 202, 255, 0.16);
+  color: rgba(230, 246, 255, 0.95);
 }
 
 .splashBadge {
-  position: absolute;
   top: 4px;
   left: 4px;
-  z-index: 45;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 200, 140, 0.5);
+  border-color: rgba(255, 200, 140, 0.5);
   background: rgba(255, 140, 0, 0.14);
   color: rgba(255, 232, 205, 0.95);
-  font-size: 0.6875rem;
-  font-weight: 900;
 }
 
 .chainBadge {
-  position: absolute;
   top: 26px;
   left: 4px;
-  z-index: 45;
-  padding: 1px 6px;
-  border-radius: 999px;
-  border: 1px solid rgba(220, 160, 255, 0.5);
+  border-color: rgba(220, 160, 255, 0.5);
   background: rgba(186, 85, 211, 0.14);
   color: rgba(245, 232, 255, 0.95);
-  font-size: 0.6875rem;
-  font-weight: 900;
 }
 
 .killedOverlay {
@@ -755,8 +749,9 @@ export default defineComponent({
 }
 
 .cell-selected {
-  border-color: rgba(145, 202, 255, 0.85);
-  background: rgba(145, 202, 255, 0.12);
+  border-color: rgba(145, 202, 255, 1);
+  background: rgba(145, 202, 255, 0.15);
+  box-shadow: 0 0 0 3px rgba(145, 202, 255, 0.55), 0 0 10px rgba(145, 202, 255, 0.2);
 }
 
 .cell-legal {

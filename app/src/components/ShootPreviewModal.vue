@@ -14,6 +14,10 @@ type UnitPreview = {
   image: string | null
 }
 
+const BASE_LABEL: Record<string, string> = {
+  king: '帥', advisor: '仕', elephant: '象', rook: '車', knight: '馬', cannon: '砲', soldier: '卒',
+}
+
 export default defineComponent({
   name: 'ShootPreviewModal',
   props: {
@@ -36,6 +40,7 @@ export default defineComponent({
   },
   emits: ['confirm', 'cancel'],
   methods: {
+    baseLabel(base: string): string { return BASE_LABEL[base] ?? base },
     effectText(e: ShotPreviewEffect): string {
       if (e.kind === 'DAMAGE_SHARE') return `傷害分攤：${e.amount}（由 ${e.byUnitId} 承擔）`
       if (e.kind === 'DAMAGE_BONUS') return `傷害加成：+${e.amount}（來源 ${e.byUnitId}）`
@@ -95,7 +100,7 @@ export default defineComponent({
           <div v-if="attacker" class="unitCard">
             <div class="row">
               <img v-if="attacker.image" class="img" :src="attacker.image" alt="" />
-              <div v-else class="noImg mono">no img</div>
+              <div v-else class="noImg">{{ baseLabel(attacker.base) }}</div>
               <div class="meta">
                 <div class="name">{{ attacker.name }}</div>
                 <div class="mono small">{{ attacker.side }} | {{ attacker.base }} | HP {{ attacker.hpCurrent }}</div>
@@ -114,7 +119,7 @@ export default defineComponent({
           <div v-if="target" class="unitCard">
             <div class="row">
               <img v-if="target.image" class="img" :src="target.image" alt="" />
-              <div v-else class="noImg mono">no img</div>
+              <div v-else class="noImg">{{ baseLabel(target.base) }}</div>
               <div class="meta">
                 <div class="name">{{ target.name }}</div>
                 <div class="mono small">{{ target.side }} | {{ target.base }} | HP {{ target.hpCurrent }}</div>
@@ -216,8 +221,10 @@ export default defineComponent({
   border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
-  font-size: 11px;
-  opacity: 0.8;
+  font-size: 2rem;
+  font-weight: 900;
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .name {

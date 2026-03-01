@@ -26,6 +26,10 @@ export default defineComponent({
       type: String as PropType<string | null>,
       default: null,
     },
+    selectedCellPosKey: {
+      type: String as PropType<string | null>,
+      default: null,
+    },
     legalMoves: {
       type: Array as PropType<Array<{ x: number; y: number }>>,
       default: () => [],
@@ -239,10 +243,11 @@ export default defineComponent({
     const previewChainEligibleSet = computed(() => new Set(props.previewChainEligiblePosKeys))
 
     const selectedPosKey = computed(() => {
-      if (!props.selectedUnitId) return null
-      const u = props.state.units[props.selectedUnitId]
-      if (!u) return null
-      return `${u.pos.x},${u.pos.y}`
+      if (props.selectedUnitId) {
+        const u = props.state.units[props.selectedUnitId]
+        if (u) return `${u.pos.x},${u.pos.y}`
+      }
+      return props.selectedCellPosKey ?? null
     })
 
     const selectedUnit = computed(() => {

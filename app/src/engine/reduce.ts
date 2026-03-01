@@ -6,6 +6,7 @@ import type { GameState } from './state'
 import { getUnitAt } from './state'
 import { BASE_STATS } from './state'
 import { getReviveGoldCost } from './state'
+import { FREE_SHOOT_MANA_SENTINEL, HOLY_GRAIL_HEAL_AMOUNT, DEATH_CHAIN_MAX_KILLS } from './gameConfig'
 import { isLegalMove } from './legalMoves'
 import { buildShotPlan, executeShotPlan } from './shotPlan'
 import { getSoulCard } from './cards'
@@ -159,6 +160,77 @@ function autoTurnEnd(state: GameState, events: Event[]): GameState {
 
   pushResourcesEvent(events, next, side)
   return next
+}
+
+function nextPhaseOf(p: GameState['turn']['phase']): GameState['turn']['phase'] {
+  switch (p) {
+    case 'turnStart': return 'buy'
+    case 'buy':       return 'necro'
+    case 'necro':     return 'combat'
+    case 'combat':    return 'turnEnd'
+    case 'turnEnd':   return 'turnStart'
+    default: {
+      const _exhaustive: never = p
+      return _exhaustive
+    }
+  }
+}
+
+function reduceNextPhase(state: GameState): ReduceResult {
+  const events: Event[] = []
+  const side = state.turn.side
+  const from = state.turn.phase
+
+  let nextState: GameState = {
+    ...state,
+    turn: { ...state.turn, phase: nextPhaseOf(state.turn.phase) },
+  }
+
+  if (nextState.turn.phase === 'turnEnd') {
+    nextState = autoTurnEnd(nextState, events)
+    nextState = { ...nextState, turn: { ...nextState.turn, phase: 'turnStart' } }
+  }
+
+  if (nextState.turn.phase === 'turnStart') {
+    const nextSide = side === 'red' ? 'black' : 'red'
+    nextState = {
+      ...nextState,
+      turn: { ...nextState.turn, side: nextSide },
+      status: {
+        ...nextState.status,
+        kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
+      },
+      turnFlags: {
+        ...nextState.turnFlags,
+        shotUsed: {},
+        movedThisTurn: {},
+        soulReturnUsedCount: 0,
+        abilityUsed: {},
+        soulBuyUsed: false,
+        buySoulActionsUsed: 0,
+        buyItemActionsUsed: 0,
+        necroActionsUsed: 0,
+        bloodRitualUsed: false,
+        necroBonusActions: 0,
+        freeShootBonus: 0,
+        enchantGoldDiscount: 0,
+        itemNecroBonus: 0,
+        lastStandContractBonus: 0,
+        lastStandNoEnchantUnitIds: [],
+        darkMoonScopeActive: false,
+        deathChainActive: false,
+        deathChainKillCount: 0,
+        sealedUnitIds: [],
+      },
+    }
+    nextState = autoTurnStart(nextState, events)
+    nextState = { ...nextState, turn: { ...nextState.turn, phase: 'buy' } }
+    events.push({ type: 'PHASE_CHANGED', side: nextState.turn.side, from: 'turnStart', to: 'buy' })
+    return { ok: true, state: nextState, events }
+  }
+
+  events.push({ type: 'PHASE_CHANGED', side, from, to: nextState.turn.phase })
+  return { ok: true, state: nextState, events }
 }
 
 export function reduce(state: GameState, action: Action): ReduceResult {
@@ -357,7 +429,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           ...state.resources,
           [state.turn.side]: {
             ...state.resources[state.turn.side],
-            mana: Math.max(state.resources[state.turn.side].mana, 9999),
+            mana: Math.max(state.resources[state.turn.side].mana, FREE_SHOOT_MANA_SENTINEL),
           },
         },
       } : state
@@ -404,7 +476,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         const killedCount = execRes.events.filter((e) => e.type === 'UNIT_KILLED').length
         if (killedCount > 0) {
           const usedSoFar = finalState.turnFlags.deathChainKillCount ?? 0
-          const allowed = Math.min(killedCount, 3 - usedSoFar)
+          const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
           if (allowed > 0) {
             const r = finalState.resources[shootSide]
             const newMana = Math.min(r.mana + allowed, finalState.limits.manaMax)
@@ -487,7 +559,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         const sacSide = state.turn.side
         const killedCount = events.filter((e) => e.type === 'UNIT_KILLED').length
         const usedSoFar = nextState.turnFlags.deathChainKillCount ?? 0
-        const allowed = Math.min(killedCount, 3 - usedSoFar)
+        const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
         if (allowed > 0) {
           const r = nextState.resources[sacSide]
           const newMana = Math.min(r.mana + allowed, nextState.limits.manaMax)
@@ -919,103 +991,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         ],
       }
     }
-    case 'NEXT_PHASE': {
-      const events: Event[] = []
-      const side = state.turn.side
-      const from = state.turn.phase
-
-      const nextPhase = (p: GameState['turn']['phase']): GameState['turn']['phase'] => {
-        switch (p) {
-          case 'turnStart':
-            return 'buy'
-          case 'buy':
-            return 'necro'
-          case 'necro':
-            return 'combat'
-          case 'combat':
-            return 'turnEnd'
-          case 'turnEnd':
-            return 'turnStart'
-          default: {
-            const _exhaustive: never = p
-            return _exhaustive
-          }
-        }
-      }
-
-      let nextState: GameState = {
-        ...state,
-        turn: {
-          ...state.turn,
-          phase: nextPhase(state.turn.phase),
-        },
-      }
-
-      // Auto processing phases
-      if (nextState.turn.phase === 'turnEnd') {
-        nextState = autoTurnEnd(nextState, events)
-        // Advance directly to turnStart so the block below runs in one pass
-        nextState = { ...nextState, turn: { ...nextState.turn, phase: 'turnStart' } }
-      }
-
-      if (nextState.turn.phase === 'turnStart') {
-        // swap side first, then apply turn start income for the new side
-        const nextSide = side === 'red' ? 'black' : 'red'
-        nextState = {
-          ...nextState,
-          turn: {
-            ...nextState.turn,
-            side: nextSide,
-          },
-          status: {
-            ...nextState.status,
-            kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
-          },
-          turnFlags: {
-            ...nextState.turnFlags,
-            shotUsed: {},
-            movedThisTurn: {},
-            soulReturnUsedCount: 0,
-            abilityUsed: {},
-            soulBuyUsed: false,
-            buySoulActionsUsed: 0,
-            buyItemActionsUsed: 0,
-            necroActionsUsed: 0,
-            bloodRitualUsed: false,
-            necroBonusActions: 0,
-            freeShootBonus: 0,
-            enchantGoldDiscount: 0,
-            itemNecroBonus: 0,
-            lastStandContractBonus: 0,
-            lastStandNoEnchantUnitIds: [],
-            darkMoonScopeActive: false,
-            deathChainActive: false,
-            deathChainKillCount: 0,
-            sealedUnitIds: [],
-          },
-        }
-        nextState = autoTurnStart(nextState, events)
-
-        // after auto turn start, immediately enter buy and wait for player
-        nextState = {
-          ...nextState,
-          turn: {
-            ...nextState.turn,
-            phase: 'buy',
-          },
-        }
-        events.push({ type: 'PHASE_CHANGED', side: nextState.turn.side, from: 'turnStart', to: 'buy' })
-
-        return {
-          ok: true,
-          state: nextState,
-          events,
-        }
-      }
-
-      events.push({ type: 'PHASE_CHANGED', side, from, to: nextState.turn.phase })
-      return { ok: true, state: nextState, events }
-    }
+    case 'NEXT_PHASE':
+      return reduceNextPhase(state)
     case 'USE_ITEM_FROM_HAND': {
       const side = state.turn.side
       const hand = state.hands[side].items
@@ -1054,7 +1031,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           const baseStats = BASE_STATS[unit.base]
           const hpMax = unit.enchant ? (getSoulCard(unit.enchant.soulId)?.stats.hp ?? baseStats.hp) : baseStats.hp
           const from = unit.hpCurrent
-          const to = Math.min(hpMax, unit.hpCurrent + 4)
+          const to = Math.min(hpMax, unit.hpCurrent + HOLY_GRAIL_HEAL_AMOUNT)
           nextState = {
             ...nextState,
             units: { ...nextState.units, [unit.id]: { ...unit, hpCurrent: to } },

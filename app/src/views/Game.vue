@@ -325,6 +325,7 @@ const {
 const {
   selectedUnitId,
   selectedCell,
+  selectedCellKey,
   selectedUnit,
   legalMoves,
   shootableTargetIds,
@@ -1627,6 +1628,7 @@ async function copyEventLog() {
         <BoardGrid
           :state="state"
           :selected-unit-id="selectedUnitId"
+          :selected-cell-pos-key="selectedCellKey"
           :legal-moves="legalMoves"
           :shootable-target-ids="shootableTargetIds"
           :highlight-unit-ids="enchantMode ? enchantableUnitIds : sacrificeMode ? sacrificeTargetableUnitIds : ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds : []"
