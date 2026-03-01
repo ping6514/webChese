@@ -8,21 +8,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const supabase = createServerClient()
     const roomId = genId(6)
-    const redSecret = genSecret()
-    const initialState = createInitialState()
+    const creatorSecret = genSecret()
+    const creatorSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
+    const firstSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
+    const initialState = createInitialState({ rules: { firstSide } as any })
 
     const { error } = await supabase.from('rooms').insert({
       id: roomId,
       version: 0,
       state_json: initialState,
       status: 'waiting',
-      red_secret: redSecret,
-      black_secret: null,
+      red_secret: creatorSide === 'red' ? creatorSecret : null,
+      black_secret: creatorSide === 'black' ? creatorSecret : null,
     })
 
     if (error) return res.status(500).json({ error: error.message })
 
-    res.json({ roomId, secret: redSecret, side: 'red' })
+    res.json({ roomId, secret: creatorSecret, side: creatorSide })
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     const stack = e instanceof Error ? e.stack?.slice(0, 600) : undefined

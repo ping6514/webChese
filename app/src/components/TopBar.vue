@@ -25,6 +25,7 @@ export default defineComponent({
       type: Object as () => { red: Resources; black: Resources },
       required: true,
     },
+    onlineSide: { type: String as () => 'red' | 'black' | null, default: null },
   },
   emits: ['cycle-connection', 'open-menu', 'next-phase'],
   methods: {
@@ -55,7 +56,7 @@ export default defineComponent({
     <!-- LEFT: BLACK player (horizontal) -->
     <div class="playerRow" :class="{ activeRow: currentSide === 'black', rowBlack: true }">
       <span class="dot dotBlack" />
-      <span class="playerName">BLACK</span>
+      <span class="playerName">BLACK<span v-if="onlineSide" class="youTag">{{ onlineSide === 'black' ? '(你)' : '(敵)' }}</span></span>
       <span class="statChip hp">❤️ <b>{{ kingHp.black ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.black.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.black.mana }}</b></span>
@@ -106,7 +107,7 @@ export default defineComponent({
     <!-- RIGHT: RED player (horizontal) -->
     <div class="playerRow" :class="{ activeRow: currentSide === 'red', rowRed: true }">
       <span class="dot dotRed" />
-      <span class="playerName">RED</span>
+      <span class="playerName">RED<span v-if="onlineSide" class="youTag">{{ onlineSide === 'red' ? '(你)' : '(敵)' }}</span></span>
       <span class="statChip hp">❤️ <b>{{ kingHp.red ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.red.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.red.mana }}</b></span>
@@ -188,6 +189,14 @@ export default defineComponent({
 .statChip.gold b { color: #e8d070; }
 .statChip.mana b { color: #91caff; }
 .statChip.store b{ color: rgba(255, 255, 255, 0.7); }
+
+.youTag {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.65;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
 
 /* ── Center ──────────────────────────────────────────────────────────── */
 .center {

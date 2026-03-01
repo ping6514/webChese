@@ -47,18 +47,34 @@ import { usePendingConfirm } from '../usePendingConfirm'
 import { useSelection } from '../useSelection'
 import { useShootPreview } from '../useShootPreview'
 import { useUiStore } from '../stores/ui'
+import { useConnection } from '../stores/connection'
 import { countCorpses } from '../engine/corpses'
 
 // ── NPC / Game setup ──────────────────────────────────────────────────────────
 const setup = useGameSetup()
+const conn = useConnection()
 
 function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) }
 
-const state = ref<GameState>(createInitialState({
-  rules: { firstSide: setup.resolvedFirstPlayer } as any,
-}))
+const state = ref<GameState>(
+  setup.mode === 'online' && conn.gameState
+    ? conn.gameState
+    : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer } as any })
+)
 const lastError = ref<string | null>(null)
 const lastEvents = ref<string[]>([])
+
+// ── Online mode ────────────────────────────────────────────────────────────────
+const onlineWaiting = ref(false)
+const sideSplashVisible = ref(false)
+const sideSplashText = ref('')
+
+// Sync server state → local state in online mode
+watch(
+  () => conn.gameState,
+  (gs) => { if (gs && setup.mode === 'online') state.value = gs },
+  { immediate: true },
+)
 
 type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
 type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
@@ -132,6 +148,14 @@ watch(
     router.push({ name: 'gameOver', query: { winner: w } })
   },
   { immediate: true },
+)
+
+// ── Online turn control ────────────────────────────────────────────────────────
+const isMyTurn = computed(() =>
+  setup.mode !== 'online' || conn.side === state.value.turn.side
+)
+const isOnlineOpponentTurn = computed(() =>
+  setup.mode === 'online' && !isMyTurn.value
 )
 
 // ── NPC computed & watcher ────────────────────────────────────────────────────
@@ -362,7 +386,10 @@ watchEffect(() => {
       ? 'linear-gradient(180deg, rgba(255, 77, 79, 0.25) 0%, rgba(0,0,0,0) 50%)'
       : 'linear-gradient(180deg, rgba(82, 196, 26, 0.25) 0%, rgba(0,0,0,0) 50%)'
 })
-onUnmounted(() => { document.body.style.backgroundImage = '' })
+onUnmounted(() => {
+  document.body.style.backgroundImage = ''
+  if (setup.mode === 'online') conn.disconnect()
+})
 
 const resources = computed(() => state.value.resources)
 const handItems = computed(() => state.value.hands[state.value.turn.side].items)
@@ -702,6 +729,13 @@ function cancelSacrificeMode() {
 }
 
 onMounted(() => {
+  // Show side assignment splash in online mode
+  if (setup.mode === 'online' && conn.side) {
+    sideSplashText.value = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    sideSplashVisible.value = true
+    setTimeout(() => { sideSplashVisible.value = false }, 5000)
+  }
+
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && ui.interactionMode.kind !== 'idle') {
       ui.clearInteractionMode()
@@ -937,20 +971,8 @@ function selectCellFromUnits(unitId: string) {
 }
 
 
-function dispatch(action: Parameters<typeof reduce>[1]) {
-  const prevState = state.value
-  const res = reduce(state.value, action)
-  if (res.ok === false) {
-    lastError.value = res.error
-    return
-  }
-
-  lastError.value = null
-  state.value = res.state
-
-  const nextState = res.state
-
-  for (const e of res.events) {
+function processEvents(events: unknown[], nextState: GameState, prevState?: GameState) {
+  for (const e of events) {
     if ((e as any).type === 'ITEM_USED') {
       // 道具使用：在己方帥的位置顯示道具名稱浮字
       const itemName = String((e as any).itemName ?? '')
@@ -1082,7 +1104,7 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
           fxKilledUnitIds.value = fxKilledUnitIds.value.filter((id) => id !== unitId)
         }, 760)
 
-        const pos = prevState.units[unitId]?.pos
+        const pos = prevState?.units[unitId]?.pos
         if (pos) {
           const key = `${pos.x},${pos.y}`
           fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
@@ -1118,15 +1140,55 @@ function dispatch(action: Parameters<typeof reduce>[1]) {
   }
 
   // Fallback: if engine didn't emit UNIT_KILLED but a unit disappeared this dispatch, still show killed FX.
-  for (const [unitId, prevU] of Object.entries(prevState.units)) {
-    if (nextState.units[unitId]) continue
-    const key = `${prevU.pos.x},${prevU.pos.y}`
-    fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
-    window.setTimeout(() => {
-      fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
-    }, 760)
+  if (prevState) {
+    for (const [unitId, prevU] of Object.entries(prevState.units)) {
+      if (nextState.units[unitId]) continue
+      const key = `${prevU.pos.x},${prevU.pos.y}`
+      fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
+      window.setTimeout(() => {
+        fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
+      }, 760)
+    }
+  }
+}
+
+async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
+  if (onlineWaiting.value) return
+  onlineWaiting.value = true
+  const prevState = state.value
+  const result = await conn.sendAction(action)
+  onlineWaiting.value = false
+  if (!result.ok) {
+    lastError.value = result.error ?? 'Server error'
+    return
+  }
+  lastError.value = null
+  // Apply updated state immediately (watch will also fire but no-ops)
+  if (conn.gameState) state.value = conn.gameState
+  processEvents(conn.lastEvents as unknown[], state.value, prevState)
+  lastEvents.value = [
+    ...lastEvents.value,
+    ...(conn.lastEvents as unknown[]).map((e) => JSON.stringify(e)),
+  ].slice(-300)
+}
+
+function dispatch(action: Parameters<typeof reduce>[1]) {
+  if (setup.mode === 'online') {
+    dispatchOnline(action)
+    return
   }
 
+  const prevState = state.value
+  const res = reduce(state.value, action)
+  if (res.ok === false) {
+    lastError.value = res.error
+    return
+  }
+
+  lastError.value = null
+  state.value = res.state
+
+  processEvents(res.events as unknown[], res.state, prevState)
   lastEvents.value = [...lastEvents.value, ...res.events.map((e) => JSON.stringify(e))].slice(-300)
 }
 
@@ -1382,8 +1444,18 @@ async function copyEventLog() {
       </div>
     </Transition>
 
+    <!-- 入場陣營 Splash（線上模式） -->
+    <Transition name="side-splash">
+      <div v-if="sideSplashVisible" class="sideSplash" :class="conn.side === 'red' ? 'splashRed' : 'splashGreen'">
+        {{ sideSplashText }}
+      </div>
+    </Transition>
+
     <!-- NPC 回合鎖定：防止玩家誤點 -->
     <div v-if="isNpcTurn" class="npc-overlay" />
+
+    <!-- 線上對戰：對手回合 / 等待伺服器回應時鎖定 -->
+    <div v-if="isOnlineOpponentTurn || onlineWaiting" class="npc-overlay" />
 
     <div class="topbarWrap">
       <TopBar
@@ -1395,6 +1467,7 @@ async function copyEventLog() {
         :necro-actions-max="necroActionsMax"
         :king-hp="kingHp"
         :resources="resources"
+        :online-side="setup.mode === 'online' ? conn.side : null"
         @cycle-connection="cycleConnection"
         @open-menu="openMenu"
         @next-phase="nextPhase"
@@ -2057,4 +2130,28 @@ async function copyEventLog() {
   opacity: 0;
   transform: translateX(-50%) translateY(8px) scale(0.96);
 }
+
+/* ── Side assignment splash (online mode) ──────────────────────────────── */
+.sideSplash {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  text-shadow: 0 0 40px currentColor;
+}
+
+.splashRed   { color: #ffb0b2; }
+.splashGreen { color: #b7eb8f; }
+
+.side-splash-enter-active { transition: opacity 0.5s ease; }
+.side-splash-leave-active { transition: opacity 1.2s ease; }
+.side-splash-enter-from,
+.side-splash-leave-to { opacity: 0; }
 </style>
