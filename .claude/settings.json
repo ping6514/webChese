@@ -16,7 +16,9 @@
       "Bash(ls d:/workspace/webChese/app/api/rooms/[roomId]/)",
       "Bash(git add app/api/rooms/[roomId]/join.ts)",
       "Bash(git add app/api/rooms/create.ts \"app/api/rooms/[roomId]/join.ts\" app/src/components/TopBar.vue app/src/views/Game.vue)",
-      "Bash(git add app/src/components/TopBar.vue app/src/views/Game.vue)"
+      "Bash(git add app/src/components/TopBar.vue app/src/views/Game.vue)",
+      "Bash(python3 -c \":*)",
+      "Bash(node -e \":*)"
     ]
   }
 }
