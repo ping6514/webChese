@@ -24,8 +24,6 @@ import {
   createInitialState,
   getItemCard,
   getSoulCard,
-  reduce,
-  BASE_STATS,
   type GameState,
   type Pos,
   type PieceBase,
@@ -49,6 +47,10 @@ import { useShootPreview } from '../useShootPreview'
 import { useUiStore } from '../stores/ui'
 import { useConnection } from '../stores/connection'
 import { countCorpses } from '../engine/corpses'
+import { useGameEffects } from '../composables/useGameEffects'
+import { useActiveBuffs } from '../composables/useActiveBuffs'
+import { useGameDispatch } from '../composables/useGameDispatch'
+import { useInteractionMode } from '../composables/useInteractionMode'
 
 // ── NPC / Game setup ──────────────────────────────────────────────────────────
 const setup = useGameSetup()
@@ -61,11 +63,7 @@ const state = ref<GameState>(
     ? conn.gameState
     : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer, enabledClans: setup.enabledClans } as any })
 )
-const lastError = ref<string | null>(null)
-const lastEvents = ref<string[]>([])
-
 // ── Online mode ────────────────────────────────────────────────────────────────
-const onlineWaiting = ref(false)
 const sideSplashVisible = ref(false)
 const sideSplashText = ref('')
 
@@ -75,77 +73,21 @@ const CLAN_LABELS: Record<string, string> = {
   eternal_night: '🌑永夜',
   iron_guard: '🛡️鐵衛',
 }
-const PHASE_LABELS: Record<string, string> = {
-  buy: '購買', necro: '死靈術', combat: '戰鬥', turnEnd: '回合結束', turnStart: '換手',
-}
 
-function eventToText(e: Record<string, unknown>): string {
-  const s = (side: unknown) => side === 'red' ? '🔴紅' : '⚫黑'
-  switch (e.type) {
-    case 'PHASE_CHANGED': {
-      const to = e.to as string
-      if (to === 'buy' || to === 'necro' || to === 'combat')
-        return `── ${s(e.side)}方 ${PHASE_LABELS[to] ?? to}階段 ──`
-      if (to === 'turnStart') return `──────── 換手 ────────`
-      return ''
-    }
-    case 'SOUL_BOUGHT':
-      return `${s(e.side)}方 購買靈魂「${e.soulName}」(${e.base}) [${e.source === 'deck' ? '盲抽' : e.source === 'display' ? '展示' : '盜取'}]`
-    case 'ENCHANTED':
-      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 附魔 ${e.unitId} ← ${e.soulId}`
-    case 'REVIVED':
-      return `${s((state.value.units as any)[e.unitId as string]?.side ?? '?')}方 復活 ${e.unitId}`
-    case 'UNIT_MOVED':
-      return `移動 (${(e.from as any)?.x},${(e.from as any)?.y})→(${(e.to as any)?.x},${(e.to as any)?.y})`
-    case 'SHOT_FIRED':
-      return `射擊 ${e.attackerId} → ${e.targetUnitId}`
-    case 'DAMAGE_DEALT':
-      return `傷害 ${e.targetUnitId} -${e.amount}`
-    case 'UNIT_HP_CHANGED': {
-      const delta = (e.to as number) - (e.from as number)
-      return `${e.unitId} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`
-    }
-    case 'UNIT_KILLED':
-      return `💀 ${e.unitId} 陣亡`
-    case 'ABILITY_TRIGGERED':
-      return `⚡ ${e.text ?? e.abilityType ?? e.unitId}`
-    case 'ITEM_USED':
-      return `${s(e.side)}方 使用道具「${e.itemName}」`
-    case 'RESOURCES_CHANGED':
-      return `${s(e.side)}方 財力${e.gold} 魔力${e.mana}`
-    default:
-      return JSON.stringify(e)
-  }
-}
+const {
+  fxAttackUnitIds,
+  fxHitUnitIds,
+  fxKilledUnitIds,
+  fxAbilityUnitIds,
+  floatTextsByPos,
+  fxBeams,
+  fxKilledPosKeys,
+  fxRevivedPosKeys,
+  fxEnchantedPosKeys,
+  processEventFx,
+} = useGameEffects()
 
-// Sync server state → local state in online mode; process opponent events
-watch(
-  () => conn.gameState,
-  (gs) => {
-    if (!gs || setup.mode !== 'online') return
-    state.value = gs
-    if (conn.pollEvents.length > 0) {
-      const evts = conn.pollEvents as Record<string, unknown>[]
-      processEvents(evts as unknown[], state.value, undefined)
-      const lines = evts.map(eventToText).filter(Boolean)
-      lastEvents.value = [...lastEvents.value, ...lines].slice(-300)
-    }
-  },
-  { immediate: true },
-)
-
-type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
-type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
-
-const fxAttackUnitIds = ref<string[]>([])
-const fxHitUnitIds = ref<string[]>([])
-const fxKilledUnitIds = ref<string[]>([])
-const fxAbilityUnitIds = ref<string[]>([])
-const floatTextsByPos = ref<Record<string, FloatText[]>>({})
-const fxBeams = ref<BeamFx[]>([])
-const fxKilledPosKeys = ref<string[]>([])
-const fxRevivedPosKeys = ref<string[]>([])
-const fxEnchantedPosKeys = ref<string[]>([])
+const { dispatch, lastError, lastEvents, onlineWaiting } = useGameDispatch({ state, processEventFx, setup, conn })
 
 const debugOpen = ref(false)
 const eventLogOpen = ref(false)
@@ -513,89 +455,7 @@ const necroActionsUsed = computed(() => state.value.turnFlags.necroActionsUsed ?
 const necroActionsMax = computed(() => state.value.limits.necroActionsPerTurn + (state.value.turnFlags.necroBonusActions ?? 0))
 
 // ── Active buff indicator ─────────────────────────────────────────────────────
-function highestTierAmount(tiers: { count: number; amount: number }[], n: number): number {
-  const sorted = [...tiers].sort((a, b) => b.count - a.count)
-  for (const t of sorted) { if (n >= t.count) return t.amount }
-  return 0
-}
-
-type BuffEntry = { label: string; kind: 'aura' | 'free' | 'buff' }
-
-const activeBuffs = computed((): BuffEntry[] => {
-  const s = state.value
-  const side = s.turn.side
-  const phase = s.turn.phase
-  const buffs: BuffEntry[] = []
-
-  const soldierCount = Object.values(s.units).filter((u) => u.side === side && u.base === 'soldier').length
-
-  for (const u of Object.values(s.units)) {
-    if (u.side !== side) continue
-    const soulId = u.enchant?.soulId
-    if (!soulId) continue
-    const card = getSoulCard(soulId)
-    if (!card) continue
-    for (const ab of card.abilities) {
-      const type = ab.type
-
-      if (type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') {
-        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
-        if (amt > 0) buffs.push({ label: `${card.name}：全軍 ATK +${amt}`, kind: 'aura' })
-      }
-
-      if (type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
-        const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
-        if (amt > 0) buffs.push({ label: `${card.name}：全軍 減傷 -${amt}`, kind: 'aura' })
-      }
-
-      if (type === 'FORMATION_COMMAND' && phase === 'combat') {
-        const perTurn = Number((ab as any).perTurn ?? 1)
-        const used = s.turnFlags.abilityUsed?.[`${u.id}:FORMATION_COMMAND`] ?? 0
-        if (used < perTurn) buffs.push({ label: `${card.name}（整編）：相鄰卒可免費移動`, kind: 'free' })
-      }
-
-      if (type === 'LOGISTICS_REVIVE' && phase === 'necro') {
-        const perTurn = Number((ab as any).perTurn ?? 1)
-        const used = s.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
-        if (used < perTurn) buffs.push({ label: `${card.name}（後勤）：可免費復活 1 個卒`, kind: 'free' })
-      }
-
-      if (type === 'FREE_SHOOT' && phase === 'combat') {
-        const when = (ab as any).when
-        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
-        if (conditionOk) {
-          const perTurn = Number((ab as any).perTurn ?? 1)
-          const used = s.turnFlags.abilityUsed?.[`${u.id}:FREE_SHOOT`] ?? 0
-          if (used < perTurn) buffs.push({ label: `${card.name}：可免費射擊 ×${perTurn - used}`, kind: 'free' })
-        }
-      }
-
-      if (type === 'IGNORE_BLOCKING') {
-        const when = (ab as any).when
-        const conditionOk = !when || (String(when.type ?? '') === 'SOLDIERS_GTE' && soldierCount >= Number(when.count ?? 0))
-        if (conditionOk && phase === 'combat') buffs.push({ label: `${card.name}：無視阻擋`, kind: 'buff' })
-      }
-    }
-  }
-
-  // TurnFlags 額外狀態
-  if ((s.turnFlags.freeShootBonus ?? 0) > 0)
-    buffs.push({ label: `魂能超載：下次射擊免費 ×${s.turnFlags.freeShootBonus}`, kind: 'free' })
-  if ((s.turnFlags.enchantGoldDiscount ?? 0) > 0)
-    buffs.push({ label: `冥魂灌注：附魔 -${s.turnFlags.enchantGoldDiscount}G`, kind: 'buff' })
-  if ((s.turnFlags.itemNecroBonus ?? 0) > 0)
-    buffs.push({ label: `冥魂灌注：死靈術 +${s.turnFlags.itemNecroBonus}`, kind: 'buff' })
-  if ((s.turnFlags.necroBonusActions ?? 0) > 0)
-    buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
-  if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
-    buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
-  if (s.turnFlags.darkMoonScopeActive)
-    buffs.push({ label: '暗月窺視：可選任意墳場卡', kind: 'buff' })
-  if (s.turnFlags.deathChainActive)
-    buffs.push({ label: '死亡連鎖：擊殺 +1 魔力', kind: 'aura' })
-
-  return buffs
-})
+const { activeBuffs } = useActiveBuffs(state)
 
 const selectedEnchantSoul = computed(() => {
   const soulId = selectedUnit.value?.enchant?.soulId
@@ -865,9 +725,6 @@ const useItemGuards = computed(() => {
   return out
 })
 
-// 骸骨煉化二選一：暫存選中的屍骸位置
-const boneRefineChoicePos = ref<Pos | null>(null)
-
 function getItemName(id: string): string {
   return getItemCard(id)?.name ?? id
 }
@@ -878,85 +735,6 @@ function buyItem(slot: number) {
 
 function discardItem(itemId: string) {
   dispatch({ type: 'DISCARD_ITEM_FROM_HAND', itemId })
-}
-
-function getUnitHpMax(unit: GameState['units'][string]): number {
-  if (unit.enchant) return getSoulCard(unit.enchant.soulId)?.stats.hp ?? BASE_STATS[unit.base].hp
-  return BASE_STATS[unit.base].hp
-}
-
-function onUseItem(itemId: string) {
-  const item = getItemCard(itemId)
-  if (!item) return
-  const side = state.value.turn.side
-
-  switch (itemId) {
-    case 'item_lingxue_holy_grail': {
-      const validUnitIds = Object.values(state.value.units)
-        .filter((u) => u.side === side && u.hpCurrent < getUnitHpMax(u))
-        .map((u) => u.id)
-      if (validUnitIds.length === 0) { lastError.value = '沒有可治療的單位'; return }
-      ui.startUseItemTargetUnit(itemId, validUnitIds)
-      break
-    }
-    case 'item_dead_return_path': {
-      const validUnitIds = Object.values(state.value.units)
-        .filter((u) => u.side === side && !!u.enchant)
-        .map((u) => u.id)
-      if (validUnitIds.length === 0) { lastError.value = '沒有附魔單位'; return }
-      ui.startUseItemTargetUnit(itemId, validUnitIds)
-      break
-    }
-    case 'item_bone_refine': {
-      ui.startUseItemTargetCorpse(itemId)
-      break
-    }
-    case 'item_nether_seal': {
-      const validUnitIds = Object.values(state.value.units)
-        .filter((u) => u.side !== side)
-        .map((u) => u.id)
-      if (validUnitIds.length === 0) { lastError.value = '沒有可封印的敵方單位'; return }
-      ui.startUseItemTargetUnit(itemId, validUnitIds)
-      break
-    }
-    case 'item_soul_detach_needle': {
-      const validUnitIds = Object.values(state.value.units)
-        .filter((u) => u.side !== side && !!u.enchant)
-        .map((u) => u.id)
-      if (validUnitIds.length === 0) { lastError.value = '敵方沒有附魔單位'; return }
-      ui.startUseItemTargetUnit(itemId, validUnitIds)
-      break
-    }
-    default: {
-      // 無目標道具：直接彈出確認
-      setPending({
-        action: { type: 'USE_ITEM_FROM_HAND', itemId },
-        title: item.name,
-        detail: item.text ?? '',
-      })
-    }
-  }
-}
-
-function boneRefineChoose(choice: 'gold' | 'mana') {
-  if (!boneRefineChoicePos.value) return
-  setPending({
-    action: { type: 'USE_ITEM_FROM_HAND', itemId: 'item_bone_refine', targetPos: boneRefineChoicePos.value, choice },
-    title: '骸骨煉化',
-    detail: (() => {
-      const eff = getItemCard('item_bone_refine')?.effect
-      return choice === 'gold'
-        ? `移除屍骸 → 獲得 +${eff?.goldAmount ?? 9} 財力`
-        : `移除屍骸 → 獲得 +${eff?.manaAmount ?? 2} 魔力`
-    })(),
-  })
-  boneRefineChoicePos.value = null
-  ui.clearInteractionMode()
-}
-
-function cancelBoneRefine() {
-  boneRefineChoicePos.value = null
-  ui.clearInteractionMode()
 }
 
 const { detailModal, closeDetail, runDetailAction, showSoulDetail, showItemDetail, showEnemyGraveTopDetail } =
@@ -1047,226 +825,6 @@ function selectCellFromUnits(unitId: string) {
 }
 
 
-function processEvents(events: unknown[], nextState: GameState, prevState?: GameState) {
-  for (const e of events) {
-    if ((e as any).type === 'ITEM_USED') {
-      // 道具使用：在己方帥的位置顯示道具名稱浮字
-      const itemName = String((e as any).itemName ?? '')
-      const usedSide = String((e as any).side ?? state.value.turn.side)
-      const king = Object.values(nextState.units).find((u) => u.side === usedSide && u.base === 'king')
-      if (king && itemName) {
-        const key = `${king.pos.x},${king.pos.y}`
-        const id = `${Date.now()}-${Math.random()}`
-        const floatItem: FloatText = { id, text: itemName, kind: 'heal' }
-        const cur = floatTextsByPos.value[key] ?? []
-        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, floatItem] }
-        window.setTimeout(() => {
-          const cur2 = floatTextsByPos.value[key] ?? []
-          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
-        }, 900)
-      }
-    }
-
-    if ((e as any).type === 'ABILITY_TRIGGERED') {
-      const unitId = String((e as any).unitId ?? '')
-      const text = String((e as any).text ?? (e as any).abilityType ?? '')
-      const u = unitId ? nextState.units[unitId] : null
-      if (u && text) {
-        // B: highlight
-        fxAbilityUnitIds.value = [...fxAbilityUnitIds.value.filter((id) => id !== unitId), unitId]
-        window.setTimeout(() => {
-          fxAbilityUnitIds.value = fxAbilityUnitIds.value.filter((id) => id !== unitId)
-        }, 520)
-
-        // A: float text
-        const key = `${u.pos.x},${u.pos.y}`
-        const id = `${Date.now()}-${Math.random()}`
-        const item: FloatText = { id, text, kind: 'heal' }
-        const cur = floatTextsByPos.value[key] ?? []
-        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
-        window.setTimeout(() => {
-          const cur2 = floatTextsByPos.value[key] ?? []
-          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
-        }, 780)
-      }
-    }
-
-    if ((e as any).type === 'SHOT_FIRED') {
-      const attackerId = String((e as any).attackerId ?? '')
-      const targetId = String((e as any).targetUnitId ?? '')
-
-      const attacker = attackerId ? nextState.units[attackerId] : null
-      const target = targetId ? nextState.units[targetId] : null
-      if (attacker && target) {
-        const id = `${Date.now()}-${Math.random()}`
-        const beam: BeamFx = { id, from: { ...attacker.pos }, to: { ...target.pos } }
-        fxBeams.value = [...fxBeams.value, beam]
-        window.setTimeout(() => {
-          fxBeams.value = fxBeams.value.filter((b) => b.id !== id)
-        }, 240)
-      }
-
-      if (attackerId) {
-        fxAttackUnitIds.value = [...fxAttackUnitIds.value.filter((id) => id !== attackerId), attackerId]
-        window.setTimeout(() => {
-          fxAttackUnitIds.value = fxAttackUnitIds.value.filter((id) => id !== attackerId)
-        }, 520)
-      }
-      if (targetId) {
-        fxHitUnitIds.value = [...fxHitUnitIds.value.filter((id) => id !== targetId), targetId]
-        window.setTimeout(() => {
-          fxHitUnitIds.value = fxHitUnitIds.value.filter((id) => id !== targetId)
-        }, 620)
-      }
-    }
-
-    if ((e as any).type === 'DAMAGE_DEALT') {
-      const attackerId = String((e as any).attackerId ?? '')
-      const targetId = String((e as any).targetUnitId ?? '')
-      const amount = Number((e as any).amount ?? 0)
-
-      if (attackerId) {
-        fxAttackUnitIds.value = [...fxAttackUnitIds.value.filter((id) => id !== attackerId), attackerId]
-        window.setTimeout(() => {
-          fxAttackUnitIds.value = fxAttackUnitIds.value.filter((id) => id !== attackerId)
-        }, 520)
-      }
-
-      if (targetId) {
-        fxHitUnitIds.value = [...fxHitUnitIds.value.filter((id) => id !== targetId), targetId]
-        window.setTimeout(() => {
-          fxHitUnitIds.value = fxHitUnitIds.value.filter((id) => id !== targetId)
-        }, 620)
-      }
-
-      const u = targetId ? nextState.units[targetId] : null
-      if (u && Number.isFinite(amount) && amount !== 0) {
-        const key = `${u.pos.x},${u.pos.y}`
-        const id = `${Date.now()}-${Math.random()}`
-        const item: FloatText = { id, text: amount > 0 ? `-${amount}` : `${amount}`, kind: 'damage' }
-        const cur = floatTextsByPos.value[key] ?? []
-        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
-        window.setTimeout(() => {
-          const cur2 = floatTextsByPos.value[key] ?? []
-          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
-        }, 780)
-      }
-    }
-
-    if ((e as any).type === 'UNIT_HP_CHANGED') {
-      const unitId = String((e as any).unitId ?? '')
-      const from = Number((e as any).from ?? 0)
-      const to = Number((e as any).to ?? 0)
-      const delta = to - from
-      const u = unitId ? nextState.units[unitId] : null
-      if (u && Number.isFinite(delta) && delta > 0) {
-        const key = `${u.pos.x},${u.pos.y}`
-        const id = `${Date.now()}-${Math.random()}`
-        const item: FloatText = { id, text: `+${delta}`, kind: 'heal' }
-        const cur = floatTextsByPos.value[key] ?? []
-        floatTextsByPos.value = { ...floatTextsByPos.value, [key]: [...cur, item] }
-        window.setTimeout(() => {
-          const cur2 = floatTextsByPos.value[key] ?? []
-          floatTextsByPos.value = { ...floatTextsByPos.value, [key]: cur2.filter((x) => x.id !== id) }
-        }, 780)
-      }
-    }
-
-    if ((e as any).type === 'UNIT_KILLED') {
-      const unitId = String((e as any).unitId ?? '')
-      if (unitId) {
-        fxKilledUnitIds.value = [...fxKilledUnitIds.value.filter((id) => id !== unitId), unitId]
-        window.setTimeout(() => {
-          fxKilledUnitIds.value = fxKilledUnitIds.value.filter((id) => id !== unitId)
-        }, 760)
-
-        const pos = prevState?.units[unitId]?.pos
-        if (pos) {
-          const key = `${pos.x},${pos.y}`
-          fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
-          window.setTimeout(() => {
-            fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
-          }, 760)
-        }
-      }
-    }
-
-    if ((e as any).type === 'REVIVED') {
-      const pos = (e as any).pos
-      if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
-        const key = `${pos.x},${pos.y}`
-        fxRevivedPosKeys.value = [...fxRevivedPosKeys.value.filter((k) => k !== key), key]
-        window.setTimeout(() => {
-          fxRevivedPosKeys.value = fxRevivedPosKeys.value.filter((k) => k !== key)
-        }, 760)
-      }
-    }
-
-    if ((e as any).type === 'ENCHANTED') {
-      const unitId = String((e as any).unitId ?? '')
-      const u = unitId ? nextState.units[unitId] : null
-      if (u) {
-        const key = `${u.pos.x},${u.pos.y}`
-        fxEnchantedPosKeys.value = [...fxEnchantedPosKeys.value.filter((k) => k !== key), key]
-        window.setTimeout(() => {
-          fxEnchantedPosKeys.value = fxEnchantedPosKeys.value.filter((k) => k !== key)
-        }, 820)
-      }
-    }
-  }
-
-  // Fallback: if engine didn't emit UNIT_KILLED but a unit disappeared this dispatch, still show killed FX.
-  if (prevState) {
-    for (const [unitId, prevU] of Object.entries(prevState.units)) {
-      if (nextState.units[unitId]) continue
-      const key = `${prevU.pos.x},${prevU.pos.y}`
-      fxKilledPosKeys.value = [...fxKilledPosKeys.value.filter((k) => k !== key), key]
-      window.setTimeout(() => {
-        fxKilledPosKeys.value = fxKilledPosKeys.value.filter((k) => k !== key)
-      }, 760)
-    }
-  }
-}
-
-async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
-  if (onlineWaiting.value) return
-  onlineWaiting.value = true
-  const prevState = state.value
-  const result = await conn.sendAction(action)
-  onlineWaiting.value = false
-  if (!result.ok) {
-    lastError.value = result.error ?? 'Server error'
-    return
-  }
-  lastError.value = null
-  // Apply updated state immediately (watch will also fire but no-ops)
-  if (conn.gameState) state.value = conn.gameState
-  processEvents(conn.lastEvents as unknown[], state.value, prevState)
-  lastEvents.value = [
-    ...lastEvents.value,
-    ...(conn.lastEvents as Record<string, unknown>[]).map(eventToText).filter(Boolean),
-  ].slice(-300)
-}
-
-function dispatch(action: Parameters<typeof reduce>[1]) {
-  if (setup.mode === 'online') {
-    dispatchOnline(action)
-    return
-  }
-
-  const prevState = state.value
-  const res = reduce(state.value, action)
-  if (res.ok === false) {
-    lastError.value = res.error
-    return
-  }
-
-  lastError.value = null
-  state.value = res.state
-
-  processEvents(res.events as unknown[], res.state, prevState)
-  lastEvents.value = [...lastEvents.value, ...(res.events as Record<string, unknown>[]).map(eventToText).filter(Boolean)].slice(-300)
-}
 
 function onEnchantDrop(payload: { unitId: string; soulId: string }) {
   if (state.value.turn.phase !== 'necro') return
@@ -1282,110 +840,28 @@ function onEnchantDrop(payload: { unitId: string; soulId: string }) {
   })
 }
 
-function onCellClick(payload: { x: number; y: number; unitId: string | null }) {
-  if (ui.interactionMode.kind === 'enchant_select_unit') {
-    ui.setSelectedCell({ x: payload.x, y: payload.y })
-    const unitId = payload.unitId
-    const soulId = ui.interactionMode.soulId
-    if (unitId && enchantableUnitIds.value.includes(unitId)) {
-      const card = getSoulCard(soulId)
-      setPending({
-        action: { type: 'ENCHANT', unitId, soulId },
-        title: 'Confirm Enchant',
-        detail: [`${card?.name ?? soulId} -> ${unitId}`, `base: ${card?.base ?? '-'}`, `cost: ${card?.costGold ?? '-'}G`].join('\n'),
-      })
-      ui.clearInteractionMode()
-      return
-    }
-    return
-  }
-
-  if (ui.interactionMode.kind === 'sacrifice_select_target') {
-    ui.setSelectedCell({ x: payload.x, y: payload.y })
-    const targetUnitId = payload.unitId
-    const sourceUnitId = ui.interactionMode.sourceUnitId
-    const range = ui.interactionMode.range
-    if (targetUnitId && sacrificeTargetableUnitIds.value.includes(targetUnitId)) {
-      setPending({
-        action: { type: 'SACRIFICE', sourceUnitId, targetUnitId, range },
-        title: 'Confirm Sacrifice',
-        detail: [`${sourceUnitId} -> sacrifice ${targetUnitId}`, `range: ${range}`].join('\n'),
-      })
-      ui.clearInteractionMode()
-      return
-    }
-    return
-  }
-
-  if (ui.interactionMode.kind === 'use_item_target_unit') {
-    const unitId = payload.unitId
-    const itemId = ui.interactionMode.itemId
-    if (unitId && ui.interactionMode.validUnitIds.includes(unitId)) {
-      const item = getItemCard(itemId)
-      const unit = state.value.units[unitId]
-      setPending({
-        action: { type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: unitId },
-        title: item?.name ?? itemId,
-        detail: `目標: ${unit ? (getSoulCard(unit.enchant?.soulId ?? '')?.name ?? unit.base) : unitId}`,
-      })
-      ui.clearInteractionMode()
-    }
-    return
-  }
-
-  if (ui.interactionMode.kind === 'use_item_target_corpse') {
-    const posKey = `${payload.x},${payload.y}`
-    const stack = state.value.corpsesByPos[posKey]
-    const hasFriendlyCorpse = stack && stack.some((c) => c.ownerSide === state.value.turn.side)
-    if (hasFriendlyCorpse) {
-      boneRefineChoicePos.value = { x: payload.x, y: payload.y }
-    }
-    return
-  }
-
-  const prevSelectedUnit = selectedUnit.value
-
-  // While shoot preview is open, allow selecting a CHAIN extra target by clicking a second eligible enemy.
-  if (shootPreview.value && payload.unitId) {
-    const clicked = state.value.units[payload.unitId]
-    if (clicked && clicked.side !== state.value.turn.side) {
-      const eligible = shootChainEligibleEnemyIds.value
-      if (eligible.includes(clicked.id)) {
-        ui.setShootPreview({
-          attackerId: shootPreview.value.attackerId,
-          targetUnitId: shootPreview.value.targetUnitId,
-          extraTargetUnitId: shootExtraTargetUnitId.value === clicked.id ? null : clicked.id,
-        })
-        return
-      }
-    }
-  }
-
-  // More natural: while shoot preview is active, clicking an empty cell cancels it.
-  if (shootPreview.value && !payload.unitId) {
-    cancelShootPreview()
-    return
-  }
-
-  onCellClickSelection(payload, (enemyUnitId: string) => {
-    if (!prevSelectedUnit) return
-
-    // Unified flow: always enter shoot preview; never shoot immediately on click.
-    openShootPreview(prevSelectedUnit.id, enemyUnitId, null)
-    shootDetailsOpen.value = false
-  })
-
-  if (state.value.turn.phase !== 'combat') return
-  if (payload.unitId) return
-  if (!prevSelectedUnit) return
-  if (!legalMoves.value.some((p) => p.x === payload.x && p.y === payload.y)) return
-
-  setPending({
-    action: { type: 'MOVE', unitId: prevSelectedUnit.id, to: { x: payload.x, y: payload.y } },
-    title: 'Confirm Move',
-    detail: `${prevSelectedUnit.id} -> (${payload.x},${payload.y})`,
-  })
-}
+const {
+  boneRefineChoicePos,
+  onUseItem,
+  onCellClick,
+  boneRefineChoose,
+  cancelBoneRefine,
+} = useInteractionMode({
+  state,
+  lastError,
+  selectedUnit,
+  shootPreview,
+  shootChainEligibleEnemyIds,
+  shootExtraTargetUnitId,
+  enchantableUnitIds,
+  sacrificeTargetableUnitIds,
+  onCellClickSelection,
+  openShootPreview,
+  cancelShootPreview,
+  shootDetailsOpen,
+  legalMoves,
+  setPending,
+})
 
 function confirmPending() {
   confirmPendingFromComposable((a) => dispatch(a))

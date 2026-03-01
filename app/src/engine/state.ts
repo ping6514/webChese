@@ -321,3 +321,26 @@ export function getUnitAt(state: GameState, pos: Pos): Unit | undefined {
   }
   return undefined
 }
+
+/** 展示區補牌：若 base 位置為空，從牌堆抽一張補上 */
+export function refillDisplayByBase(state: GameState, base: PieceBase): GameState {
+  const deck = state.soulDeckByBase[base]
+  const cur = state.displayByBase[base]
+  if (cur != null) return state
+  if (!deck || deck.length === 0) return state
+
+  const nextDeck = [...deck]
+  const nextCard = nextDeck.shift() ?? null
+  return {
+    ...state,
+    soulDeckByBase: {
+      ...state.soulDeckByBase,
+      [base]: nextDeck,
+    },
+    displayByBase: {
+      ...state.displayByBase,
+      [base]: nextCard,
+    },
+  }
+}
+

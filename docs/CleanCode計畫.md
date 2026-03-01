@@ -39,7 +39,7 @@ REVIVE_COST: 3                    // 復活費用（已有但確認集中）
 
 ---
 
-### 1-B｜`reduce.ts` 拆分 — 道具子 reducer
+### ✅ 1-B｜`reduce.ts` 拆分 — 道具子 reducer
 
 **目的**：將 `USE_ITEM_FROM_HAND` 的 16 個 case 從 reduce.ts 移出，建立獨立檔案。
 
@@ -105,7 +105,7 @@ const instancePriority: Record<string, number> = {
 Game.vue 目前 **2234 行**，是整個專案最大的維護風險。
 拆分原則：**不改任何遊戲邏輯**，只移動程式碼到 composable 檔案。
 
-### 2-A｜`composables/useGameEffects.ts`（最高優先）
+### ✅ 2-A｜`composables/useGameEffects.ts`（最高優先）
 
 **目的**：將 FX 系統（float text、beam、unit highlight）的重複樣板全部集中。
 
@@ -143,7 +143,7 @@ const FX_SPECIAL_MS = 620
 
 ---
 
-### 2-B｜`composables/useGameDispatch.ts`
+### ✅ 2-B｜`composables/useGameDispatch.ts`
 
 **目的**：將 `dispatch()`、`dispatchOnline()`、`processEvents()` 移出 Game.vue。
 
@@ -173,7 +173,7 @@ export function useGameDispatch(
 
 ---
 
-### 2-C｜`composables/useInteractionMode.ts`
+### ✅ 2-C｜`composables/useInteractionMode.ts`
 
 **目的**：將 enchant/sacrifice/item 目標選擇的交互模式處理集中。
 
@@ -193,7 +193,7 @@ const {
 
 ---
 
-### 2-D｜`composables/useActiveBuffs.ts`
+### ✅ 2-D｜`composables/useActiveBuffs.ts`
 
 **目的**：將 `activeBuffs` computed 屬性（目前 ~75 行）移出，讓 Game.vue 不負責業務邏輯計算。
 
