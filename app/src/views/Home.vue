@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
 import { useThemeStore } from '../stores/theme'
 import { useConnection } from '../stores/connection'
+import ClanSelector from '../components/ClanSelector.vue'
 
 const router = useRouter()
 const setup = useGameSetup()
@@ -165,18 +166,7 @@ function startGame() {
         <!-- 主要行動（尚未建立房間時） -->
         <template v-else>
           <!-- 氏族卡池選擇 -->
-          <div class="section">
-            <div class="section-label">卡池氏族 <span class="clan-hint">（至少選 1 個）</span></div>
-            <div class="btn-group">
-              <button
-                v-for="c in ALL_CLANS"
-                :key="c.id"
-                type="button"
-                :class="['opt-btn', 'clan-btn', selectedClans.includes(c.id) && 'active']"
-                @click="toggleClan(c.id)"
-              >{{ c.label }}</button>
-            </div>
-          </div>
+          <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
 
           <!-- 建立新房間 -->
           <button
@@ -296,18 +286,7 @@ function startGame() {
         </div>
 
         <!-- 氏族卡池選擇（本機模式） -->
-        <div class="section">
-          <div class="section-label">卡池氏族 <span class="clan-hint">（至少選 1 個）</span></div>
-          <div class="btn-group">
-            <button
-              v-for="c in ALL_CLANS"
-              :key="c.id"
-              type="button"
-              :class="['opt-btn', 'clan-btn', selectedClans.includes(c.id) && 'active']"
-              @click="toggleClan(c.id)"
-            >{{ c.label }}</button>
-          </div>
-        </div>
+        <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
 
         <button type="button" class="start-btn" @click="startGame">開始遊戲</button>
       </template>
@@ -623,22 +602,6 @@ function startGame() {
   opacity: 0.9;
   letter-spacing: 0.15em;
   margin: -6px 0;
-}
-
-.clan-hint {
-  font-size: 0.7rem;
-  opacity: 0.55;
-  font-weight: 400;
-}
-.clan-btn {
-  flex: 1;
-  font-size: 0.85rem;
-  padding: 8px 4px;
-}
-.clan-btn.active {
-  background: rgba(145, 202, 255, 0.16);
-  border-color: rgba(145, 202, 255, 0.55);
-  color: #91caff;
 }
 
 .env-debug {

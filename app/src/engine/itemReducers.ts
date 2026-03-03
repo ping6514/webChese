@@ -22,7 +22,8 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
   if (timing === 'necro' && state.turn.phase !== 'necro') return { ok: false, error: 'Must be in necro phase' }
   if (timing === 'combat' && state.turn.phase !== 'combat') return { ok: false, error: 'Must be in combat phase' }
 
-  const nextHand = hand.filter((id) => id !== action.itemId)
+  const removeIdx = hand.indexOf(action.itemId)
+  const nextHand = [...hand.slice(0, removeIdx), ...hand.slice(removeIdx + 1)]
   let nextState: GameState = {
     ...state,
     itemDiscard: [...state.itemDiscard, action.itemId],
