@@ -1,8 +1,20 @@
 import { ref } from 'vue'
-import type { GameState } from '../engine'
+import type { GameState, DamageBreakdownItem } from '../engine'
+import { getSoulCard } from '../engine'
 
 export type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
 export type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
+export type DamageToast = {
+  id: string
+  attackerName: string
+  targetName: string
+  breakdown: DamageBreakdownItem[]
+  finalAmount: number
+}
+
+const BASE_LABELS: Record<string, string> = {
+  king: '帥', advisor: '仕', elephant: '象', rook: '車', knight: '馬', cannon: '砲', soldier: '卒',
+}
 
 const FX_ABILITY_MS = 520
 const FX_HIT_MS = 620
@@ -13,6 +25,14 @@ const FX_ITEM_FLOAT_MS = 900
 const FX_KILL_MS = 760
 const FX_REVIVE_MS = 760
 const FX_ENCHANT_MS = 820
+const FX_TOAST_MS = 3200
+
+function getUnitDisplayName(state: GameState, unitId: string): string {
+  const u = state.units[unitId]
+  if (!u) return unitId
+  const soulName = u.enchant?.soulId ? getSoulCard(u.enchant.soulId)?.name : null
+  return soulName ?? BASE_LABELS[u.base] ?? u.base
+}
 
 export function useGameEffects() {
   const fxAttackUnitIds = ref<string[]>([])
@@ -24,6 +44,7 @@ export function useGameEffects() {
   const fxKilledPosKeys = ref<string[]>([])
   const fxRevivedPosKeys = ref<string[]>([])
   const fxEnchantedPosKeys = ref<string[]>([])
+  const damageToasts = ref<DamageToast[]>([])
 
   function addFloatText(posKey: string, text: string, kind: FloatText['kind'], ms = FX_FLOAT_MS) {
     const id = `${Date.now()}-${Math.random()}`
@@ -99,6 +120,21 @@ export function useGameEffects() {
         if (u && Number.isFinite(amount) && amount !== 0) {
           addFloatText(`${u.pos.x},${u.pos.y}`, amount > 0 ? `-${amount}` : `${amount}`, 'damage', FX_FLOAT_MS)
         }
+        // Toast：只有含 breakdown 的主目標事件才顯示
+        const breakdown = (e as any).breakdown
+        if (Array.isArray(breakdown) && breakdown.length > 0 && amount > 0) {
+          const toastId = `${Date.now()}-${Math.random()}`
+          damageToasts.value = [...damageToasts.value, {
+            id: toastId,
+            attackerName: getUnitDisplayName(nextState, attackerId),
+            targetName: getUnitDisplayName(nextState, targetId),
+            breakdown,
+            finalAmount: amount,
+          }]
+          window.setTimeout(() => {
+            damageToasts.value = damageToasts.value.filter((t) => t.id !== toastId)
+          }, FX_TOAST_MS)
+        }
       }
 
       if (type === 'UNIT_HP_CHANGED') {
@@ -154,6 +190,7 @@ export function useGameEffects() {
     fxKilledPosKeys,
     fxRevivedPosKeys,
     fxEnchantedPosKeys,
+    damageToasts,
     addFloatText,
     processEventFx,
   }

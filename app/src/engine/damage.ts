@@ -1,4 +1,5 @@
 import type { GameState } from './state'
+import type { DamageBreakdownItem } from './events'
 import { getSoulCard } from './cards'
 import { getDefValueInState } from './stats'
 import { countCorpses, countSoldiers } from './corpses'
@@ -21,10 +22,22 @@ function getHighestTierAmount(tiers: { count: number; amount: number }[], soldie
   return 0
 }
 
-export function computeRawDamage(state: GameState, attackerId: string, targetUnitId: string, diceValue?: number): number {
+// Core implementation: always builds a breakdown alongside computing damage.
+function computeDamageCore(
+  state: GameState,
+  attackerId: string,
+  targetUnitId: string,
+  diceValue: number,
+): { damage: number; breakdown: DamageBreakdownItem[] } {
+  const breakdown: DamageBreakdownItem[] = []
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
-  if (!attacker || !target) return 1
+  if (!attacker || !target) return { damage: 1, breakdown }
+
+  breakdown.push({ label: `1d6(${diceValue})`, amount: diceValue })
+  if (attacker.atk.value > 0) {
+    breakdown.push({ label: '攻擊力', amount: attacker.atk.value })
+  }
 
   let defValue = getDefValueInState(state, target, attacker.atk.key)
 
@@ -62,13 +75,16 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
-      // Eternal Night: 冥骨車【獻祭】(B) - damage +1 per corpse (max +4) for next shot after sacrifice.
+      // Sacrifice buff (冥骨車)
       const sb = (state as any).status?.sacrificeBuffByUnitId?.[attackerId]
       const cap = Number((sb as any)?.damageBonusPerCorpsesCap ?? 0)
       if (Number.isFinite(cap) && cap > 0) {
         const corpses = countCorpses(state, attacker.side)
         const amount = Math.min(cap, Math.max(0, Math.floor(corpses)))
-        if (amount > 0) bonus += amount
+        if (amount > 0) {
+          bonus += amount
+          breakdown.push({ label: card.name + ' 骸骨', amount })
+        }
       }
 
       const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
@@ -98,13 +114,16 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
             if (!tgt || !palaceContains(tgt.side, tgt.pos)) continue
           }
           const amount = Number((ab as any).amount ?? 0)
-          if (Number.isFinite(amount) && amount > 0) bonus += amount
+          if (Number.isFinite(amount) && amount > 0) {
+            bonus += amount
+            breakdown.push({ label: card.name, amount })
+          }
         }
       }
     }
   }
 
-  // SOLDIERS_TIERED_DAMAGE_BONUS (own unit)
+  // SOLDIERS_TIERED_DAMAGE_BONUS
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
@@ -114,7 +133,10 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
         if (!Array.isArray(tiers)) continue
         const soldiers = countSoldiers(state, attacker.side)
         const amount = getHighestTierAmount(tiers, soldiers)
-        if (amount > 0) bonus += amount
+        if (amount > 0) {
+          bonus += amount
+          breakdown.push({ label: card.name + ' 軍勢', amount })
+        }
       }
     }
   }
@@ -135,7 +157,10 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
           if (Math.max(Math.abs(u.pos.x - attacker.pos.x), Math.abs(u.pos.y - attacker.pos.y)) <= radius) soldierCount++
         }
         const amount = Math.min(maxBonus, soldierCount * amountPer)
-        if (amount > 0) bonus += amount
+        if (amount > 0) {
+          bonus += amount
+          breakdown.push({ label: card.name + ' 聯軍', amount })
+        }
       }
     }
   }
@@ -189,7 +214,6 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
         if (excludeBase && attacker.base === excludeBase) continue
       }
 
-      // Support per-corpses scaling: amountPer * floor(corpses / per.count)
       const per = (ab as any).per
       if (per && String(per.type ?? '') === 'CORPSES_PER') {
         const perCount = Number(per.count ?? 0)
@@ -197,16 +221,22 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
         if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
         const corpses = countCorpses(state, attacker.side)
         const amount = Math.floor(corpses / perCount) * amountPer
-        if (amount > 0) bonus += amount
+        if (amount > 0) {
+          bonus += amount
+          breakdown.push({ label: auraCard.name + ' 光環', amount })
+        }
         continue
       }
 
       const amount = Number((ab as any).amount ?? 0)
-      if (Number.isFinite(amount) && amount > 0) bonus += amount
+      if (Number.isFinite(amount) && amount > 0) {
+        bonus += amount
+        breakdown.push({ label: auraCard.name + ' 光環', amount })
+      }
     }
   }
 
-  // SOLDIERS_TIERED_AURA_DAMAGE_BONUS (軍靈相 - all allies ATK+N when soldiers >= threshold)
+  // SOLDIERS_TIERED_AURA_DAMAGE_BONUS
   for (const auraUnit of Object.values(state.units)) {
     if (auraUnit.side !== attacker.side) continue
     const auraSoulId = auraUnit.enchant?.soulId
@@ -219,8 +249,11 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
       if (!Array.isArray(tiers)) continue
       const soldiers = countSoldiers(state, auraUnit.side)
       const amount = getHighestTierAmount(tiers, soldiers)
-      if (amount > 0) bonus += amount
-      break // one aura source per unit is enough
+      if (amount > 0) {
+        bonus += amount
+        breakdown.push({ label: auraCard.name + ' 光環', amount })
+        break
+      }
     }
   }
 
@@ -237,13 +270,20 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
       if (Number.isFinite(bonusDamageIfTargetCrossRiver) && bonusDamageIfTargetCrossRiver > 0) {
         if (crossedRiver(target.side, target.pos.y)) {
           bonus += bonusDamageIfTargetCrossRiver
+          breakdown.push({ label: '冥雷 過河', amount: bonusDamageIfTargetCrossRiver })
         }
       }
     }
   }
 
-  // SOLDIERS_TIERED_DMG_REDUCTION_AURA (鐵骨相 - reduce incoming damage when soldiers >= threshold)
+  // Defense (net after any reductions)
+  if (defValue > 0) {
+    breakdown.push({ label: attacker.atk.key === 'phys' ? '物防' : '魔防', amount: -defValue })
+  }
+
+  // SOLDIERS_TIERED_DMG_REDUCTION_AURA
   let dmgReduction = 0
+  let dmgReductionLabel = ''
   const targetUnitForReduction = state.units[targetUnitId]
   if (targetUnitForReduction) {
     for (const auraUnit of Object.values(state.units)) {
@@ -258,13 +298,35 @@ export function computeRawDamage(state: GameState, attackerId: string, targetUni
         if (!Array.isArray(tiers)) continue
         const soldiers = countSoldiers(state, auraUnit.side)
         const amount = getHighestTierAmount(tiers, soldiers)
-        dmgReduction = Math.max(dmgReduction, amount)
-        break
+        if (amount > 0) {
+          dmgReduction = Math.max(dmgReduction, amount)
+          dmgReductionLabel = auraCard.name
+          break
+        }
       }
     }
   }
 
+  if (dmgReduction > 0) {
+    breakdown.push({ label: dmgReductionLabel + ' 減傷', amount: -dmgReduction })
+  }
+
+  const beforeReduction = Math.max(1, diceValue + attacker.atk.value + bonus - defValue)
+  const damage = Math.max(0, beforeReduction - dmgReduction)
+
+  return { damage, breakdown }
+}
+
+export function computeRawDamage(state: GameState, attackerId: string, targetUnitId: string, diceValue?: number): number {
   const dice = Number.isFinite(diceValue as any) ? Math.floor(diceValue as number) : state.rules.diceFixed
-  const beforeReduction = Math.max(1, dice + attacker.atk.value + bonus - defValue)
-  return Math.max(0, beforeReduction - dmgReduction)
+  return computeDamageCore(state, attackerId, targetUnitId, dice).damage
+}
+
+export function computeDamageWithBreakdown(
+  state: GameState,
+  attackerId: string,
+  targetUnitId: string,
+  diceValue: number,
+): { damage: number; breakdown: DamageBreakdownItem[] } {
+  return computeDamageCore(state, attackerId, targetUnitId, diceValue)
 }

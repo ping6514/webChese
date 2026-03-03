@@ -36,6 +36,7 @@ import CardDetailModal from '../components/CardDetailModal.vue'
 import ShootPreviewModal from '../components/ShootPreviewModal.vue'
 import AllUnitsModal from '../components/AllUnitsModal.vue'
 import EffectsModal from '../components/EffectsModal.vue'
+import DamageFormulaToast from '../components/DamageFormulaToast.vue'
 import HandBar from '../components/HandBar.vue'
 import SidePanel from '../components/SidePanel.vue'
 import DebugMenuModal from '../components/DebugMenuModal.vue'
@@ -84,6 +85,7 @@ const {
   fxKilledPosKeys,
   fxRevivedPosKeys,
   fxEnchantedPosKeys,
+  damageToasts,
   processEventFx,
 } = useGameEffects()
 
@@ -1009,6 +1011,9 @@ async function copyEventLog() {
     <!-- 線上對戰：對手回合 / 等待伺服器回應時鎖定 -->
     <div v-if="isOnlineOpponentTurn || onlineWaiting" class="npc-overlay" />
 
+    <!-- 傷害算式 Toast -->
+    <DamageFormulaToast :toasts="damageToasts" />
+
     <div class="topbarWrap">
       <TopBar
         title="webChess"
@@ -1219,6 +1224,7 @@ async function copyEventLog() {
       :damage-to-target="shootPreviewInfo?.damageToTarget ?? null"
       :shared="shootPreviewInfo?.shared ?? null"
       :effects="shootPreviewInfo?.effects ?? []"
+      :damage-formula="shootPreviewInfo?.damageFormula ?? null"
       @confirm="confirmShootPreview"
       @cancel="closeShootDetails"
     />

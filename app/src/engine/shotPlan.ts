@@ -5,7 +5,7 @@ import { canShoot } from './shooting'
 import { getDefValueInState } from './stats'
 import { getEffectHandlers, type ShotPlan } from './effects'
 import { getSoulCard } from './cards'
-import { computeRawDamage } from './damage'
+import { computeDamageWithBreakdown } from './damage'
 import { killUnit as killUnitShared } from './kill'
 import { rollDice, type RngState } from '../serverSim'
 import { countCorpses, countSoldiers } from './corpses'
@@ -322,12 +322,12 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     const tgt = nextState.units[inst.targetUnitId]
     if (!src || !tgt) continue
 
-    const rawDamage = (() => {
-      const fixed = Number((inst as any).fixedDamage ?? 0)
-      if (Number.isFinite(fixed) && fixed > 0) return Math.floor(fixed)
-
-      return computeRawDamage(nextState, src.id, tgt.id, dice)
-    })()
+    const fixedDamage = Number((inst as any).fixedDamage ?? 0)
+    const isFixed = Number.isFinite(fixedDamage) && fixedDamage > 0
+    const rawResult = isFixed
+      ? { damage: Math.floor(fixedDamage), breakdown: undefined }
+      : computeDamageWithBreakdown(nextState, src.id, tgt.id, dice)
+    const rawDamage = rawResult.damage
 
     // DAMAGE_SHARE: transfer up to N damage from target to an eligible allied unit.
     // Keep target damage minimum 1.
@@ -375,7 +375,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
     events.push({ type: 'SHOT_FIRED', attackerId: src.id, targetUnitId: tgt.id })
     events.push({ type: 'DICE_ROLLED', sides: 6, value: dice })
-    events.push({ type: 'DAMAGE_DEALT', attackerId: src.id, targetUnitId: tgt.id, amount: finalDamageToTarget })
+    events.push({ type: 'DAMAGE_DEALT', attackerId: src.id, targetUnitId: tgt.id, amount: finalDamageToTarget, breakdown: rawResult.breakdown })
 
     if (sharedToUnitId && sharedAmount > 0) {
       events.push({ type: 'DAMAGE_DEALT', attackerId: src.id, targetUnitId: sharedToUnitId, amount: sharedAmount })

@@ -30,8 +30,19 @@ function eventToText(e: Record<string, unknown>, getState: () => GameState): str
       return `移動 (${(e.from as any)?.x},${(e.from as any)?.y})→(${(e.to as any)?.x},${(e.to as any)?.y})`
     case 'SHOT_FIRED':
       return `射擊 ${e.attackerId} → ${e.targetUnitId}`
-    case 'DAMAGE_DEALT':
-      return `傷害 ${e.targetUnitId} -${e.amount}`
+    case 'DAMAGE_DEALT': {
+      const s = getState()
+      const atkUnit = (s.units as any)[e.attackerId as string]
+      const tgtUnit = (s.units as any)[e.targetUnitId as string]
+      const atkName = String(atkUnit?.name ?? e.attackerId ?? '?')
+      const tgtName = String(tgtUnit?.name ?? e.targetUnitId ?? '?')
+      const bd = (e as any).breakdown as Array<{ label: string; amount: number }> | undefined
+      if (bd?.length) {
+        const formula = bd.map((b) => (b.amount > 0 ? `+${b.amount}${b.label}` : `${b.amount}${b.label}`)).join(' ')
+        return `⚔ ${atkName} → ${tgtName}：${formula} = ${e.amount}`
+      }
+      return `⚔ ${atkName} → ${tgtName}：${e.amount} 傷`
+    }
     case 'UNIT_HP_CHANGED': {
       const delta = (e.to as number) - (e.from as number)
       return `${e.unitId} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`

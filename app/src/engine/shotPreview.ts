@@ -1,6 +1,6 @@
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
-import { computeRawDamage } from './damage'
+import { computeRawDamage, computeDamageWithBreakdown } from './damage'
 import { countCorpses } from './corpses'
 
 export type ShotPreviewEffect =
@@ -64,6 +64,12 @@ export type ShotPreviewEffect =
       amount: number
     }
 
+export type DamageFormulaItem = {
+  label: string
+  amount: number | [number, number]
+  isBonus: boolean
+}
+
 export type ShotPreview = {
   ok: true
   attackerId: string
@@ -72,6 +78,11 @@ export type ShotPreview = {
   damageToTarget: number
   shared: { toUnitId: string; amount: number } | null
   effects: ShotPreviewEffect[]
+  damageFormula: {
+    items: DamageFormulaItem[]
+    resultMin: number
+    resultMax: number
+  }
 } | { ok: false; error: string }
 
 function crossedRiver(side: 'red' | 'black', y: number): boolean {
@@ -530,6 +541,23 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
 
   const damageToTarget = rawDamage - (shared?.amount ?? 0)
 
+  // Build damage formula for UI display (5-D)
+  const isFixedDice = state.rules.diceFixed > 0
+  const diceRef = isFixedDice ? state.rules.diceFixed : 1
+  const { breakdown: formulaBreakdown } = computeDamageWithBreakdown(state, attacker.id, target.id, diceRef)
+  const resultMin = isFixedDice ? rawDamage : computeDamageWithBreakdown(state, attacker.id, target.id, 1).damage
+  const resultMax = isFixedDice ? rawDamage : computeDamageWithBreakdown(state, attacker.id, target.id, 6).damage
+  const formulaItems: DamageFormulaItem[] = formulaBreakdown.map((item) => {
+    if (item.label.startsWith('1d6(')) {
+      return {
+        label: isFixedDice ? item.label : '1d6',
+        amount: isFixedDice ? item.amount : ([1, 6] as [number, number]),
+        isBonus: true,
+      }
+    }
+    return { label: item.label, amount: item.amount, isBonus: item.amount > 0 }
+  })
+
   return {
     ok: true,
     attackerId,
@@ -538,5 +566,6 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     damageToTarget,
     shared,
     effects,
+    damageFormula: { items: formulaItems, resultMin, resultMax },
   }
 }

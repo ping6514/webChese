@@ -35,11 +35,17 @@ export type DiceRolledEvent = {
   value: number
 }
 
+export type DamageBreakdownItem = {
+  label: string
+  amount: number
+}
+
 export type DamageDealtEvent = {
   type: 'DAMAGE_DEALT'
   attackerId: string
   targetUnitId: string
   amount: number
+  breakdown?: DamageBreakdownItem[]
 }
 
 export type UnitHpChangedEvent = {

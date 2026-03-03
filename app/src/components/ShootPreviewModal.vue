@@ -1,6 +1,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
-import type { GuardResult, PieceBase, ShotPreviewEffect } from '../engine'
+import type { GuardResult, PieceBase, ShotPreviewEffect, DamageFormulaItem } from '../engine'
 
 type UnitPreview = {
   id: string
@@ -12,6 +12,12 @@ type UnitPreview = {
   def: { key: string; value: number }[]
   name: string
   image: string | null
+}
+
+type DamageFormula = {
+  items: DamageFormulaItem[]
+  resultMin: number
+  resultMax: number
 }
 
 const BASE_LABEL: Record<string, string> = {
@@ -37,39 +43,38 @@ export default defineComponent({
       required: false,
       default: () => [],
     },
+    damageFormula: {
+      type: Object as () => DamageFormula | null,
+      required: false,
+      default: null,
+    },
   },
   emits: ['confirm', 'cancel'],
   methods: {
     baseLabel(base: string): string { return BASE_LABEL[base] ?? base },
-    effectText(e: ShotPreviewEffect): string {
+    amountDisplay(amount: number | [number, number]): string {
+      if (Array.isArray(amount)) return `${amount[0]} ~ ${amount[1]}`
+      return amount > 0 ? `+${amount}` : String(amount)
+    },
+    extraEffectText(e: ShotPreviewEffect): string | null {
       if (e.kind === 'DAMAGE_SHARE') return `傷害分攤：${e.amount}（由 ${e.byUnitId} 承擔）`
-      if (e.kind === 'DAMAGE_BONUS') return `傷害加成：+${e.amount}（來源 ${e.byUnitId}）`
-      if (e.kind === 'AURA_IGNORE_BLOCKING_ALL') return `光環：無視阻擋（全部）（來源 ${e.byUnitId}）`
-      if (e.kind === 'AURA_IGNORE_BLOCKING_COUNT') return `光環：無視阻擋（${(e as any).count} 個）（來源 ${e.byUnitId}）`
-      if (e.kind === 'IGNORE_BLOCKING_ALL') return `無視阻擋（全部）（來源 ${e.byUnitId}）`
-      if (e.kind === 'IGNORE_BLOCKING_COUNT') return `無視阻擋（${(e as any).count} 個）（來源 ${e.byUnitId}）`
-      if (e.kind === 'TARGET_DEF_MINUS') {
-        const key = String((e as any).key ?? '')
-        const keyText = key === 'magic' ? '魔防' : key === 'phys' ? '物防' : key
-        return `目標${keyText}降低：-${(e as any).amount}（來源 ${e.byUnitId}）`
-      }
       if (e.kind === 'SPLASH') {
-        const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds.join(',') : ''
-        return `波及（半徑 ${(e as any).radius}）：[${ids}] 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
+        const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds.join(', ') : ''
+        return `波及 (半徑${(e as any).radius})：[${ids}] 各 ${(e as any).fixedDamage} 傷`
       }
-      if (e.kind === 'CHAIN') {
-        return `連鎖：追加目標 ${(e as any).targetUnitId} 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
-      }
+      if (e.kind === 'CHAIN') return `連鎖：追加 ${(e as any).targetUnitId} ${(e as any).fixedDamage} 傷`
       if (e.kind === 'PIERCE') {
         const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds : []
-        const main = ids[0] ? `主目標=${ids[0]}` : '主目標=?'
-        const collateral = ids.slice(1)
-        const colText = collateral.length > 0 ? ` 連帶=[${collateral.join(',')}]` : ''
-        const mode = String((e as any).mode ?? '')
-        const modeText = mode === 'CANNON_SCREEN_AND_TARGET' ? '隔子（砲架與目標）' : mode === 'LINE_ENEMIES' ? '直線前 N 名敵方' : mode
-        return `貫通（${modeText}）：${main}${colText} 固定傷害=${(e as any).fixedDamage}（來源 ${e.byUnitId}）`
+        const mode = (e as any).mode === 'CANNON_SCREEN_AND_TARGET' ? '隔子' : '直線'
+        return `貫通(${mode})：[${ids.join(', ')}] 各 ${(e as any).fixedDamage} 傷`
       }
-      return 'UNKNOWN'
+      return null
+    },
+    extraEffects(): ShotPreviewEffect[] {
+      return this.effects.filter((e) => {
+        const k = e.kind
+        return k === 'DAMAGE_SHARE' || k === 'SPLASH' || k === 'CHAIN' || k === 'PIERCE'
+      })
     },
   },
 })
@@ -83,17 +88,7 @@ export default defineComponent({
         <button type="button" class="closeBtn" @click="$emit('cancel')">關閉</button>
       </div>
 
-      <div class="effects">
-        <div class="colTitle">效果</div>
-        <div v-if="rawDamage != null" class="mono small">原始傷害：{{ rawDamage }}</div>
-        <div v-if="damageToTarget != null" class="mono small">對主目標：{{ damageToTarget }}</div>
-        <div v-if="shared" class="mono small">分攤：{{ shared.amount }} -> {{ shared.toUnitId }}</div>
-        <div v-if="effects.length === 0" class="muted">(none)</div>
-        <div v-for="(e, idx) in effects" :key="idx" class="mono small">
-          <span>{{ effectText(e) }}</span>
-        </div>
-      </div>
-
+      <!-- 攻擊方 / 目標 -->
       <div class="grid">
         <div class="col">
           <div class="colTitle">攻擊方</div>
@@ -103,11 +98,9 @@ export default defineComponent({
               <div v-else class="noImg">{{ baseLabel(attacker.base) }}</div>
               <div class="meta">
                 <div class="name">{{ attacker.name }}</div>
-                <div class="mono small">{{ attacker.side }} | {{ attacker.base }} | HP {{ attacker.hpCurrent }}</div>
+                <div class="mono small">HP {{ attacker.hpCurrent }}</div>
                 <div class="mono small">ATK {{ attacker.atk.key }} {{ attacker.atk.value }}</div>
-                <div class="mono small">DEF {{ attacker.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
-                <div class="mono small">座標 ({{ attacker.pos.x }},{{ attacker.pos.y }})</div>
-                <div class="mono small">ID {{ attacker.id }}</div>
+                <div class="mono small">({{ attacker.pos.x }},{{ attacker.pos.y }})</div>
               </div>
             </div>
           </div>
@@ -122,15 +115,42 @@ export default defineComponent({
               <div v-else class="noImg">{{ baseLabel(target.base) }}</div>
               <div class="meta">
                 <div class="name">{{ target.name }}</div>
-                <div class="mono small">{{ target.side }} | {{ target.base }} | HP {{ target.hpCurrent }}</div>
-                <div class="mono small">ATK {{ target.atk.key }} {{ target.atk.value }}</div>
+                <div class="mono small">HP {{ target.hpCurrent }}</div>
                 <div class="mono small">DEF {{ target.def.map((d) => `${d.key} ${d.value}`).join(' / ') }}</div>
-                <div class="mono small">座標 ({{ target.pos.x }},{{ target.pos.y }})</div>
-                <div class="mono small">ID {{ target.id }}</div>
+                <div class="mono small">({{ target.pos.x }},{{ target.pos.y }})</div>
               </div>
             </div>
           </div>
           <div v-else class="muted">(none)</div>
+        </div>
+      </div>
+
+      <!-- 傷害公式 -->
+      <div v-if="damageFormula" class="formulaBox">
+        <div class="formulaTitle">傷害預測</div>
+        <div
+          v-for="(item, idx) in damageFormula.items"
+          :key="idx"
+          :class="['formulaRow', item.isBonus ? 'bonus' : 'penalty']"
+        >
+          <span class="fAmount">{{ amountDisplay(item.amount) }}</span>
+          <span class="fLabel">{{ item.label }}</span>
+        </div>
+        <div class="formulaDivider"></div>
+        <div class="formulaResult">
+          預期傷害：
+          <span v-if="damageFormula.resultMin === damageFormula.resultMax">
+            {{ damageFormula.resultMin }}
+          </span>
+          <span v-else>{{ damageFormula.resultMin }} ~ {{ damageFormula.resultMax }}</span>
+        </div>
+      </div>
+
+      <!-- 額外目標（波及/連鎖/貫通/分攤） -->
+      <div v-if="extraEffects().length > 0" class="extraBox">
+        <div class="colTitle">額外效果</div>
+        <div v-for="(e, idx) in extraEffects()" :key="idx" class="mono small extraLine">
+          {{ extraEffectText(e) }}
         </div>
       </div>
 
@@ -156,11 +176,14 @@ export default defineComponent({
 }
 
 .modal {
-  width: min(860px, 96vw);
+  width: min(520px, 96vw);
   border-radius: 12px;
   border: 1px solid var(--border-strong);
   background: var(--bg-modal);
   padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .modalHead {
@@ -168,7 +191,6 @@ export default defineComponent({
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
 }
 
 .modalTitle {
@@ -183,13 +205,15 @@ export default defineComponent({
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 10px;
 }
 
 .colTitle {
-  font-size: 12px;
-  opacity: 0.85;
-  margin-bottom: 6px;
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
 }
 
 .unitCard {
@@ -201,27 +225,27 @@ export default defineComponent({
 
 .row {
   display: grid;
-  grid-template-columns: 90px 1fr;
-  gap: 10px;
+  grid-template-columns: 72px 1fr;
+  gap: 8px;
   align-items: start;
 }
 
 .img {
-  width: 90px;
-  height: 124px;
+  width: 72px;
+  height: 100px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 1px solid var(--border-strong);
 }
 
 .noImg {
-  width: 90px;
-  height: 124px;
-  border-radius: 8px;
+  width: 72px;
+  height: 100px;
+  border-radius: 7px;
   border: 1px dashed var(--border-strong);
   display: grid;
   place-items: center;
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 900;
   opacity: 0.7;
   background: rgba(255, 255, 255, 0.04);
@@ -229,28 +253,92 @@ export default defineComponent({
 
 .name {
   font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 3px;
 }
 
 .small {
+  font-size: 11px;
+  opacity: 0.85;
+  line-height: 1.5;
+}
+
+/* ── 傷害公式 ───────────────── */
+.formulaBox {
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.formulaTitle {
+  font-size: 11px;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.formulaRow {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 2px 0;
+}
+
+.fAmount {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 60px;
+  text-align: right;
+}
+
+.fLabel {
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.85;
+}
+
+.formulaRow.bonus .fAmount {
+  color: #e8c83c;
+}
+
+.formulaRow.penalty .fAmount {
+  color: var(--text-muted, rgba(255,255,255,0.45));
+}
+
+.formulaDivider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
+
+.formulaResult {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8c83c;
+  text-align: right;
+}
+
+/* ── 額外效果 ───────────────── */
+.extraBox {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.extraLine {
+  opacity: 0.8;
+  padding: 1px 0;
 }
 
 .btnRow {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 14px;
-}
-
-.effects {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
 }
 
 .muted {
-  opacity: 0.75;
+  opacity: 0.55;
   font-size: 12px;
 }
 
