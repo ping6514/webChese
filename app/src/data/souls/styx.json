@@ -152,7 +152,7 @@
     "costGold": 4,
     "stats": {
       "hp": 8,
-      "atk": { "key": "magic", "value": 1 },
+      "atk": { "key": "magic", "value": 2 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 3 }
@@ -167,7 +167,7 @@
         "for": "ALLIES_IN_PALACE"
       }
     ],
-    "text": "【防護(物理)】：當自身處於「宮內」時，所有「宮內」己方單位物防 DEF +1。"
+    "text": "【防護(物理)】：當自身處於「宮內」時，所有「宮內」己方單位物防 DEF +2。"
   },
   {
     "id": "styx_advisor_yanshi",
@@ -187,12 +187,12 @@
     "abilities": [
       {
         "type": "AURA_DEF_BONUS",
-        "amount": 1,
+        "amount": 3,
         "key": "magic",
         "when": { "type": "SOURCE_IN_PALACE" },
         "for": "ALLIES_IN_PALACE"
       }
     ],
-    "text": "【防護(魔法)】：當自身處於「宮內」時，所有「宮內」己方單位魔防 DEF +1。"
+    "text": "【防護(魔法)】：當自身處於「宮內」時，所有「宮內」己方單位魔防 DEF +3。"
   }
 ]

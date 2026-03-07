@@ -119,6 +119,32 @@ function useItem(itemId: string) {
 }
 function getItemName(id: string) { return getItemCard(id)?.name ?? id }
 
+const BASE_NAMES: Record<string, string> = {
+  king: '帥', advisor: '士', elephant: '象', rook: '車', knight: '馬', cannon: '炮', soldier: '兵',
+}
+const CLAN_NAMES: Record<string, string> = {
+  dark_moon: '暗月', styx: '冥河', eternal_night: '永夜', iron_guard: '鐵衛',
+}
+
+function showHandSoulDetail(soulId: string) {
+  const c = getSoulCard(soulId)
+  if (!c) return
+  const lines: string[] = []
+  lines.push(`base: ${BASE_NAMES[c.base] ?? c.base}`)
+  lines.push(`clan: ${CLAN_NAMES[c.clan] ?? c.clan}`)
+  lines.push(`hp: ${c.stats.hp}`)
+  if (c.stats.atk) {
+    const k = c.stats.atk.key === 'phys' ? '物理' : '魔法'
+    lines.push(`atk: ${k} ${c.stats.atk.value}`)
+  }
+  if (c.stats.def?.length) {
+    lines.push(`def: ${c.stats.def.map((d) => `${d.key === 'phys' ? '物理' : '魔法'} ${d.value}`).join(' / ')}`)
+  }
+  lines.push(`cost: ${c.costGold} 財力`)
+  if (c.text) lines.push(`text: ${c.text}`)
+  ui.openDetailModal({ title: c.name, image: c.image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
+}
+
 // ── Mobile header ─────────────────────────────────────────────────────────────
 const router  = useRouter()
 const conn    = useConnection()
@@ -230,7 +256,7 @@ function toggleTab(tab: TabKey) {
     <!-- ── Board area ── -->
     <div class="boardArea">
       <!-- Buff bar -->
-      <div v-if="ctx.activeBuffs && ctx.activeBuffs.length > 0" class="buffBar">
+      <div class="buffBar">
         <span
           v-for="(b, i) in ctx.activeBuffs"
           :key="i"
@@ -286,6 +312,7 @@ function toggleTab(tab: TabKey) {
           @dragstart="onSoulDragStart"
           @dragend="onSoulDragEnd"
           @return="returnSoul"
+          @show-detail="showHandSoulDetail"
         />
         <HandItems
           v-else-if="activeTab === 'items'"

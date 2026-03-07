@@ -433,14 +433,12 @@ export default defineComponent({
         return { left: '50%', top: '6%', transform: `translate(-50%, 0) translate(${dx}px, ${dy}px)` }
       }
 
-      // Place the overlay in the corner of the board farthest from the selected unit
-      // so it's well clear of the click target, reducing misclick risk.
-      const farRight  = x < BOARD_WIDTH / 2   // unit in left half → overlay on right
-      const farBottom = y < BOARD_HEIGHT / 2  // unit in top half  → overlay on bottom
-      const leftPct = farRight  ? 96 : 4
-      const topPct  = farBottom ? 92 : 4
-      const anchorX = farRight  ? '-100%' : '0%'
-      const anchorY = farBottom ? '-100%' : '0%'
+      // Position one grid cell above the source unit (same logic as shoot overlay)
+      const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
+      const topPct  = ((y - 1 + 0.5) / BOARD_HEIGHT) * 100   // one cell up
+
+      const anchorX = x <= 1 ? '0%' : x >= BOARD_WIDTH - 2 ? '-100%' : '-50%'
+      const anchorY = y <= 1 ? '10%' : '-110%'
 
       return {
         left: `${leftPct}%`,

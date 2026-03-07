@@ -410,8 +410,8 @@ function startGame() {
 }
 
 .opt-btn.black-opt.active {
-  background: rgba(80, 80, 80, 0.25);
-  border-color: rgba(180, 180, 180, 0.45);
+  background: rgba(25, 143, 9, 0.382);
+  border-color: rgba(25, 143, 9, 0.382);
   color: #ccc;
 }
 

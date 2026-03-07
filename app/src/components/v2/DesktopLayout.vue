@@ -103,7 +103,7 @@ const res = computed(() => state.value.resources)
       <!-- Board area -->
       <main class="boardArea">
         <!-- Buff bar (sticky top of board area) -->
-        <div v-if="ctx.activeBuffs && ctx.activeBuffs.length > 0" class="buffBar">
+        <div class="buffBar">
           <span
             v-for="(b, i) in ctx.activeBuffs"
             :key="i"

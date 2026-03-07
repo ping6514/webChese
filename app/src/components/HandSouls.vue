@@ -23,7 +23,7 @@ export default defineComponent({
     returnGuards: { type: Object as () => Partial<Record<string, GuardResult>>, required: true },
     dragMime: { type: String, required: false, default: 'application/x-soul-id' },
   },
-  emits: ['select', 'dragstart', 'dragend', 'enchant', 'return'],
+  emits: ['select', 'dragstart', 'dragend', 'enchant', 'return', 'show-detail'],
   methods: {
     baseLabel(b: string) { return BASE_LABEL[b] ?? b },
     returnTitle(soulId: string) {
@@ -64,9 +64,15 @@ export default defineComponent({
         <!-- Name -->
         <div class="cardName">{{ c.name }}</div>
 
-        <!-- Return action (buy phase) -->
-        <div v-if="phase === 'buy'" class="actions" @click.stop>
+        <!-- Actions row (always shown) -->
+        <div class="actions" @click.stop>
           <button
+            type="button"
+            class="detailBtn"
+            @click="$emit('show-detail', c.id)"
+          >詳情</button>
+          <button
+            v-if="phase === 'buy'"
             type="button"
             class="returnBtn"
             :disabled="!(returnGuards[c.id]?.ok ?? false)"
@@ -189,6 +195,22 @@ export default defineComponent({
 .actions {
   display: flex;
   justify-content: flex-end;
+}
+
+.detailBtn {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 7px;
+  border: 1px solid rgba(145, 202, 255, 0.25);
+  background: rgba(145, 202, 255, 0.07);
+  color: rgba(145, 202, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.detailBtn:hover {
+  background: rgba(145, 202, 255, 0.15);
+  color: rgba(145, 202, 255, 0.95);
 }
 
 .returnBtn {

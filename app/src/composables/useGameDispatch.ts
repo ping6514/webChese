@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { reduce } from '../engine'
 import type { GameState } from '../engine'
@@ -162,7 +162,13 @@ export function useGameDispatch(opts: {
     const prevState = state.value
     const res = reduce(state.value, action)
     if (res.ok === false) {
-      lastError.value = res.error
+      // Force watch to fire even when the same error repeats
+      if (lastError.value === res.error) {
+        lastError.value = null
+        nextTick(() => { lastError.value = res.error })
+      } else {
+        lastError.value = res.error
+      }
       return
     }
 
