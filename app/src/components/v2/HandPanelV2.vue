@@ -175,6 +175,7 @@ defineExpose({ selectedSoulId })
     </div>
 
     <!-- Content -->
+    <Transition name="hand-slide">
     <div v-if="!handCollapsed" class="handContent">
       <HandSouls
         v-if="activeTab === 'souls'"
@@ -201,6 +202,7 @@ defineExpose({ selectedSoulId })
         @use-item="useItem"
       />
     </div>
+    </Transition>
   </div>
 </template>
 
@@ -270,5 +272,24 @@ defineExpose({ selectedSoulId })
   overflow-x: auto;
   padding: 4px 8px 6px;
   min-height: 0;
+}
+
+.hand-slide-enter-active {
+  transition: max-height 0.22s ease, opacity 0.15s ease;
+  overflow: hidden;
+}
+.hand-slide-leave-active {
+  transition: max-height 0.18s ease, opacity 0.12s ease;
+  overflow: hidden;
+}
+.hand-slide-enter-from,
+.hand-slide-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+.hand-slide-enter-to,
+.hand-slide-leave-from {
+  max-height: 320px;
+  opacity: 1;
 }
 </style>

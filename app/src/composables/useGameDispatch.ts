@@ -132,6 +132,10 @@ export function useGameDispatch(opts: {
 
   async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
     if (onlineWaiting.value) return
+    if (conn.side !== state.value.turn.side) {
+      lastError.value = '現在是對手的回合'
+      return
+    }
     onlineWaiting.value = true
     const prevState = state.value
     const result = await conn.sendAction(action)

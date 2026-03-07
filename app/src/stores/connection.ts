@@ -84,6 +84,7 @@ export const useConnection = defineStore('connection', {
     lastEvents: [] as unknown[],
     pollEvents: [] as unknown[],   // events from opponent (via polling)
     _suppressPollEvents: false,
+    _fetchInFlight: false,
     errorMsg: null as string | null,
     _adapter: null as SyncAdapter | null,
   }),
@@ -197,20 +198,26 @@ export const useConnection = defineStore('connection', {
     // ── Internal ─────────────────────────────────────────────────────────
     async _fetchState() {
       if (!this.roomId) return
-      const url = `/api/rooms/${this.roomId}/state?since=${this.localVersion}`
-      const res = await fetch(url)
-      if (res.status === 304) return // already latest
-      if (!res.ok) return
-      const data = await res.json()
-      // Strip internal _lastEvents from game state; expose via pollEvents instead
-      const rawEvents: unknown[] = (data.state as any)?._lastEvents ?? []
-      const cleanState = { ...data.state }
-      delete (cleanState as any)._lastEvents
-      this.gameState = cleanState
-      this.pollEvents = this._suppressPollEvents ? [] : rawEvents
-      this.localVersion = data.version
-      if (data.status === 'playing') this.status = 'playing'
-      if (data.status === 'finished') this.status = 'idle'
+      if (this._fetchInFlight) return  // prevent concurrent duplicate fetches
+      this._fetchInFlight = true
+      try {
+        const url = `/api/rooms/${this.roomId}/state?since=${this.localVersion}`
+        const res = await fetch(url)
+        if (res.status === 304) return // already latest
+        if (!res.ok) return
+        const data = await res.json()
+        // Strip internal _lastEvents from game state; expose via pollEvents instead
+        const rawEvents: unknown[] = (data.state as any)?._lastEvents ?? []
+        const cleanState = { ...data.state }
+        delete (cleanState as any)._lastEvents
+        this.gameState = cleanState
+        this.pollEvents = this._suppressPollEvents ? [] : rawEvents
+        this.localVersion = data.version
+        if (data.status === 'playing') this.status = 'playing'
+        if (data.status === 'finished') this.status = 'idle'
+      } finally {
+        this._fetchInFlight = false
+      }
     },
 
     _startAdapter() {

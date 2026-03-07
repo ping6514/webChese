@@ -117,10 +117,9 @@ onMounted(() => {
         :disabled="actionLocked"
         @click="emit('nextPhase')"
       >{{ nextPhaseLabel }}</button>
-
+      <span style="margin: auto 0.5rem;">|</span>
       <button
         class="shopShortcut"
-        :disabled="actionLocked"
         title="開啟商店"
         @click="gameCtx?.openShop?.()"
       >🏪開啟商店</button>
@@ -299,6 +298,8 @@ onMounted(() => {
 .shopShortcut {
   padding: 5px 8px;
   border-radius: 8px;
+  text-align: center;
+  align-items: center;
   font-size: 1rem;
   line-height: 1;
   border: 2px solid rgba(232,200,60,0.35);

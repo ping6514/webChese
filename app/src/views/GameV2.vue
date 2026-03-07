@@ -171,9 +171,10 @@ onMounted(() => {
 
 // ── Auto-open shop at buy phase (human turn only) ──────────────────────────────
 watch(
-  () => [state.value.turn.phase, state.value.turn.side] as const,
-  ([phase, side]) => {
-    if (phase !== 'buy') return
+  () => state.value.turn.phase,
+  (phase, prev) => {
+    if (phase !== 'buy' || prev === 'buy') return  // only on transition INTO buy
+    const side = state.value.turn.side
     if (setup.mode === 'pve' && side === npcSide.value) return  // skip bot turns
     if (setup.mode === 'online' && conn.side !== side) return   // skip opponent turns
     ui.openShop()
