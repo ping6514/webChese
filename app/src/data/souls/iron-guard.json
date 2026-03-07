@@ -23,10 +23,10 @@
     "base": "rook",
     "name": "鐵車",
     "image": "/assets/cards/iron_guard/iron_guard_rook_tieche.jpg",
-    "costGold": 7,
+    "costGold": 8,
     "stats": {
       "hp": 12,
-      "atk": { "key": "phys", "value": 3 },
+      "atk": { "key": "phys", "value": 2 },
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 1 }]
     },
     "abilities": [
@@ -41,9 +41,9 @@
     "base": "knight",
     "name": "騎兵靈",
     "image": "/assets/cards/iron_guard/iron_guard_knight_qibingling.jpg",
-    "costGold": 7,
+    "costGold": 6,
     "stats": {
-      "hp": 10,
+      "hp": 12,
       "atk": { "key": "phys", "value": 3 },
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
     },
@@ -58,17 +58,17 @@
     "base": "knight",
     "name": "聯軍馬",
     "image": "/assets/cards/iron_guard/iron_guard_knight_lianjunma.jpg",
-    "costGold": 6,
+    "costGold": 5,
     "stats": {
-      "hp": 10,
+      "hp": 12,
       "atk": { "key": "phys", "value": 2 },
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
     },
     "abilities": [
       { "type": "MOVE_THEN_SHOOT", "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
-      { "type": "DAMAGE_BONUS_PER_ADJACENT_SOLDIER", "radius": 1, "amountPer": 1, "max": 2 }
+      { "type": "DAMAGE_BONUS_PER_ADJACENT_SOLDIER", "radius": 2, "amountPer": 1, "max": 3 }
     ],
-    "text": "【軍勢】：卒 ≥ 3 時獲得「移動後射擊」；自身周圍 1 格每多 1 個卒，傷害額外 +1（上限 +2）。"
+    "text": "【軍勢】：卒 ≥ 3 時獲得「移動後射擊」；自身周圍 2 格每多 1 個卒，傷害額外 +1（上限 +3）。"
   },
   {
     "id": "iron_guard_cannon_paobinghua",
@@ -112,7 +112,7 @@
     "base": "advisor",
     "name": "軍護",
     "image": "/assets/cards/iron_guard/iron_guard_advisor_junhu.jpg",
-    "costGold": 4,
+    "costGold": 5,
     "stats": {
       "hp": 8,
       "atk": { "key": "phys", "value": 1 },
@@ -130,7 +130,7 @@
     "base": "advisor",
     "name": "召侍",
     "image": "/assets/cards/iron_guard/iron_guard_advisor_zhaoshi.jpg",
-    "costGold": 4,
+    "costGold": 5,
     "stats": {
       "hp": 8,
       "atk": { "key": "phys", "value": 2 },

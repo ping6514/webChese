@@ -57,15 +57,25 @@ const useGuards = computed(() => {
 })
 
 // ── Soul actions ───────────────────────────────────────────────────────────────
+function tryEnchantOrToast(soulId: string) {
+  const side = state.value.turn.side
+  const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
+  if (!hasValid) {
+    const firstOwn = Object.values(state.value.units).find(u => u.side === side)
+    if (firstOwn) ctx.dispatch({ type: 'ENCHANT', unitId: firstOwn.id, soulId })
+    return
+  }
+  ui.startEnchantSelectUnit(soulId)
+}
 function selectSoul(id: string) {
   selectedSoulId.value = id
-  if (phase.value === 'necro') ui.startEnchantSelectUnit(id)
+  if (phase.value === 'necro') tryEnchantOrToast(id)
 }
 function onSoulDragStart(e: DragEvent, soulId: string) {
   selectedSoulId.value = soulId
   e.dataTransfer?.setData('application/x-soul-id', soulId)
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
-  if (phase.value === 'necro') ui.startEnchantSelectUnit(soulId)
+  if (phase.value === 'necro') tryEnchantOrToast(soulId)
 }
 function onSoulDragEnd() {
   if (ui.interactionMode.kind === 'enchant_select_unit') ui.clearInteractionMode()

@@ -144,6 +144,10 @@ export default defineComponent({
       type: Array as PropType<Array<{ id: string; from: { x: number; y: number }; to: { x: number; y: number } }>>,
       default: () => [],
     },
+    sealedUnitIds: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
   },
   emits: {
     'select-unit': (_unitId: string | null) => true,
@@ -235,6 +239,7 @@ export default defineComponent({
     const fxHitSet = computed(() => new Set(props.fxHitUnitIds))
     const fxKilledSet = computed(() => new Set(props.fxKilledUnitIds))
     const fxAbilitySet = computed(() => new Set(props.fxAbilityUnitIds))
+    const sealedUnitSet = computed(() => new Set(props.sealedUnitIds))
     const fxKilledPosSet = computed(() => new Set(props.fxKilledPosKeys))
     const fxRevivedPosSet = computed(() => new Set(props.fxRevivedPosKeys))
     const fxEnchantedPosSet = computed(() => new Set(props.fxEnchantedPosKeys))
@@ -452,6 +457,9 @@ export default defineComponent({
       sacrificeOverlayOffset.value = v
     }
 
+    // Suppress hover tips during any unit-targeting interaction
+    const isSelectingTarget = computed(() => props.highlightUnitIds.length > 0)
+
     return {
       BOARD_WIDTH,
       BOARD_HEIGHT,
@@ -473,13 +481,15 @@ export default defineComponent({
       onShootDetails,
       onSacrificeConfirm,
       onSacrificeCancel,
+      isSelectingTarget,
+      sealedUnitSet,
     }
   },
 })
 </script>
 
 <template>
-  <div class="board-wrap">
+  <div class="board-wrap" :class="{ 'no-tips': isSelectingTarget }">
     <div class="board" :style="{ gridTemplateColumns: `repeat(${BOARD_WIDTH}, 1fr)` }">
       <ShootActionOverlay
         :show="!!shootActionPosKey && shootActionsVisible"
@@ -576,6 +586,12 @@ export default defineComponent({
             return !!(u && enchantDragSoulId && highlightUnitIds.includes(u.id))
           })()
         "
+        :sealed-badge="
+          (() => {
+            const u = unitByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`)
+            return !!(u && sealedUnitSet.has(u.id))
+          })()
+        "
         @click="onCellClick($event.x, $event.y)"
         @drop-soul="onDropSoul"
       />
@@ -592,6 +608,13 @@ export default defineComponent({
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 8px;
+}
+
+/* Suppress hover card tips during unit-selection interactions */
+.no-tips :deep(.tip) {
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .hint {

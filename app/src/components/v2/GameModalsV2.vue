@@ -52,7 +52,7 @@ const buyDeckGuards = computed(() => {
 
 const enemyGraveTop = computed(() => state.value.graveyard[enemySide.value][0] ?? null)
 const enemyGraveyard = computed(() => state.value.graveyard[enemySide.value])
-const darkMoonScopeActive = computed(() => state.value.turnFlags.darkMoonScopeActive ?? false)
+
 const buyEnemyGraveGuard = computed(() => canBuySoulFromEnemyGraveyard(state.value))
 const buyItemGuards = computed(() => [0, 1, 2].map((slot) => canBuyItemFromDisplay(state.value, slot)))
 const itemDeckCount = computed(() => (state.value as any).itemDeck?.length ?? 0)
@@ -114,6 +114,24 @@ const enemyUnitRows = computed(() => {
 
 const myTitle = computed(() => mySide.value === 'red' ? '🔴 我方（紅）' : '⚫ 我方（黑）')
 const enemyTitle = computed(() => mySide.value === 'red' ? '⚫ 敵方（黑）' : '🔴 敵方（紅）')
+
+function selectCellFromUnits(unitId: string) {
+  ui.closeAllUnits()
+  if (unitId.startsWith('dead:')) {
+    const posKey = unitId.split(':')[1] ?? ''
+    const [xs, ys] = posKey.split(',')
+    const pos = { x: Number(xs), y: Number(ys) }
+    if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+      ui.setSelectedUnitId(null)
+      ui.setSelectedCell(pos)
+    }
+    return
+  }
+  const u = state.value.units[unitId]
+  if (!u) return
+  ui.setSelectedUnitId(unitId)
+  ui.setSelectedCell({ ...u.pos })
+}
 
 // ── Dispatch handlers ──────────────────────────────────────────────────────────
 function buyDisplay(base: PieceBase) { ctx.dispatch({ type: 'BUY_SOUL_FROM_DISPLAY', base }) }
@@ -234,7 +252,6 @@ function onDetailAction() {
     :item-deck-count="itemDeckCount"
     :enemy-grave-top="enemyGraveTop"
     :enemy-graveyard="enemyGraveyard"
-    :dark-moon-scope-active="darkMoonScopeActive"
     :buy-enemy-grave-guard="buyEnemyGraveGuard"
     :buy-soul-from-deck-gold-cost="state.rules.buySoulFromDeckGoldCost"
     :buy-soul-from-display-gold-cost="state.rules.buySoulFromDisplayGoldCost"
@@ -257,6 +274,7 @@ function onDetailAction() {
     :my-units="myUnitRows"
     :enemy-units="enemyUnitRows"
     @close="ui.closeAllUnits()"
+    @select-cell="selectCellFromUnits"
   />
 
   <!-- Effects modal -->

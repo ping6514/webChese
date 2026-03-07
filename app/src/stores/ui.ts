@@ -73,6 +73,7 @@ export const useUiStore = defineStore('ui', {
 
     handCollapsedUser: false as boolean,
     handCollapsedOverride: null as boolean | null,
+    toastPosition: (localStorage.getItem('v2_toast_pos') ?? 'top') as 'top' | 'right',
   }),
   actions: {
     openShop: function () {
@@ -162,6 +163,10 @@ export const useUiStore = defineStore('ui', {
     },
     setHandCollapsedOverride: function (next: boolean | null) {
       this.handCollapsedOverride = next == null ? null : !!next
+    },
+    toggleToastPosition: function () {
+      this.toastPosition = this.toastPosition === 'top' ? 'right' : 'top'
+      localStorage.setItem('v2_toast_pos', this.toastPosition)
     },
   },
 })

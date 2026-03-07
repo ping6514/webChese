@@ -445,7 +445,6 @@ const buyEnemyGraveGuard = computed(() => canBuySoulFromEnemyGraveyard(state.val
 const enemySide = computed(() => (state.value.turn.side === 'red' ? 'black' : 'red'))
 const enemyGraveTop = computed(() => state.value.graveyard[enemySide.value][0] ?? null)
 const enemyGraveyard = computed(() => state.value.graveyard[enemySide.value])
-const darkMoonScopeActive = computed(() => state.value.turnFlags.darkMoonScopeActive ?? false)
 
 const kingHp = computed(() => {
   const red = Object.values(state.value.units).find((u) => u.side === 'red' && u.base === 'king')?.hpCurrent ?? null
@@ -711,8 +710,8 @@ function buyFromDeck(base: PieceBase) {
   dispatch({ type: 'BUY_SOUL_FROM_DECK', base })
 }
 
-function buyFromEnemyGraveyard(soulId?: string) {
-  dispatch({ type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD', soulId })
+function buyFromEnemyGraveyard() {
+  dispatch({ type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD' })
 }
 
 const buyItemGuards = computed(() => {
@@ -1283,7 +1282,6 @@ async function copyEventLog() {
       :item-deck-count="state.itemDeck.length"
       :enemy-grave-top="enemyGraveTop"
       :enemy-graveyard="enemyGraveyard"
-      :dark-moon-scope-active="darkMoonScopeActive"
       :buy-enemy-grave-guard="buyEnemyGraveGuard"
       :buy-soul-from-deck-gold-cost="state.rules.buySoulFromDeckGoldCost"
       :buy-soul-from-display-gold-cost="state.rules.buySoulFromDisplayGoldCost"
@@ -1292,7 +1290,7 @@ async function copyEventLog() {
       @buy-display="buyFromDisplay"
       @buy-deck="buyFromDeck"
       @buy-item="buyItem"
-      @buy-enemy-graveyard="(soulId?: string) => buyFromEnemyGraveyard(soulId)"
+      @buy-enemy-graveyard="() => buyFromEnemyGraveyard()"
       @show-soul-detail="showSoulDetail"
       @show-item-detail="showItemDetail"
       @show-enemy-grave-top-detail="showEnemyGraveTopDetail"

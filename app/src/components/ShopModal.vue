@@ -41,7 +41,7 @@ export default defineComponent({
 
     enemyGraveTop: { type: String as () => string | null, required: true },
     enemyGraveyard: { type: Array as () => string[], required: false, default: () => [] },
-    darkMoonScopeActive: { type: Boolean, required: false, default: false },
+
     buyEnemyGraveGuard: { type: Object as () => GuardResult, required: true },
 
     buySoulFromDeckGoldCost: { type: Number, required: true },
@@ -193,61 +193,34 @@ export default defineComponent({
           </div>
 
           <!-- Enemy Graveyard -->
-          <div class="panelTitle" style="margin-top: 18px">
-            敵方墳場
-            <span v-if="darkMoonScopeActive" class="scopeTag">🌑 暗月窺視</span>
-          </div>
+          <div class="panelTitle" style="margin-top: 18px">敵方墳場</div>
           <div class="enemyGrave">
-            <template v-if="darkMoonScopeActive && enemyGraveyard.length > 0">
-              <div class="scopeHint">選擇任意一張靈魂卡盜取</div>
-              <div v-for="(sid, idx) in enemyGraveyard" :key="sid + idx" class="scopeRow">
-                <button type="button" class="cardBtn" @click="$emit('show-soul-detail', sid)">
-                  <img v-if="soulImage(sid)" class="thumb" :src="soulImage(sid)" alt="" />
-                  <div v-else class="thumbNo">?</div>
-                  <div class="cardInfo">
-                    <div class="cardName">{{ soulName(sid) }}</div>
-                    <div class="cardSub">{{ idx === 0 ? '頂部' : `第 ${idx + 1}` }}</div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  class="buyBtn buyGrave"
-                  @click="$emit('buy-enemy-graveyard', sid)"
-                  :disabled="phase !== 'buy' || !buyEnemyGraveGuard.ok"
-                  :title="buyEnemyGraveGuard.ok ? '' : buyEnemyGraveGuard.reason"
-                >
-                  盜取 {{ buySoulFromEnemyGraveyardGoldCost }}💰
-                </button>
-              </div>
-            </template>
-            <template v-else>
-              <div class="graveNormal">
-                <button
-                  v-if="enemyGraveTop"
-                  type="button"
-                  class="cardBtn"
-                  @click="$emit('show-enemy-grave-top-detail')"
-                >
-                  <img v-if="soulImage(enemyGraveTop)" class="thumb" :src="soulImage(enemyGraveTop)" alt="" />
-                  <div v-else class="thumbNo">?</div>
-                  <div class="cardInfo">
-                    <div class="cardName">{{ soulName(enemyGraveTop) }}</div>
-                    <div class="cardSub">墳場頂部</div>
-                  </div>
-                </button>
-                <div v-else class="emptyGrave muted">（敵方墳場為空）</div>
+            <div class="graveNormal">
+              <button
+                v-if="enemyGraveTop"
+                type="button"
+                class="cardBtn"
+                @click="$emit('show-enemy-grave-top-detail')"
+              >
+                <img v-if="soulImage(enemyGraveTop)" class="thumb" :src="soulImage(enemyGraveTop)" alt="" />
+                <div v-else class="thumbNo">?</div>
+                <div class="cardInfo">
+                  <div class="cardName">{{ soulName(enemyGraveTop) }}</div>
+                  <div class="cardSub">墳場頂部</div>
+                </div>
+              </button>
+              <div v-else class="emptyGrave muted">（敵方墳場為空）</div>
 
-                <button
-                  type="button"
-                  class="buyBtn buyGrave"
-                  @click="$emit('buy-enemy-graveyard')"
-                  :disabled="phase !== 'buy' || !buyEnemyGraveGuard.ok"
-                  :title="buyEnemyGraveGuard.ok ? '' : buyEnemyGraveGuard.reason"
-                >
-                  盜取墳場頂 {{ buySoulFromEnemyGraveyardGoldCost }}💰
-                </button>
-              </div>
-            </template>
+              <button
+                type="button"
+                class="buyBtn buyGrave"
+                @click="$emit('buy-enemy-graveyard')"
+                :disabled="phase !== 'buy' || !buyEnemyGraveGuard.ok"
+                :title="buyEnemyGraveGuard.ok ? '' : buyEnemyGraveGuard.reason"
+              >
+                盜取墳場頂 {{ buySoulFromEnemyGraveyardGoldCost }}💰
+              </button>
+            </div>
           </div>
         </section>
       </div>
@@ -263,7 +236,7 @@ export default defineComponent({
   display: grid;
   place-items: center;
   padding: 20px;
-  z-index: 60;
+  z-index: 150;
   backdrop-filter: blur(3px);
 }
 

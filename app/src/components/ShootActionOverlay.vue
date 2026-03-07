@@ -10,7 +10,7 @@ export default defineComponent({
     confirmDisabled: { type: Boolean, required: false, default: false },
     confirmTitle: { type: String as PropType<string>, required: false, default: '' },
     confirmLabel: { type: String as PropType<string>, required: false, default: '射擊 (Enter)' },
-    cancelLabel: { type: String as PropType<string>, required: false, default: '取消 (Esc)' },
+    // cancelLabel: { type: String as PropType<string>, required: false, default: '取消 (Esc)' },
     detailsLabel: { type: String as PropType<string>, required: false, default: '射擊預覽' },
     showDetails: { type: Boolean, required: false, default: true },
     offset: {
@@ -105,7 +105,7 @@ export default defineComponent({
       <button type="button" class="shootBtn" :disabled="confirmDisabled" :title="confirmDisabled ? confirmTitle : ''" @click="onConfirm">
         {{ confirmLabel }}
       </button>
-      <button type="button" class="shootBtn" @click="onCancel">{{ cancelLabel }}</button>
+      <!-- <button type="button" class="shootBtn" @click="onCancel">{{ cancelLabel }}</button> -->
       <button v-if="showDetails" type="button" class="shootBtn" @click="onDetails">{{ detailsLabel }}</button>
     </div>
   </div>
@@ -119,6 +119,8 @@ export default defineComponent({
 .shootActionsButtons {
   display: flex;
   gap: 8px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 .shootActions {
   position: absolute;
@@ -135,6 +137,8 @@ export default defineComponent({
   user-select: none;
   touch-action: none;
   cursor: pointer;
+  width: max-content;
+  max-width: 90vw;
 }
 
 .shootBtn {
@@ -146,6 +150,8 @@ export default defineComponent({
   font-weight: 800;
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .shootBtn:hover {

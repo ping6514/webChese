@@ -33,13 +33,13 @@
     "costGold": 1,
     "timing": "buy",
     "image": "/assets/cards/item/item_dark_moon_scope.jpg",
-    "text": "【購買】盜取：本回合執行「盜取」時，可改為選擇敵方墳場「任意一張」靈魂卡。",
+    "text": "【購買】刷新：將道具展示欄所有卡片移至棄牌堆，並重新翻開新的道具卡。",
     "copies": 2
   },
   {
     "id": "item_last_stand_contract",
     "name": "死戰契約",
-    "costGold": 5,
+    "costGold": 4,
     "timing": "necro",
     "image": "/assets/cards/item/item_last_stand_contract.jpg",
     "text": "【死靈】鋪場：立即執行 1 次不計入上限的「復活」，但該單位本回合不可附魔。",
@@ -48,7 +48,7 @@
   {
     "id": "item_soul_infusion",
     "name": "冥魂灌注",
-    "costGold": 4,
+    "costGold": 3,
     "timing": "necro",
     "image": "/assets/cards/item/item_soul_infusion.jpg",
     "text": "【死靈】爆發：立即獲得 +1 次「死靈術」動作，且本次執行「附魔」時成本 -1 財力。",
@@ -57,7 +57,7 @@
   {
     "id": "item_death_chain",
     "name": "死亡連鎖",
-    "costGold": 7,
+    "costGold": 5,
     "timing": "combat",
     "image": "/assets/cards/item/item_death_chain.jpg",
     "text": "【戰鬥】殺戮：本回合每擊殺一個單位立即回復 1 點魔力。本效果單回合最多觸發 3 次。",
@@ -66,7 +66,7 @@
   {
     "id": "item_nether_seal",
     "name": "冥鎖封印",
-    "costGold": 6,
+    "costGold": 4,
     "timing": "combat",
     "image": "/assets/cards/item/item_nether_seal.jpg",
     "text": "【戰鬥】控制：選擇 1 個敵方單位，使其本回合無法執行移動與射擊動作。",
@@ -75,7 +75,7 @@
   {
     "id": "item_cage_plunder",
     "name": "牢籠掠奪",
-    "costGold": 4,
+    "costGold": 2,
     "timing": "buy",
     "image": "/assets/cards/item/item_cage_plunder.jpg",
     "text": "【購買】干擾：隨機奪取敵方牢籠 1 張靈魂卡納入己方牢籠。己方牢籠已有 5 張時無法發動。",
@@ -93,7 +93,7 @@
   {
     "id": "item_dead_return_path",
     "name": "亡者歸途",
-    "costGold": 3,
+    "costGold": 2,
     "timing": "necro",
     "image": "/assets/cards/item/item_dead_return_path.jpg",
     "text": "【死靈】保護：選擇 1 個己方附魔單位，將靈魂卡收回牢籠。該單位回復至滿 HP 狀態回歸初始狀態。",

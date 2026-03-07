@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { DamageBreakdownItem } from '../engine'
 
 export type DamageToast = {
@@ -9,9 +10,16 @@ export type DamageToast = {
   finalAmount: number
 }
 
-defineProps<{
+const props = defineProps<{
   toasts: DamageToast[]
+  position?: 'top' | 'right'
 }>()
+
+const stackStyle = computed(() =>
+  props.position === 'right'
+    ? { top: '80px', right: '16px', left: 'unset', transform: 'none' }
+    : { top: '66px', left: '50%', right: 'unset', transform: 'translateX(-50%)' }
+)
 
 function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
   return breakdown
@@ -21,7 +29,7 @@ function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
 </script>
 
 <template>
-  <div class="toastStack">
+  <div class="toastStack" :style="stackStyle">
     <TransitionGroup name="toast">
       <div v-for="t in toasts" :key="t.id" class="toast">
         <div class="toastHeader">⚔ {{ t.attackerName }} → {{ t.targetName }}</div>
@@ -35,14 +43,13 @@ function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
 <style scoped>
 .toastStack {
   position: fixed;
-  top: 80px;
-  right: 16px;
   z-index: 120;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 8px;
   pointer-events: none;
-  width: min(340px, 88vw);
+  width: min(360px, 92vw);
 }
 
 .toast {
@@ -86,10 +93,10 @@ function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
 }
 .toast-enter-from {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateY(-12px);
 }
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(20px);
+  transform: translateY(-8px);
 }
 </style>

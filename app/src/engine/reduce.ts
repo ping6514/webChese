@@ -194,7 +194,6 @@ function reduceNextPhase(state: GameState): ReduceResult {
         itemNecroBonus: 0,
         lastStandContractBonus: 0,
         lastStandNoEnchantUnitIds: [],
-        darkMoonScopeActive: false,
         deathChainActive: false,
         deathChainKillCount: 0,
         sealedUnitIds: [],
@@ -910,20 +909,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       const gy = state.graveyard[enemy]
       if (gy.length === 0) return { ok: false, error: 'Enemy graveyard empty' }
 
-      // 暗月窺視鏡：可指定任意位置的靈魂
-      let soulId: string
-      let soulIndex: number
-      if ((state.turnFlags.darkMoonScopeActive ?? false) && action.soulId) {
-        soulIndex = gy.indexOf(action.soulId)
-        if (soulIndex === -1) return { ok: false, error: 'Soul not in enemy graveyard' }
-        soulId = gy[soulIndex]!
-      } else {
-        soulIndex = 0
-        soulId = gy[0]!
-        if (!soulId) return { ok: false, error: 'Enemy graveyard empty' }
-      }
-
-      const nextEnemyGy = gy.filter((_, i) => i !== soulIndex)
+      const soulId = gy[0]!
+      if (!soulId) return { ok: false, error: 'Enemy graveyard empty' }
+      const nextEnemyGy = gy.slice(1)
 
       const nextState: GameState = {
         ...state,

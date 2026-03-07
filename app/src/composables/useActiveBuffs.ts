@@ -80,8 +80,6 @@ export function useActiveBuffs(state: Ref<GameState>) {
       buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
     if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
       buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
-    if (s.turnFlags.darkMoonScopeActive)
-      buffs.push({ label: '暗月窺視：可選任意墳場卡', kind: 'buff' })
     if (s.turnFlags.deathChainActive)
       buffs.push({ label: '死亡連鎖：擊殺 +1 魔力', kind: 'aura' })
 

@@ -57,6 +57,7 @@ export default defineComponent({
     <div class="playerRow" :class="{ activeRow: currentSide === 'black', rowBlack: true }">
       <span class="dot dotBlack" />
       <span class="playerName">BLACK<span v-if="onlineSide" class="youTag">{{ onlineSide === 'black' ? '(你)' : '(敵)' }}</span></span>
+      <span v-if="currentSide === 'black'" class="turnBadge turnBadgeBlack">▶ 回合</span>
       <span class="statChip hp">❤️ <b>{{ kingHp.black ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.black.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.black.mana }}</b></span>
@@ -108,6 +109,7 @@ export default defineComponent({
     <div class="playerRow" :class="{ activeRow: currentSide === 'red', rowRed: true }">
       <span class="dot dotRed" />
       <span class="playerName">RED<span v-if="onlineSide" class="youTag">{{ onlineSide === 'red' ? '(你)' : '(敵)' }}</span></span>
+      <span v-if="currentSide === 'red'" class="turnBadge turnBadgeRed">▶ 回合</span>
       <span class="statChip hp">❤️ <b>{{ kingHp.red ?? '-' }}</b></span>
       <span class="statChip gold">💰 財力 <b>{{ resources.red.gold }}</b></span>
       <span class="statChip mana">⭐ 魔力 <b>{{ resources.red.mana }}</b></span>
@@ -141,15 +143,17 @@ export default defineComponent({
 }
 
 .playerRow.rowBlack.activeRow {
-  border-color: rgba(82, 196, 26, 0.55);
-  background: rgba(82, 196, 26, 0.08);
-  box-shadow: 0 0 16px rgba(82, 196, 26, 0.15);
+  border-color: rgba(82, 196, 26, 0.75);
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.22) 0%, rgba(82, 196, 26, 0.08) 55%, rgba(0,0,0,0) 100%);
+  box-shadow: 0 0 22px rgba(82, 196, 26, 0.32);
+  border-left: 3px solid rgba(82, 196, 26, 1);
 }
 
 .playerRow.rowRed.activeRow {
-  border-color: rgba(255, 77, 79, 0.55);
-  background: rgba(255, 77, 79, 0.08);
-  box-shadow: 0 0 16px rgba(255, 77, 79, 0.15);
+  border-color: rgba(255, 77, 79, 0.75);
+  background: linear-gradient(270deg, rgba(255, 77, 79, 0.22) 0%, rgba(255, 77, 79, 0.08) 55%, rgba(0,0,0,0) 100%);
+  box-shadow: 0 0 22px rgba(255, 77, 79, 0.32);
+  border-right: 3px solid rgba(255, 77, 79, 1);
 }
 
 .dot {
@@ -196,6 +200,27 @@ export default defineComponent({
   opacity: 0.65;
   letter-spacing: 0;
   margin-left: 4px;
+}
+
+.turnBadge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 5px;
+  border: 1px solid;
+  white-space: nowrap;
+  letter-spacing: 0.05em;
+  margin-left: 2px;
+}
+.turnBadgeBlack {
+  color: #b7eb8f;
+  border-color: rgba(82, 196, 26, 0.5);
+  background: rgba(82, 196, 26, 0.12);
+}
+.turnBadgeRed {
+  color: #ffb0b2;
+  border-color: rgba(255, 77, 79, 0.5);
+  background: rgba(255, 77, 79, 0.12);
 }
 
 /* ── Center ──────────────────────────────────────────────────────────── */

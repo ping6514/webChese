@@ -176,6 +176,67 @@ try {
     fs.writeFileSync(outputFile, tsContent, 'utf-8')
     console.log(`✓ Wrote to ${outputFile}`)
   }
+  // ── 長期卡牌平衡報告（balance-report.json）────────────────────────────────────
+  const reportOutPath = path.join(path.dirname(path.resolve(outputFile)), 'balance-report.json')
+  let balanceReport = { cards: {}, sessions: [], updatedAt: '', balanceFlags: {} }
+  try { balanceReport = JSON.parse(fs.readFileSync(reportOutPath, 'utf-8')) } catch {}
+  if (!balanceReport.cards)    balanceReport.cards    = {}
+  if (!balanceReport.sessions) balanceReport.sessions = []
+
+  for (const card of reportData.cards) {
+    if (!card.id) continue
+    const prev    = balanceReport.cards[card.id] ?? { totalN: 0, totalWins: 0, sessions: 0, prevWilson: null }
+    const n       = card.n ?? 0
+    const wins    = Math.round((card.winRate ?? 0) * n)
+    const totalN  = prev.totalN  + n
+    const totalWins = prev.totalWins + wins
+    const wilson  = wilsonLower(totalWins, totalN)
+    const prevW   = prev.prevWilson ?? wilson
+    const trend   = wilson > prevW + 0.015 ? '↑' : wilson < prevW - 0.015 ? '↓' : '='
+    balanceReport.cards[card.id] = {
+      id:               card.id,
+      name:             card.name ?? card.id,
+      totalN,
+      totalWins,
+      winRate:          totalN > 0 ? Math.round(totalWins / totalN * 1000) / 1000 : 0,
+      wilsonScore:      Math.round(wilson * 1000) / 1000,
+      sessions:         prev.sessions + 1,
+      lastEnchantRate:  Math.round((card.enchantRate ?? 0) * 100) / 100,
+      lastCostDelta:    card.costDelta ?? 0,
+      dynamicScore:     dynamic.buyPriority[card.id] ?? 0,
+      prevWilson:       wilson,
+      trend,
+    }
+  }
+
+  // 分位數算力級（A/B/C）
+  const allScores = Object.values(balanceReport.cards).map(c => c.wilsonScore ?? 0).sort((a, b) => a - b)
+  const p33 = allScores[Math.floor(allScores.length * 0.33)] ?? 0.48
+  const p67 = allScores[Math.floor(allScores.length * 0.67)] ?? 0.52
+  for (const c of Object.values(balanceReport.cards)) {
+    c.tier = (c.wilsonScore ?? 0) >= p67 ? 'A' : (c.wilsonScore ?? 0) <= p33 ? 'C' : 'B'
+  }
+
+  // 記錄本次 session
+  balanceReport.sessions.push({
+    date:               new Date().toISOString(),
+    totalGames:         reportData.meta?.totalGames ?? 0,
+    redWinRate:         Math.round((reportData.meta?.redWinRate ?? 0) * 1000) / 1000,
+    avgCorpseSnowball:  Math.round((reportData.meta?.avgCorpseSnowball ?? 0) * 100) / 100,
+  })
+  if (balanceReport.sessions.length > 50) balanceReport.sessions = balanceReport.sessions.slice(-50)
+
+  // 平衡旗標：強勢 / 弱勢
+  const overpowered  = Object.values(balanceReport.cards).filter(c => c.wilsonScore >= p67 + 0.06).map(c => `${c.name}(勝率${(c.winRate*100).toFixed(1)}%,動態${c.dynamicScore})`)
+  const underpowered = Object.values(balanceReport.cards).filter(c => c.wilsonScore <= p33 - 0.06).map(c => `${c.name}(勝率${(c.winRate*100).toFixed(1)}%,動態${c.dynamicScore})`)
+  balanceReport.balanceFlags = { overpowered, underpowered, updatedAt: new Date().toISOString() }
+  balanceReport.updatedAt = new Date().toISOString()
+
+  fs.writeFileSync(reportOutPath, JSON.stringify(balanceReport, null, 2), 'utf-8')
+  console.log(`✓ Updated balance-report.json (${Object.keys(balanceReport.cards).length} cards, ${balanceReport.sessions.length} sessions)`)
+  if (overpowered.length  > 0) console.log(`  ⚠ 強勢卡牌: ${overpowered.join(' | ')}`)
+  if (underpowered.length > 0) console.log(`  ⚠ 弱勢卡牌: ${underpowered.join(' | ')}`)
+
 } catch (err) {
   console.error('Error:', err.message)
   process.exit(1)

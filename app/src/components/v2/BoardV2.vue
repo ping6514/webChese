@@ -309,15 +309,19 @@ defineExpose({ onUseItem })
       <button type="button" class="scaleBtn" :class="{ scaleActive: ctx.board3D }" @click="ctx.toggleBoard3D?.()">
         {{ ctx.board3D ? '⬜ 平面' : '🎲 3D' }}
       </button>
-      <span class="scaleDivider" />
       <button
-        v-for="s in ([33, 50, 75, 100] as BoardScale[])"
-        :key="s"
         type="button"
         class="scaleBtn"
-        :class="{ scaleActive: boardScale === s }"
-        @click="boardScale = s"
-      >{{ SCALE_LABELS[s] }}</button>
+        :title="ui.toastPosition === 'top' ? '傷害提示：頂部（點擊切換右側）' : '傷害提示：右側（點擊切換頂部）'"
+        @click="ui.toggleToastPosition()"
+      >{{ ui.toastPosition === 'top' ? '傷害報告💥⬆' : '傷害報告💥➡' }}</button>
+      <span class="scaleDivider" />
+      <button
+        type="button"
+        class="scaleBtn scaleActive"
+        title="點擊循環切換棋盤大小"
+        @click="boardScale = VALID_SCALES[(VALID_SCALES.indexOf(boardScale) + 1) % VALID_SCALES.length] ?? boardScale"
+      >🔲 {{ SCALE_LABELS[boardScale] }}</button>
     </div>
 
     <!-- Board container + scale wrapper -->
@@ -357,6 +361,7 @@ defineExpose({ onUseItem })
         :fx-enchanted-pos-keys="fxEnchantedPosKeys"
         :float-texts-by-pos="floatTextsByPos"
         :fx-beams="fxBeams"
+        :sealed-unit-ids="state.turnFlags.sealedUnitIds ?? []"
         @cell-click="onCellClick"
         @select-unit="onSelectUnit"
         @enchant-drop="onEnchantDrop"
@@ -370,7 +375,7 @@ defineExpose({ onUseItem })
     </div><!-- end boardContainer -->
 
     <!-- Damage formula toast -->
-    <DamageFormulaToast :toasts="damageToasts" />
+    <DamageFormulaToast :toasts="damageToasts" :position="ui.toastPosition" />
 
     <!-- Shoot preview modal -->
     <ShootPreviewModal
@@ -530,6 +535,7 @@ defineExpose({ onUseItem })
 /* ── Board scale wrapper ── */
 .boardScaleWrap {
   transition: width 0.2s ease, transform 0.3s ease;
+   margin: 2rem 0.5rem;
 }
 .boardWrap--red   {
   box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.28), 0 0 24px rgba(255, 77, 79, 0.14);

@@ -114,6 +114,8 @@ body {
   background-color: var(--bg-page);
   color: var(--text);
   transition: background-color 0.25s, color 0.2s;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 a {

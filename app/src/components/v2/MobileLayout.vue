@@ -2,7 +2,7 @@
 import { ref, computed, inject, onMounted, onUnmounted, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GameState, Phase } from '../../engine'
-import { getSoulCard, getItemCard, canReturnSoulToDeckBottom, canDiscardItemFromHand, canUseItemFromHand, BASE_STATS } from '../../engine'
+import { getSoulCard, getItemCard, canEnchant, canReturnSoulToDeckBottom, canDiscardItemFromHand, canUseItemFromHand, BASE_STATS } from '../../engine'
 import { useConnection } from '../../stores/connection'
 import { useGameSetup } from '../../stores/gameSetup'
 import BoardV2 from './BoardV2.vue'
@@ -62,15 +62,25 @@ const useGuards = computed(() => {
   return out
 })
 
+function tryEnchantOrToast(soulId: string) {
+  const side = state.value.turn.side
+  const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
+  if (!hasValid) {
+    const firstOwn = Object.values(state.value.units).find(u => u.side === side)
+    if (firstOwn) ctx.dispatch({ type: 'ENCHANT', unitId: firstOwn.id, soulId })
+    return
+  }
+  ui.startEnchantSelectUnit(soulId)
+}
 function selectSoul(id: string) {
   selectedSoulId.value = id
-  if (phase.value === 'necro') ui.startEnchantSelectUnit(id)
+  if (phase.value === 'necro') tryEnchantOrToast(id)
 }
 function onSoulDragStart(e: DragEvent, soulId: string) {
   selectedSoulId.value = soulId
   e.dataTransfer?.setData('application/x-soul-id', soulId)
   if (e.dataTransfer) e.dataTransfer.effectAllowed = 'copy'
-  if (phase.value === 'necro') ui.startEnchantSelectUnit(soulId)
+  if (phase.value === 'necro') tryEnchantOrToast(soulId)
 }
 function onSoulDragEnd() {
   if (ui.interactionMode.kind === 'enchant_select_unit') ui.clearInteractionMode()
@@ -161,6 +171,7 @@ function toggleTab(tab: TabKey) {
       <div class="playerRow" :class="{ 'playerRow--active': currentSide === 'black' }">
         <span class="sdot sdot--black" />
         <span class="pname">{{ ctx.onlineSide === 'black' ? '你' : ctx.onlineSide === 'red' ? '敵' : 'BLACK' }}</span>
+        <span v-if="currentSide === 'black'" class="turnBadge">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.black ?? '?' }}</span>
         <span class="mres">💰 <span class="rl">財力</span> {{ res.black.gold }}</span>
         <span class="mres">🌟 <span class="rl">魔力</span> {{ res.black.mana }}</span>
@@ -170,6 +181,7 @@ function toggleTab(tab: TabKey) {
       <div class="playerRow playerRow--red" :class="{ 'playerRow--active': currentSide === 'red' }">
         <span class="sdot sdot--red" />
         <span class="pname">{{ ctx.onlineSide === 'red' ? '你' : ctx.onlineSide === 'black' ? '敵' : 'RED' }}</span>
+        <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.red ?? '?' }}</span>
         <span class="mres">💰 <span class="rl">財力</span> {{ res.red.gold }}</span>
         <span class="mres">🌟 <span class="rl">魔力</span> {{ res.red.mana }}</span>
@@ -308,6 +320,8 @@ function toggleTab(tab: TabKey) {
   height: 100dvh;
   overflow: hidden;
   background: #1a1c2e;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
 }
 .turn-red   { background: linear-gradient(180deg, rgba(255, 77, 79, 0.18) 0%, #1a1c2e 35%); }
 .turn-black { background: linear-gradient(180deg, rgba(82, 196, 26, 0.18) 0%, #1a1c2e 35%); }
@@ -335,10 +349,28 @@ function toggleTab(tab: TabKey) {
   transition: background 0.3s;
 }
 .playerRow--active {
-  background: rgba(82, 200, 82, 0.06);
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.22) 0%, rgba(82, 196, 26, 0.07) 55%, rgba(0,0,0,0) 100%);
+  border-left: 3px solid rgba(82, 196, 26, 0.95);
+  border-bottom-color: rgba(82, 196, 26, 0.22);
 }
 .playerRow--red.playerRow--active {
-  background: rgba(255, 70, 70, 0.06);
+  background: linear-gradient(90deg, rgba(255, 77, 79, 0.22) 0%, rgba(255, 77, 79, 0.07) 55%, rgba(0,0,0,0) 100%);
+  border-left: 3px solid rgba(255, 77, 79, 0.95);
+  border-bottom-color: rgba(255, 77, 79, 0.22);
+}
+
+.turnBadge {
+  font-size: 0.5625rem; font-weight: 800;
+  padding: 1px 5px; border-radius: 4px;
+  border: 1px solid rgba(82, 196, 26, 0.55);
+  background: rgba(82, 196, 26, 0.13);
+  color: #b7eb8f;
+  white-space: nowrap; letter-spacing: 0.05em;
+}
+.turnBadge--red {
+  border-color: rgba(255, 77, 79, 0.55);
+  background: rgba(255, 77, 79, 0.13);
+  color: #ffb0b2;
 }
 
 .sdot {

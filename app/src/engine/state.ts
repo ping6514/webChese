@@ -84,7 +84,6 @@ export type GameState = {
     itemNecroBonus: number
     lastStandContractBonus: number
     lastStandNoEnchantUnitIds: string[]
-    darkMoonScopeActive: boolean
     deathChainActive: boolean
     deathChainKillCount: number
     sealedUnitIds: string[]
@@ -120,7 +119,7 @@ export const REVIVE_GOLD_COST_BY_BASE: Record<PieceBase, number> = {
   advisor: 3,
   elephant: 3,
   rook: 5,
-  knight: 4,
+  knight: 3,
   cannon: 5,
   soldier: 2,
 }
@@ -297,7 +296,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       itemNecroBonus: 0,
       lastStandContractBonus: 0,
       lastStandNoEnchantUnitIds: [],
-      darkMoonScopeActive: false,
+
       deathChainActive: false,
       deathChainKillCount: 0,
       sealedUnitIds: [],

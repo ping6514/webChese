@@ -31,6 +31,7 @@ export default defineComponent({
     pierceMark: { type: Number as PropType<number | null>, required: false, default: null },
     splashMark: { type: String as PropType<string | null>, required: false, default: null },
     chainMark: { type: String as PropType<string | null>, required: false, default: null },
+    sealedBadge: { type: Boolean, required: false, default: false },
   },
   emits: {
     click: (_payload: { x: number; y: number; unitId: string | null }) => true,
@@ -75,6 +76,7 @@ export default defineComponent({
     <span v-if="splashMark" class="splashBadge mono" title="波及：連帶命中">{{ splashMark }}</span>
     <span v-if="chainMark" class="chainBadge mono" :title="chainMark === '連' ? '連鎖：已選第二目標' : '連鎖：可選第二目標'">{{ chainMark }}</span>
     <span v-if="corpseCount" class="corpseBadge mono">x{{ corpseCount }}</span>
+    <span v-if="sealedBadge" class="sealBadge mono" title="冥鎖封印：本回合無法移動或射擊">🔒</span>
 
     <span v-if="unit" class="hp mono"><span class="hpHeart">♥</span>{{ unit.hp }}</span>
 
@@ -696,7 +698,7 @@ export default defineComponent({
   left: 0;
   top: -6px;
   transform: translateY(-100%);
-  z-index: 999;
+  z-index: 10;
   background: var(--bg-modal);
   border: 1px solid var(--border-strong);
   border-radius: 8px;
@@ -789,6 +791,20 @@ export default defineComponent({
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.18);
   opacity: 0.95;
+}
+
+.sealBadge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.625rem;
+  line-height: 1;
+  padding: 1px 3px;
+  border-radius: 999px;
+  background: rgba(120, 0, 220, 0.28);
+  border: 1px solid rgba(180, 80, 255, 0.55);
+  pointer-events: none;
+  z-index: 46;
 }
 
 .unit {

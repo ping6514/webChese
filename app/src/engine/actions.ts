@@ -42,7 +42,6 @@ export type BuySoulFromDisplayAction = {
 
 export type BuySoulFromEnemyGraveyardAction = {
   type: 'BUY_SOUL_FROM_ENEMY_GRAVEYARD'
-  soulId?: string  // 暗月窺視鏡：指定任意位置的靈魂
 }
 
 export type UseItemFromHandAction = {

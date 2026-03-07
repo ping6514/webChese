@@ -15,10 +15,10 @@ export default defineComponent({
   <div v-if="open" class="modalOverlay" @click.self="$emit('close')">
     <div class="modal">
       <div class="modalHead">
-        <div class="modalTitle">Event log</div>
+        <div class="modalTitle">📜 事件紀錄</div>
         <div class="headBtns">
-          <button type="button" @click="$emit('copy')">Copy</button>
-          <button type="button" class="closeBtn" @click="$emit('close')">Close</button>
+          <button type="button" @click="$emit('copy')">複製</button>
+          <button type="button" class="closeBtn" @click="$emit('close')">✕ 關閉</button>
         </div>
       </div>
 
@@ -35,7 +35,7 @@ export default defineComponent({
   display: grid;
   place-items: center;
   padding: 24px;
-  z-index: 60;
+  z-index: 150;
 }
 
 .modal {

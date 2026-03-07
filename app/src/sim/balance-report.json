@@ -1,0 +1,914 @@
+{
+  "cards": {
+    "iron_guard_advisor_junhu": {
+      "id": "iron_guard_advisor_junhu",
+      "name": "軍護",
+      "totalN": 24672,
+      "totalWins": 14063,
+      "winRate": 0.57,
+      "wilsonScore": 0.565,
+      "sessions": 88,
+      "lastEnchantRate": 0.54,
+      "lastCostDelta": 0.012,
+      "dynamicScore": 186,
+      "prevWilson": 0.5648061381300534,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_rook_tieche": {
+      "id": "iron_guard_rook_tieche",
+      "name": "鐵車",
+      "totalN": 17551,
+      "totalWins": 10601,
+      "winRate": 0.604,
+      "wilsonScore": 0.598,
+      "sessions": 88,
+      "lastEnchantRate": 0.6,
+      "lastCostDelta": 0.019,
+      "dynamicScore": 190,
+      "prevWilson": 0.597922920946518,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_rook_junhua": {
+      "id": "iron_guard_rook_junhua",
+      "name": "軍華",
+      "totalN": 26741,
+      "totalWins": 15322,
+      "winRate": 0.573,
+      "wilsonScore": 0.568,
+      "sessions": 88,
+      "lastEnchantRate": 0.67,
+      "lastCostDelta": 0.081,
+      "dynamicScore": 201,
+      "prevWilson": 0.567994791485617,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_advisor_zhaoshi": {
+      "id": "iron_guard_advisor_zhaoshi",
+      "name": "召侍",
+      "totalN": 27000,
+      "totalWins": 15899,
+      "winRate": 0.589,
+      "wilsonScore": 0.584,
+      "sessions": 88,
+      "lastEnchantRate": 0.64,
+      "lastCostDelta": 0.011,
+      "dynamicScore": 193,
+      "prevWilson": 0.583917279466734,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_cannon_baobingpao": {
+      "id": "iron_guard_cannon_baobingpao",
+      "name": "爆兵砲",
+      "totalN": 18034,
+      "totalWins": 10609,
+      "winRate": 0.588,
+      "wilsonScore": 0.582,
+      "sessions": 88,
+      "lastEnchantRate": 0.56,
+      "lastCostDelta": 0.088,
+      "dynamicScore": 199,
+      "prevWilson": 0.582236335759145,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_knight_qibingling": {
+      "id": "iron_guard_knight_qibingling",
+      "name": "騎兵靈",
+      "totalN": 10342,
+      "totalWins": 6117,
+      "winRate": 0.591,
+      "wilsonScore": 0.583,
+      "sessions": 88,
+      "lastEnchantRate": 0.28,
+      "lastCostDelta": 0.004,
+      "dynamicScore": 160,
+      "prevWilson": 0.583497380134647,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_elephant_tiegu": {
+      "id": "iron_guard_elephant_tiegu",
+      "name": "鐵骨相",
+      "totalN": 29167,
+      "totalWins": 17007,
+      "winRate": 0.583,
+      "wilsonScore": 0.578,
+      "sessions": 88,
+      "lastEnchantRate": 0.8,
+      "lastCostDelta": 0.086,
+      "dynamicScore": 216,
+      "prevWilson": 0.5783339111998888,
+      "trend": "=",
+      "tier": "A"
+    },
+    "iron_guard_elephant_junlingxiang": {
+      "id": "iron_guard_elephant_junlingxiang",
+      "name": "軍靈相",
+      "totalN": 25077,
+      "totalWins": 13779,
+      "winRate": 0.549,
+      "wilsonScore": 0.544,
+      "sessions": 88,
+      "lastEnchantRate": 0.77,
+      "lastCostDelta": 0.015,
+      "dynamicScore": 190,
+      "prevWilson": 0.5442941063452646,
+      "trend": "=",
+      "tier": "A"
+    },
+    "dark_moon_rook_lanhua": {
+      "id": "dark_moon_rook_lanhua",
+      "name": "蘭華",
+      "totalN": 20600,
+      "totalWins": 11817,
+      "winRate": 0.574,
+      "wilsonScore": 0.568,
+      "sessions": 88,
+      "lastEnchantRate": 0.73,
+      "lastCostDelta": 0.037,
+      "dynamicScore": 199,
+      "prevWilson": 0.5679633341918889,
+      "trend": "=",
+      "tier": "A"
+    },
+    "eternal_night_rook_minggouche": {
+      "id": "eternal_night_rook_minggouche",
+      "name": "冥骨車",
+      "totalN": 15658,
+      "totalWins": 8411,
+      "winRate": 0.537,
+      "wilsonScore": 0.531,
+      "sessions": 88,
+      "lastEnchantRate": 0.58,
+      "lastCostDelta": 0.014,
+      "dynamicScore": 178,
+      "prevWilson": 0.5306087636314809,
+      "trend": "=",
+      "tier": "B"
+    },
+    "styx_knight_yanling": {
+      "id": "styx_knight_yanling",
+      "name": "焰靈",
+      "totalN": 7918,
+      "totalWins": 4574,
+      "winRate": 0.578,
+      "wilsonScore": 0.569,
+      "sessions": 88,
+      "lastEnchantRate": 0.34,
+      "lastCostDelta": 0.033,
+      "dynamicScore": 151,
+      "prevWilson": 0.5685149986775542,
+      "trend": "=",
+      "tier": "A"
+    },
+    "eternal_night_elephant_gulingxiang": {
+      "id": "eternal_night_elephant_gulingxiang",
+      "name": "骨靈相",
+      "totalN": 15999,
+      "totalWins": 7531,
+      "winRate": 0.471,
+      "wilsonScore": 0.464,
+      "sessions": 88,
+      "lastEnchantRate": 0.39,
+      "lastCostDelta": -0.066,
+      "dynamicScore": 138,
+      "prevWilson": 0.4642309437783297,
+      "trend": "=",
+      "tier": "C"
+    },
+    "iron_guard_cannon_paobinghua": {
+      "id": "iron_guard_cannon_paobinghua",
+      "name": "炮兵華",
+      "totalN": 14042,
+      "totalWins": 7881,
+      "winRate": 0.561,
+      "wilsonScore": 0.554,
+      "sessions": 88,
+      "lastEnchantRate": 0.52,
+      "lastCostDelta": 0.022,
+      "dynamicScore": 179,
+      "prevWilson": 0.554344967365588,
+      "trend": "=",
+      "tier": "A"
+    },
+    "eternal_night_rook_guhua": {
+      "id": "eternal_night_rook_guhua",
+      "name": "骨華",
+      "totalN": 24395,
+      "totalWins": 13349,
+      "winRate": 0.547,
+      "wilsonScore": 0.542,
+      "sessions": 88,
+      "lastEnchantRate": 0.69,
+      "lastCostDelta": -0.049,
+      "dynamicScore": 170,
+      "prevWilson": 0.5419548107190232,
+      "trend": "=",
+      "tier": "A"
+    },
+    "eternal_night_knight_xuegu": {
+      "id": "eternal_night_knight_xuegu",
+      "name": "血骨",
+      "totalN": 8434,
+      "totalWins": 4486,
+      "winRate": 0.532,
+      "wilsonScore": 0.523,
+      "sessions": 88,
+      "lastEnchantRate": 0.29,
+      "lastCostDelta": -0.061,
+      "dynamicScore": 133,
+      "prevWilson": 0.5229480460586453,
+      "trend": "=",
+      "tier": "B"
+    },
+    "styx_rook_feiyan": {
+      "id": "styx_rook_feiyan",
+      "name": "緋焰",
+      "totalN": 21651,
+      "totalWins": 12487,
+      "winRate": 0.577,
+      "wilsonScore": 0.571,
+      "sessions": 88,
+      "lastEnchantRate": 0.72,
+      "lastCostDelta": 0.039,
+      "dynamicScore": 198,
+      "prevWilson": 0.5712072722756438,
+      "trend": "=",
+      "tier": "A"
+    },
+    "styx_cannon_mingleipao": {
+      "id": "styx_cannon_mingleipao",
+      "name": "冥雷砲",
+      "totalN": 15299,
+      "totalWins": 8147,
+      "winRate": 0.533,
+      "wilsonScore": 0.526,
+      "sessions": 88,
+      "lastEnchantRate": 0.42,
+      "lastCostDelta": -0.103,
+      "dynamicScore": 111,
+      "prevWilson": 0.5258776415515617,
+      "trend": "=",
+      "tier": "B"
+    },
+    "eternal_night_cannon_suigu": {
+      "id": "eternal_night_cannon_suigu",
+      "name": "碎骨",
+      "totalN": 9017,
+      "totalWins": 4659,
+      "winRate": 0.517,
+      "wilsonScore": 0.508,
+      "sessions": 88,
+      "lastEnchantRate": 0.65,
+      "lastCostDelta": -0.053,
+      "dynamicScore": 159,
+      "prevWilson": 0.5080300778959121,
+      "trend": "=",
+      "tier": "B"
+    },
+    "eternal_night_cannon_minggupao": {
+      "id": "eternal_night_cannon_minggupao",
+      "name": "冥骨砲",
+      "totalN": 11777,
+      "totalWins": 6352,
+      "winRate": 0.539,
+      "wilsonScore": 0.532,
+      "sessions": 88,
+      "lastEnchantRate": 0.32,
+      "lastCostDelta": -0.037,
+      "dynamicScore": 139,
+      "prevWilson": 0.5317925933179637,
+      "trend": "=",
+      "tier": "B"
+    },
+    "dark_moon_cannon_yehua": {
+      "id": "dark_moon_cannon_yehua",
+      "name": "夜華",
+      "totalN": 18198,
+      "totalWins": 9010,
+      "winRate": 0.495,
+      "wilsonScore": 0.489,
+      "sessions": 88,
+      "lastEnchantRate": 0.56,
+      "lastCostDelta": -0.009,
+      "dynamicScore": 163,
+      "prevWilson": 0.4890137140329537,
+      "trend": "=",
+      "tier": "B"
+    },
+    "styx_knight_xueyan": {
+      "id": "styx_knight_xueyan",
+      "name": "血焰",
+      "totalN": 4856,
+      "totalWins": 2326,
+      "winRate": 0.479,
+      "wilsonScore": 0.467,
+      "sessions": 88,
+      "lastEnchantRate": 0.41,
+      "lastCostDelta": -0.166,
+      "dynamicScore": 94,
+      "prevWilson": 0.46721734158785005,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_cannon_fenghua": {
+      "id": "dark_moon_cannon_fenghua",
+      "name": "風華",
+      "totalN": 28586,
+      "totalWins": 13938,
+      "winRate": 0.488,
+      "wilsonScore": 0.483,
+      "sessions": 88,
+      "lastEnchantRate": 0.76,
+      "lastCostDelta": -0.022,
+      "dynamicScore": 169,
+      "prevWilson": 0.4827195044867392,
+      "trend": "=",
+      "tier": "C"
+    },
+    "eternal_night_knight_hunling": {
+      "id": "eternal_night_knight_hunling",
+      "name": "魂靈",
+      "totalN": 5936,
+      "totalWins": 3257,
+      "winRate": 0.549,
+      "wilsonScore": 0.538,
+      "sessions": 88,
+      "lastEnchantRate": 0.5,
+      "lastCostDelta": -0.039,
+      "dynamicScore": 149,
+      "prevWilson": 0.5380414087153612,
+      "trend": "=",
+      "tier": "B"
+    },
+    "iron_guard_knight_lianjunma": {
+      "id": "iron_guard_knight_lianjunma",
+      "name": "聯軍馬",
+      "totalN": 2542,
+      "totalWins": 1170,
+      "winRate": 0.46,
+      "wilsonScore": 0.444,
+      "sessions": 88,
+      "lastEnchantRate": 0.33,
+      "lastCostDelta": 0.063,
+      "dynamicScore": 175,
+      "prevWilson": 0.44405640294973253,
+      "trend": "=",
+      "tier": "C"
+    },
+    "styx_rook_mingyanche": {
+      "id": "styx_rook_mingyanche",
+      "name": "冥焰車",
+      "totalN": 3171,
+      "totalWins": 1557,
+      "winRate": 0.491,
+      "wilsonScore": 0.476,
+      "sessions": 88,
+      "lastEnchantRate": 0.34,
+      "lastCostDelta": 0.058,
+      "dynamicScore": 143,
+      "prevWilson": 0.4764223291351298,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_rook_yinghua": {
+      "id": "dark_moon_rook_yinghua",
+      "name": "影華",
+      "totalN": 9120,
+      "totalWins": 4748,
+      "winRate": 0.521,
+      "wilsonScore": 0.512,
+      "sessions": 88,
+      "lastEnchantRate": 0.3,
+      "lastCostDelta": -0.031,
+      "dynamicScore": 104,
+      "prevWilson": 0.5120038339943215,
+      "trend": "=",
+      "tier": "B"
+    },
+    "dark_moon_advisor_yingji": {
+      "id": "dark_moon_advisor_yingji",
+      "name": "影姬",
+      "totalN": 44835,
+      "totalWins": 25020,
+      "winRate": 0.558,
+      "wilsonScore": 0.554,
+      "sessions": 88,
+      "lastEnchantRate": 1.14,
+      "lastCostDelta": 0.092,
+      "dynamicScore": 227,
+      "prevWilson": 0.5541846156326848,
+      "trend": "=",
+      "tier": "A"
+    },
+    "dark_moon_advisor_yeji": {
+      "id": "dark_moon_advisor_yeji",
+      "name": "夜姬",
+      "totalN": 30282,
+      "totalWins": 14309,
+      "winRate": 0.473,
+      "wilsonScore": 0.468,
+      "sessions": 88,
+      "lastEnchantRate": 0.73,
+      "lastCostDelta": -0.018,
+      "dynamicScore": 160,
+      "prevWilson": 0.46780819565361514,
+      "trend": "=",
+      "tier": "C"
+    },
+    "eternal_night_elephant_mingguxiang": {
+      "id": "eternal_night_elephant_mingguxiang",
+      "name": "冥骨相",
+      "totalN": 17356,
+      "totalWins": 8683,
+      "winRate": 0.5,
+      "wilsonScore": 0.494,
+      "sessions": 88,
+      "lastEnchantRate": 0.32,
+      "lastCostDelta": -0.013,
+      "dynamicScore": 147,
+      "prevWilson": 0.4940452724083184,
+      "trend": "=",
+      "tier": "B"
+    },
+    "styx_advisor_yanshi": {
+      "id": "styx_advisor_yanshi",
+      "name": "焰侍",
+      "totalN": 16828,
+      "totalWins": 7455,
+      "winRate": 0.443,
+      "wilsonScore": 0.437,
+      "sessions": 88,
+      "lastEnchantRate": 0.65,
+      "lastCostDelta": 0.062,
+      "dynamicScore": 169,
+      "prevWilson": 0.43672218375779637,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_knight_wuying": {
+      "id": "dark_moon_knight_wuying",
+      "name": "舞影",
+      "totalN": 13581,
+      "totalWins": 6736,
+      "winRate": 0.496,
+      "wilsonScore": 0.489,
+      "sessions": 88,
+      "lastEnchantRate": 0.58,
+      "lastCostDelta": -0.006,
+      "dynamicScore": 159,
+      "prevWilson": 0.48893095930258706,
+      "trend": "=",
+      "tier": "B"
+    },
+    "eternal_night_advisor_hunshi": {
+      "id": "eternal_night_advisor_hunshi",
+      "name": "魂侍",
+      "totalN": 26868,
+      "totalWins": 11661,
+      "winRate": 0.434,
+      "wilsonScore": 0.429,
+      "sessions": 88,
+      "lastEnchantRate": 0.69,
+      "lastCostDelta": -0.065,
+      "dynamicScore": 145,
+      "prevWilson": 0.4290436474160468,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_elephant_youji": {
+      "id": "dark_moon_elephant_youji",
+      "name": "幽姬",
+      "totalN": 17630,
+      "totalWins": 8410,
+      "winRate": 0.477,
+      "wilsonScore": 0.471,
+      "sessions": 88,
+      "lastEnchantRate": 0.42,
+      "lastCostDelta": -0.093,
+      "dynamicScore": 132,
+      "prevWilson": 0.470843784463652,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_knight_yingzi": {
+      "id": "dark_moon_knight_yingzi",
+      "name": "櫻紫",
+      "totalN": 6163,
+      "totalWins": 3309,
+      "winRate": 0.537,
+      "wilsonScore": 0.526,
+      "sessions": 88,
+      "lastEnchantRate": 0.35,
+      "lastCostDelta": 0.128,
+      "dynamicScore": 186,
+      "prevWilson": 0.5264514426516109,
+      "trend": "=",
+      "tier": "B"
+    },
+    "eternal_night_advisor_guhu": {
+      "id": "eternal_night_advisor_guhu",
+      "name": "骨護",
+      "totalN": 20490,
+      "totalWins": 9198,
+      "winRate": 0.449,
+      "wilsonScore": 0.443,
+      "sessions": 88,
+      "lastEnchantRate": 0.38,
+      "lastCostDelta": 0.012,
+      "dynamicScore": 143,
+      "prevWilson": 0.44319311788092675,
+      "trend": "=",
+      "tier": "C"
+    },
+    "styx_elephant_mingyanxiang": {
+      "id": "styx_elephant_mingyanxiang",
+      "name": "冥焰相",
+      "totalN": 13276,
+      "totalWins": 6088,
+      "winRate": 0.459,
+      "wilsonScore": 0.451,
+      "sessions": 88,
+      "lastEnchantRate": 0.67,
+      "lastCostDelta": -0.035,
+      "dynamicScore": 149,
+      "prevWilson": 0.45146714371621954,
+      "trend": "=",
+      "tier": "C"
+    },
+    "styx_cannon_baoyan": {
+      "id": "styx_cannon_baoyan",
+      "name": "爆焰",
+      "totalN": 4968,
+      "totalWins": 2500,
+      "winRate": 0.503,
+      "wilsonScore": 0.492,
+      "sessions": 88,
+      "lastEnchantRate": 0.42,
+      "lastCostDelta": 0.023,
+      "dynamicScore": 153,
+      "prevWilson": 0.4915529690240076,
+      "trend": "=",
+      "tier": "B"
+    },
+    "styx_elephant_mingleixiang": {
+      "id": "styx_elephant_mingleixiang",
+      "name": "冥雷相",
+      "totalN": 6293,
+      "totalWins": 2662,
+      "winRate": 0.423,
+      "wilsonScore": 0.413,
+      "sessions": 88,
+      "lastEnchantRate": 0.81,
+      "lastCostDelta": -0.009,
+      "dynamicScore": 162,
+      "prevWilson": 0.41280029962514,
+      "trend": "=",
+      "tier": "C"
+    },
+    "styx_advisor_minghu": {
+      "id": "styx_advisor_minghu",
+      "name": "冥護",
+      "totalN": 21131,
+      "totalWins": 9575,
+      "winRate": 0.453,
+      "wilsonScore": 0.447,
+      "sessions": 88,
+      "lastEnchantRate": 0.79,
+      "lastCostDelta": -0.027,
+      "dynamicScore": 166,
+      "prevWilson": 0.44749884934493384,
+      "trend": "=",
+      "tier": "C"
+    },
+    "dark_moon_elephant_yueji": {
+      "id": "dark_moon_elephant_yueji",
+      "name": "月姬",
+      "totalN": 27598,
+      "totalWins": 12243,
+      "winRate": 0.444,
+      "wilsonScore": 0.439,
+      "sessions": 88,
+      "lastEnchantRate": 0.91,
+      "lastCostDelta": -0.009,
+      "dynamicScore": 170,
+      "prevWilson": 0.43870539851781876,
+      "trend": "=",
+      "tier": "C"
+    }
+  },
+  "sessions": [
+    {
+      "date": "2026-03-07T16:08:26.498Z",
+      "totalGames": 0,
+      "redWinRate": 0.45,
+      "avgCorpseSnowball": 3.72
+    },
+    {
+      "date": "2026-03-07T16:09:15.066Z",
+      "totalGames": 0,
+      "redWinRate": 0.403,
+      "avgCorpseSnowball": 4.04
+    },
+    {
+      "date": "2026-03-07T16:10:01.581Z",
+      "totalGames": 0,
+      "redWinRate": 0.387,
+      "avgCorpseSnowball": 3.78
+    },
+    {
+      "date": "2026-03-07T16:10:49.791Z",
+      "totalGames": 0,
+      "redWinRate": 0.42,
+      "avgCorpseSnowball": 3.91
+    },
+    {
+      "date": "2026-03-07T16:11:39.169Z",
+      "totalGames": 0,
+      "redWinRate": 0.415,
+      "avgCorpseSnowball": 3.75
+    },
+    {
+      "date": "2026-03-07T16:12:29.485Z",
+      "totalGames": 0,
+      "redWinRate": 0.405,
+      "avgCorpseSnowball": 4.02
+    },
+    {
+      "date": "2026-03-07T16:13:17.657Z",
+      "totalGames": 0,
+      "redWinRate": 0.452,
+      "avgCorpseSnowball": 3.73
+    },
+    {
+      "date": "2026-03-07T16:14:04.992Z",
+      "totalGames": 0,
+      "redWinRate": 0.383,
+      "avgCorpseSnowball": 3.98
+    },
+    {
+      "date": "2026-03-07T16:14:53.490Z",
+      "totalGames": 0,
+      "redWinRate": 0.398,
+      "avgCorpseSnowball": 3.96
+    },
+    {
+      "date": "2026-03-07T16:15:42.570Z",
+      "totalGames": 0,
+      "redWinRate": 0.382,
+      "avgCorpseSnowball": 3.83
+    },
+    {
+      "date": "2026-03-07T16:16:30.499Z",
+      "totalGames": 0,
+      "redWinRate": 0.387,
+      "avgCorpseSnowball": 3.75
+    },
+    {
+      "date": "2026-03-07T16:17:20.870Z",
+      "totalGames": 0,
+      "redWinRate": 0.403,
+      "avgCorpseSnowball": 4.01
+    },
+    {
+      "date": "2026-03-07T16:18:10.780Z",
+      "totalGames": 0,
+      "redWinRate": 0.42,
+      "avgCorpseSnowball": 3.89
+    },
+    {
+      "date": "2026-03-07T16:19:01.232Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 3.71
+    },
+    {
+      "date": "2026-03-07T16:19:53.479Z",
+      "totalGames": 0,
+      "redWinRate": 0.382,
+      "avgCorpseSnowball": 3.83
+    },
+    {
+      "date": "2026-03-07T16:20:42.586Z",
+      "totalGames": 0,
+      "redWinRate": 0.412,
+      "avgCorpseSnowball": 3.78
+    },
+    {
+      "date": "2026-03-07T16:21:31.022Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 3.89
+    },
+    {
+      "date": "2026-03-07T16:22:21.020Z",
+      "totalGames": 0,
+      "redWinRate": 0.398,
+      "avgCorpseSnowball": 3.89
+    },
+    {
+      "date": "2026-03-07T16:23:12.361Z",
+      "totalGames": 0,
+      "redWinRate": 0.435,
+      "avgCorpseSnowball": 3.74
+    },
+    {
+      "date": "2026-03-07T16:24:11.815Z",
+      "totalGames": 0,
+      "redWinRate": 0.388,
+      "avgCorpseSnowball": 3.88
+    },
+    {
+      "date": "2026-03-07T16:24:59.955Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 3.92
+    },
+    {
+      "date": "2026-03-07T16:25:50.267Z",
+      "totalGames": 0,
+      "redWinRate": 0.41,
+      "avgCorpseSnowball": 4.04
+    },
+    {
+      "date": "2026-03-07T16:26:43.698Z",
+      "totalGames": 0,
+      "redWinRate": 0.437,
+      "avgCorpseSnowball": 3.74
+    },
+    {
+      "date": "2026-03-07T16:27:44.010Z",
+      "totalGames": 0,
+      "redWinRate": 0.415,
+      "avgCorpseSnowball": 3.93
+    },
+    {
+      "date": "2026-03-07T16:28:33.275Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 3.89
+    },
+    {
+      "date": "2026-03-07T16:29:22.808Z",
+      "totalGames": 0,
+      "redWinRate": 0.425,
+      "avgCorpseSnowball": 3.99
+    },
+    {
+      "date": "2026-03-07T16:30:19.521Z",
+      "totalGames": 0,
+      "redWinRate": 0.455,
+      "avgCorpseSnowball": 3.9
+    },
+    {
+      "date": "2026-03-07T16:31:15.733Z",
+      "totalGames": 0,
+      "redWinRate": 0.385,
+      "avgCorpseSnowball": 4.26
+    },
+    {
+      "date": "2026-03-07T16:32:06.763Z",
+      "totalGames": 0,
+      "redWinRate": 0.387,
+      "avgCorpseSnowball": 3.98
+    },
+    {
+      "date": "2026-03-07T16:32:57.687Z",
+      "totalGames": 0,
+      "redWinRate": 0.405,
+      "avgCorpseSnowball": 3.75
+    },
+    {
+      "date": "2026-03-07T16:33:47.551Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 4.09
+    },
+    {
+      "date": "2026-03-07T16:34:42.013Z",
+      "totalGames": 0,
+      "redWinRate": 0.438,
+      "avgCorpseSnowball": 3.86
+    },
+    {
+      "date": "2026-03-07T16:35:34.613Z",
+      "totalGames": 0,
+      "redWinRate": 0.407,
+      "avgCorpseSnowball": 3.97
+    },
+    {
+      "date": "2026-03-07T16:36:28.495Z",
+      "totalGames": 0,
+      "redWinRate": 0.398,
+      "avgCorpseSnowball": 3.97
+    },
+    {
+      "date": "2026-03-07T16:37:24.453Z",
+      "totalGames": 0,
+      "redWinRate": 0.453,
+      "avgCorpseSnowball": 4.07
+    },
+    {
+      "date": "2026-03-07T16:38:22.971Z",
+      "totalGames": 0,
+      "redWinRate": 0.413,
+      "avgCorpseSnowball": 3.97
+    },
+    {
+      "date": "2026-03-07T16:39:13.745Z",
+      "totalGames": 0,
+      "redWinRate": 0.402,
+      "avgCorpseSnowball": 4.03
+    },
+    {
+      "date": "2026-03-07T16:40:03.255Z",
+      "totalGames": 0,
+      "redWinRate": 0.35,
+      "avgCorpseSnowball": 3.99
+    },
+    {
+      "date": "2026-03-07T16:40:53.128Z",
+      "totalGames": 0,
+      "redWinRate": 0.415,
+      "avgCorpseSnowball": 3.93
+    },
+    {
+      "date": "2026-03-07T16:41:42.744Z",
+      "totalGames": 0,
+      "redWinRate": 0.37,
+      "avgCorpseSnowball": 4.03
+    },
+    {
+      "date": "2026-03-07T16:42:32.817Z",
+      "totalGames": 0,
+      "redWinRate": 0.383,
+      "avgCorpseSnowball": 3.84
+    },
+    {
+      "date": "2026-03-07T16:43:21.718Z",
+      "totalGames": 0,
+      "redWinRate": 0.393,
+      "avgCorpseSnowball": 4.13
+    },
+    {
+      "date": "2026-03-07T16:44:10.904Z",
+      "totalGames": 0,
+      "redWinRate": 0.387,
+      "avgCorpseSnowball": 3.79
+    },
+    {
+      "date": "2026-03-07T16:45:00.596Z",
+      "totalGames": 0,
+      "redWinRate": 0.403,
+      "avgCorpseSnowball": 3.76
+    },
+    {
+      "date": "2026-03-07T16:45:48.768Z",
+      "totalGames": 0,
+      "redWinRate": 0.438,
+      "avgCorpseSnowball": 3.7
+    },
+    {
+      "date": "2026-03-07T16:46:38.503Z",
+      "totalGames": 0,
+      "redWinRate": 0.407,
+      "avgCorpseSnowball": 3.77
+    },
+    {
+      "date": "2026-03-07T16:47:26.164Z",
+      "totalGames": 0,
+      "redWinRate": 0.37,
+      "avgCorpseSnowball": 4.25
+    },
+    {
+      "date": "2026-03-07T16:48:16.528Z",
+      "totalGames": 0,
+      "redWinRate": 0.402,
+      "avgCorpseSnowball": 3.94
+    },
+    {
+      "date": "2026-03-07T16:49:06.758Z",
+      "totalGames": 0,
+      "redWinRate": 0.402,
+      "avgCorpseSnowball": 4.03
+    },
+    {
+      "date": "2026-03-07T16:49:58.831Z",
+      "totalGames": 0,
+      "redWinRate": 0.438,
+      "avgCorpseSnowball": 4.07
+    }
+  ],
+  "updatedAt": "2026-03-07T16:49:58.832Z",
+  "balanceFlags": {
+    "overpowered": [],
+    "underpowered": [
+      "冥雷相(勝率42.3%,動態162)"
+    ],
+    "updatedAt": "2026-03-07T16:49:58.832Z"
+  }
+}

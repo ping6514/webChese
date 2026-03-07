@@ -170,12 +170,28 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
       break
     }
     case 'item_dark_moon_scope': {
-      nextState = {
-        ...nextState,
-        turnFlags: { ...nextState.turnFlags, darkMoonScopeActive: true },
+      // Refresh item display: move existing items to discard, draw new ones
+      let s = nextState
+      for (let slot = 0; slot < s.itemDisplay.length; slot++) {
+        const cur = s.itemDisplay[slot]
+        if (cur != null) {
+          const nextDisplay = s.itemDisplay.slice()
+          nextDisplay[slot] = null
+          s = { ...s, itemDisplay: nextDisplay, itemDiscard: [...s.itemDiscard, cur] }
+        }
       }
+      for (let slot = 0; slot < s.itemDisplay.length; slot++) {
+        if (s.itemDisplay[slot] == null && s.itemDeck.length > 0) {
+          const nextDeck = s.itemDeck.slice()
+          const drawn = nextDeck.shift() ?? null
+          const nextDisplay = s.itemDisplay.slice()
+          nextDisplay[slot] = drawn
+          s = { ...s, itemDeck: nextDeck, itemDisplay: nextDisplay }
+        }
+      }
+      nextState = s
       const king = Object.values(nextState.units).find((u) => u.side === side && u.base === 'king')
-      if (king) events.push({ type: 'ABILITY_TRIGGERED', unitId: king.id, abilityType: 'dark_moon_scope', text: '暗月窺視' })
+      if (king) events.push({ type: 'ABILITY_TRIGGERED', unitId: king.id, abilityType: 'dark_moon_scope', text: '道具刷新' })
       break
     }
     case 'item_death_chain': {

@@ -90,14 +90,14 @@ const buildLabel = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
   hour: '2-digit', minute: '2-digit',
 })
 
-function startGame(v2 = true) {
+function startGame() {
   setup.mode = mode.value
   setup.playerSide = playerSide.value
   setup.firstPlayer = firstPlayer.value
   setup.difficulty = difficulty.value
   setup.enabledClans = selectedClans.value
   setup.resolve()
-  router.push({ name: v2 ? 'gameV2' : 'game' })
+  router.push({ name: 'gameV2' })
 }
 </script>
 
@@ -273,10 +273,7 @@ function startGame(v2 = true) {
         <!-- 氏族卡池選擇（本機模式） -->
         <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
 
-        <div class="startBtnRow">
-          <button type="button" class="start-btn" @click="startGame(true)">開始遊戲</button>
-          <button type="button" class="start-btn start-btn--v2" @click="startGame(false)">舊版</button>
-        </div>
+        <button type="button" class="start-btn" @click="startGame()">開始遊戲</button>
       </template>
     </div>
   </div>
@@ -574,23 +571,4 @@ function startGame(v2 = true) {
   cursor: not-allowed;
 }
 
-.startBtnRow {
-  display: flex;
-  gap: 8px;
-}
-
-.startBtnRow .start-btn {
-  flex: 1;
-  margin-top: 0;
-}
-
-.start-btn--v2 {
-  background: rgba(100, 160, 240, 0.15);
-  border-color: rgba(100, 160, 240, 0.45);
-  color: #91caff;
-  font-size: 0.8125rem;
-}
-.start-btn--v2:hover:not(:disabled) {
-  background: rgba(100, 160, 240, 0.26);
-}
 </style>

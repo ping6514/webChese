@@ -21,7 +21,11 @@
       "Bash(node -e \":*)",
       "Bash(ls -la /d/workspace/webChese/app/src/components/v2/*.vue)",
       "Bash(grep -n \"血液祭儀\\\\|BLOOD_RITUAL\\\\|blood.ritual\" /d/workspace/webChese/app/src/data/souls/*.json)",
-      "Bash(grep -i \"blood\\\\|ritual\\\\|祭\" /d/workspace/webChese/app/src/data/souls/*.json)"
+      "Bash(grep -i \"blood\\\\|ritual\\\\|祭\" /d/workspace/webChese/app/src/data/souls/*.json)",
+      "Bash(xargs grep -l \"hover\\\\|Hover\\\\|popup\\\\|Popup\")",
+      "Bash(grep -h \"ability\\\\.type\\\\|ab\\\\.type\\\\|ab as any\" app/src/engine/*.ts)",
+      "Bash(npx vitest run src/engine)",
+      "Bash(grep -n \"MobileLayout\\\\|mobile.*layout\\\\|mobileLayout\" components/v2/*.vue views/*.vue)"
     ]
   }
 }

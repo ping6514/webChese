@@ -3,11 +3,11 @@
 // 自動執行 N 輪訓練迴圈：模擬 → 更新權重 → 驗證（blend vs base）
 //
 // 用法：
-//   node scripts/train.mjs [輪數=1] [場數=300]
+//   node scripts/train.mjs [輪數=1] [場數=600]
 //
 // 範例：
-//   npm run train              # 1 輪 × 300 場
-//   npm run train:3            # 3 輪 × 300 場
+//   npm run train              # 1 輪 × 600 場
+//   npm run train:3            # 3 輪 × 600 場
 //   node scripts/train.mjs 10 500
 
 import { spawnSync } from 'child_process'
@@ -22,7 +22,7 @@ const VALIDATE   = 'report_validate.json'
 const WEIGHTS_TS = 'src/sim/botWeights.ts'
 
 const ROUNDS  = parseInt(process.argv[2] ?? '1',   10)
-const MATCHES = parseInt(process.argv[3] ?? '300', 10)
+const MATCHES = parseInt(process.argv[3] ?? '600', 10)
 const VAL_N   = Math.max(50, Math.floor(MATCHES / 4))  // 驗證場數 = 訓練的 1/4
 
 if (isNaN(ROUNDS) || ROUNDS < 1) { console.error('輪數必須是正整數'); process.exit(1) }

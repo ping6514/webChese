@@ -87,6 +87,7 @@ onMounted(() => {
       <span class="playerLabel">
         {{ onlineSide === 'black' ? '你' : onlineSide === 'red' ? '敵' : 'BLACK' }}
       </span>
+      <span v-if="currentSide === 'black'" class="turnBadge turnBadge--black">▶ 回合</span>
       <span class="hp">♥ {{ blackHp ?? '?' }}</span>
       <span class="res">💰 <span class="resLbl">財力</span> {{ blackGold }}</span>
       <span class="res">🌟 <span class="resLbl">魔力</span> {{ blackMana }}</span>
@@ -108,7 +109,7 @@ onMounted(() => {
             {{ necroUsed }}/{{ necroMax }}
           </span>
         </div>
-      </div>
+       
 
       <button
         class="nextBtn"
@@ -116,6 +117,14 @@ onMounted(() => {
         :disabled="actionLocked"
         @click="emit('nextPhase')"
       >{{ nextPhaseLabel }}</button>
+
+      <button
+        class="shopShortcut"
+        :disabled="actionLocked"
+        title="開啟商店"
+        @click="gameCtx?.openShop?.()"
+      >🏪開啟商店</button>
+    </div>
     </div>
 
     <!-- 紅方 + 齒輪（包在 rightSide 內） -->
@@ -125,24 +134,36 @@ onMounted(() => {
         <span class="playerLabel">
           {{ onlineSide === 'red' ? '你' : onlineSide === 'black' ? '敵' : 'RED' }}
         </span>
+        <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="hp">♥ {{ redHp ?? '?' }}</span>
         <span class="res">💰 <span class="resLbl">財力</span> {{ redGold }}</span>
         <span class="res">🌟 <span class="resLbl">魔力</span> {{ redMana }}</span>
         <span class="res">⚖ <span class="resLbl">存魔</span> {{ redStorageMana }}</span>
       </div>
 
-      <!-- 連線品質 + 齒輪（獨立於紅方資訊格外） -->
+      <!-- 連線品質 + 商店 + 齒輪（獨立於紅方資訊格外） -->
       <div class="rightTools">
         <template v-if="isOnline">
           <span class="connDot" :class="connDotClass ?? 'dot--gray'" :title="connLabel" />
           <span class="connLabel">{{ connLabel }}</span>
         </template>
 
+        <!-- <button
+          class="shopBtn"
+          :disabled="actionLocked"
+          title="開啟商店"
+          @click="gameCtx?.openShop?.()"
+        >🏪開啟商店</button> -->
+
         <div class="gearWrap">
           <button class="gearBtn" :class="{ gearActive: gearOpen }" @click="gearOpen = !gearOpen">⚙️</button>
           <div v-if="gearOpen" class="gearPopover" @click.stop>
             <div class="gearTitle">選項</div>
             <button class="gearItem" @click="goHome">🏠 返回首頁</button>
+            <template v-if="isOnline">
+              <div class="gearDivider" />
+              <button class="gearItem" @click="conn._fetchState(); closeGear()">🔄 重新同步</button>
+            </template>
             <template v-if="gameCtx?.isPve">
               <div class="gearDivider" />
               <button class="gearItem" @click="gameCtx?.cycleBotSpeed?.()">
@@ -197,14 +218,16 @@ onMounted(() => {
 }
 
 .playerBlock.active {
-  background: rgba(80, 200, 80, 0.07);
-  border-color: rgba(80, 200, 80, 0.28);
-  box-shadow: 0 0 14px rgba(80, 200, 80, 0.12);
+  background: linear-gradient(90deg, rgba(82, 196, 26, 0.22) 0%, rgba(82, 196, 26, 0.07) 60%, rgba(0,0,0,0) 100%);
+  border-color: rgba(80, 200, 80, 0.72);
+  box-shadow: 0 0 18px rgba(80, 200, 80, 0.28);
+  border-left: 3px solid rgba(82, 196, 26, 1);
 }
 .playerBlock.sideRed.active {
-  background: rgba(255, 70, 70, 0.07);
-  border-color: rgba(255, 100, 100, 0.28);
-  box-shadow: 0 0 14px rgba(255, 80, 80, 0.12);
+  background: linear-gradient(90deg, rgba(255, 77, 79, 0.22) 0%, rgba(255, 77, 79, 0.07) 60%, rgba(0,0,0,0) 100%);
+  border-color: rgba(255, 100, 100, 0.72);
+  box-shadow: 0 0 18px rgba(255, 80, 80, 0.28);
+  border-left: 3px solid rgba(255, 77, 79, 1);
 }
 
 .sideDot {
@@ -219,6 +242,15 @@ onMounted(() => {
   letter-spacing: 0.08em; color: rgba(255,255,255,0.45);
   text-transform: uppercase; white-space: nowrap;
 }
+
+.turnBadge {
+  font-size: 0.5625rem; font-weight: 800;
+  padding: 1px 5px; border-radius: 4px;
+  border: 1px solid; white-space: nowrap;
+  letter-spacing: 0.05em;
+}
+.turnBadge--black { color: #b7eb8f; border-color: rgba(82,196,26,0.55); background: rgba(82,196,26,0.13); }
+.turnBadge--red   { color: #ffb0b2; border-color: rgba(255,77,79,0.55); background: rgba(255,77,79,0.13); }
 
 .hp {
   font-weight: 700; font-size: 1.0625rem;
@@ -263,6 +295,22 @@ onMounted(() => {
   font-family: ui-monospace, monospace; font-size: 0.625rem;
   color: #b37feb;
 }
+
+.shopShortcut {
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 1rem;
+  line-height: 1;
+  border: 2px solid rgba(232,200,60,0.35);
+  background: rgba(232,200,60,0.1);
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: 'Courier New', Courier, monospace;
+}
+.shopShortcut:hover:not(:disabled) {
+  background: rgba(232,200,60,0.22);
+}
+.shopShortcut:disabled { opacity: 0.3; cursor: not-allowed; }
 
 .nextBtn {
   padding: 7px 16px;
@@ -316,6 +364,23 @@ onMounted(() => {
 .connLabel {
   font-size: 0.5625rem; color: rgba(255,255,255,0.4); white-space: nowrap;
 }
+
+/* ── Shop btn ── */
+.shopBtn {
+  width: auto; height: 28px; padding: 0;
+  font-size: 0.875rem;
+  background: rgba(232, 200, 60, 0.08);
+  border: 1px solid rgba(232, 200, 60, 0.25);
+  border-radius: 7px;
+  cursor: pointer;
+  display: flex;
+  transition: background 0.15s, border-color 0.15s;
+}
+.shopBtn:hover:not(:disabled) {
+  background: rgba(232, 200, 60, 0.2);
+  border-color: rgba(232, 200, 60, 0.5);
+}
+.shopBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 
 /* ── Gear ── */
 .gearWrap { position: relative; }

@@ -48,7 +48,17 @@ const {
   fxKilledPosKeys, fxRevivedPosKeys, fxEnchantedPosKeys,
   floatTextsByPos, fxBeams, damageToasts, processEventFx,
 } = useGameEffects()
-const { dispatch, onlineWaiting, lastEvents } = useGameDispatch({ state, processEventFx, setup, conn })
+const { dispatch, onlineWaiting, lastEvents, lastError } = useGameDispatch({ state, processEventFx, setup, conn })
+
+// ── Error toast (e.g. 財力不足) ────────────────────────────────────────────────
+const errorToastText = ref<string | null>(null)
+let errorToastTimer: ReturnType<typeof setTimeout> | null = null
+watch(lastError, (err) => {
+  if (!err) return
+  errorToastText.value = err
+  if (errorToastTimer) clearTimeout(errorToastTimer)
+  errorToastTimer = setTimeout(() => { errorToastText.value = null }, 1600)
+})
 
 // ── Active buffs ───────────────────────────────────────────────────────────────
 const { activeBuffs } = useActiveBuffs(state)
@@ -137,6 +147,39 @@ watch(winnerSide, (w) => { if (w) router.push({ name: 'gameOver', query: { winne
 const effectsOpen = ref(false)
 const eventsOpen  = ref(false)
 
+// ── Online side-assignment splash ──────────────────────────────────────────────
+const CLAN_LABELS: Record<string, string> = {
+  dark_moon: '🌙暗月', styx: '💧冥河', eternal_night: '🌑永夜', iron_guard: '🛡️鐵衛',
+}
+const sideSplashVisible = ref(false)
+const sideSplashText = ref('')
+
+onMounted(() => {
+  if (setup.mode === 'online' && conn.side) {
+    const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
+    sideSplashText.value = `${sideLabel}\n${clans}`
+    sideSplashVisible.value = true
+    setTimeout(() => { sideSplashVisible.value = false }, 5000)
+
+    // Auto-resync when tab regains focus (e.g. after backgrounding)
+    const onVisible = () => { if (!document.hidden) conn._fetchState() }
+    document.addEventListener('visibilitychange', onVisible)
+    onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
+  }
+})
+
+// ── Auto-open shop at buy phase (human turn only) ──────────────────────────────
+watch(
+  () => [state.value.turn.phase, state.value.turn.side] as const,
+  ([phase, side]) => {
+    if (phase !== 'buy') return
+    if (setup.mode === 'pve' && side === npcSide.value) return  // skip bot turns
+    if (setup.mode === 'online' && conn.side !== side) return   // skip opponent turns
+    ui.openShop()
+  },
+)
+
 // ── Turn-based background ──────────────────────────────────────────────────────
 watchEffect(() => {
   document.body.style.backgroundImage =
@@ -189,4 +232,69 @@ provideGameV2({
   <DesktopLayout v-if="isDesktop" />
   <MobileLayout  v-else />
   <GameModalsV2 />
+
+  <Transition name="error-toast">
+    <div v-if="errorToastText" class="errorToast">{{ errorToastText }}</div>
+  </Transition>
+
+  <Transition name="side-splash">
+    <div
+      v-if="sideSplashVisible"
+      class="sideSplash"
+      :class="conn.side === 'red' ? 'splashRed' : 'splashGreen'"
+    >
+      <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">
+        {{ line }}
+      </div>
+    </div>
+  </Transition>
 </template>
+
+<style scoped>
+.sideSplash {
+  position: fixed;
+  inset: 0;
+  z-index: 9200;
+  display: grid;
+  place-items: center;
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  text-shadow: 0 0 40px currentColor;
+}
+.splashRed   { color: #ffb0b2; }
+.splashGreen { color: #b7eb8f; }
+.splashClanLine { font-size: 1.2rem; font-weight: 600; margin-top: 12px; letter-spacing: 0.1em; opacity: 0.85; }
+
+.side-splash-enter-active { transition: opacity 0.5s ease; }
+.side-splash-leave-active { transition: opacity 1.2s ease; }
+.side-splash-enter-from,
+.side-splash-leave-to { opacity: 0; }
+
+.errorToast {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(35, 16, 16, 0.96);
+  color: #ffb0b2;
+  border: 1px solid rgba(255, 77, 79, 0.65);
+  padding: 8px 24px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  z-index: 9100;
+  pointer-events: none;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.55), 0 0 14px rgba(255, 77, 79, 0.22);
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+}
+
+.error-toast-enter-active { transition: opacity 0.2s ease, transform 0.2s ease; }
+.error-toast-leave-active { transition: opacity 0.35s ease, transform 0.35s ease; }
+.error-toast-enter-from   { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+.error-toast-leave-to     { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+</style>

@@ -67,12 +67,15 @@ function isLegalShootByBase(
     case 'cannon': {
       const between = countBetweenOrthogonal(state, attacker.pos, target.pos)
       if (between === null) return { ok: false, error: 'Out of range' }
+      // Cannon always needs at least 1 screen (砲架), even with ignore-blocking abilities.
+      if (between < 1) return { ok: false, error: 'Need screen' }
 
       const ignoreAll = !!rules?.ignoreBlockingAll
       const ignoreCount = rules?.ignoreBlockingCount ?? 0
-      if (ignoreAll || ignoreCount > 0) {
-        // When ignoring blocking, cannon can still shoot normally (1 screen) and may also shoot directly (0 screen).
-        return between === 0 || between === 1 ? { ok: true } : { ok: false, error: 'Blocked' }
+      if (ignoreAll) return { ok: true }
+      if (ignoreCount > 0) {
+        // Can fire through up to 1 (normal screen) + ignoreCount extra blockers.
+        return between <= 1 + ignoreCount ? { ok: true } : { ok: false, error: 'Blocked' }
       }
 
       return between === 1 ? { ok: true } : { ok: false, error: 'Need screen' }

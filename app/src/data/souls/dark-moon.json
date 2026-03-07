@@ -56,9 +56,9 @@
     "base": "knight",
     "name": "櫻紫",
     "image": "/assets/cards/dark_moon/dark_moon_knight_yingzi.jpg",
-    "costGold": 6,
+    "costGold": 5,
     "stats": {
-      "hp": 10,
+      "hp": 12,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -77,9 +77,9 @@
     "base": "knight",
     "name": "舞影",
     "image": "/assets/cards/dark_moon/dark_moon_knight_wuying.jpg",
-    "costGold": 5,
+    "costGold": 4,
     "stats": {
-      "hp": 11,
+      "hp": 13,
       "atk": { "key": "phys", "value": 3 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -142,7 +142,7 @@
     "image": "/assets/cards/dark_moon/dark_moon_advisor_yeji.jpg",
     "costGold": 4,
     "stats": {
-      "hp": 16,
+      "hp": 14,
       "atk": { "key": "phys", "value": 1 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -159,11 +159,11 @@
       },
       {
         "type": "DAMAGE_SHARE",
-        "amount": 4,
-        "when": { "type": "ALLIES_IN_PALACE_GTE", "count": 2 }
+        "amount": 3,
+        "when": { "type": "ALLIES_IN_PALACE_GTE", "count": 3 }
       }
     ],
-    "text": "【宮內】：己方單位射擊忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 2，可替受攻擊友軍分擔 4 點傷害。"
+    "text": "【宮內】：在宮內的己方單位射擊時忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 3，可替受攻擊友軍分擔 3 點傷害。"
   },
   {
     "id": "dark_moon_advisor_yingji",
@@ -202,14 +202,14 @@
     },
     "abilities": [
       { "type": "RESONANCE", "need": 3 },
-      { "type": "AURA_DAMAGE_BONUS", "amount": 1, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" },
+      { "type": "AURA_DAMAGE_BONUS", "amount": 2, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" },
       {
         "type": "AURA_HP_REGEN_ON_KILL",
         "amount": 3,
         "when": { "type": "CORPSES_GTE", "count": 3 }
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +1。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +2。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
   },
   {
     "id": "dark_moon_elephant_youji",
@@ -233,8 +233,13 @@
         "count": 1,
         "perTurn": 1,
         "when": { "type": "RESONANCE_ACTIVE" }
+      },
+      {
+        "type": "AURA_HP_REGEN_ON_KILL",
+        "amount": 3,
+        "when": { "type": "CORPSES_GTE", "count": 3 }
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
   }
 ]
