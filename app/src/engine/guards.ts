@@ -298,7 +298,7 @@ export function canRevive(state: GameState, pos: Pos): GuardResult {
   }
 
   const cost = getReviveGoldCost(corpse.base)
-  const effectiveGoldCost = usingLogisticsRevive ? 0 : cost
+  const effectiveGoldCost = (usingLogisticsRevive || usingContract) ? 0 : cost
   const r = state.resources[state.turn.side]
   if (r.gold < effectiveGoldCost) return fail('Not enough gold')
 

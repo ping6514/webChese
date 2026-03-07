@@ -69,7 +69,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       atk: { ...u.atk },
       def: u.def.map((d) => ({ ...d })),
       name: soul?.name ?? u.base,
-      image: soul?.image || null,
+      image: soul?.image || `/assets/cards/base/${u.base}.jpg`,
     }
   })
 
@@ -88,7 +88,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       atk: { ...u.atk },
       def: u.def.map((d) => ({ ...d })),
       name: soul?.name ?? u.base,
-      image: soul?.image || null,
+      image: soul?.image || `/assets/cards/base/${u.base}.jpg`,
     }
   })
 

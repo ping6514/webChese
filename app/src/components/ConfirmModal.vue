@@ -1,28 +1,40 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
-import type { GuardResult } from '../engine'
+export default { name: 'ConfirmModal' }
+</script>
 
-export default defineComponent({
-  name: 'ConfirmModal',
-  props: {
-    open: { type: Boolean, required: true },
-    title: { type: String, required: true },
-    detail: { type: String, required: true },
-    image: { type: String as () => string | null, required: false, default: null },
-    guard: {
-      type: Object as () => GuardResult | null,
-      required: false,
-      default: null,
-    },
-  },
-  emits: ['confirm', 'cancel'],
-})
+<script setup lang="ts">
+import { watch } from 'vue'
+import type { GuardResult } from '../engine'
+import { useDraggable } from '../composables/useDraggable'
+
+const props = defineProps<{
+  open: boolean
+  title: string
+  detail: string
+  image?: string | null
+  guard?: GuardResult | null
+}>()
+
+const emit = defineEmits<{ confirm: []; cancel: [] }>()
+
+const { dragStyle, onDragDown, onDragMove, onDragUp, resetDrag } = useDraggable()
+watch(() => props.open, (v) => { if (v) resetDrag() })
 </script>
 
 <template>
-  <div v-if="open" class="modalOverlay" @click.self="$emit('cancel')">
-    <div class="modal">
-      <div class="modalTitle">{{ title }}</div>
+  <div v-if="open" class="modalOverlay" @click.self="emit('cancel')">
+    <div
+      class="modal"
+      :style="dragStyle"
+      @pointerdown="onDragDown"
+      @pointermove="onDragMove"
+      @pointerup="onDragUp"
+      @pointercancel="onDragUp"
+    >
+      <div class="modalTitle">
+        <span>{{ title }}</span>
+        <span class="dragHint">⠿</span>
+      </div>
       <div class="modalBody">
         <div v-if="image" class="imgCol">
           <img class="img" :src="image" alt="" />
@@ -30,10 +42,10 @@ export default defineComponent({
         <div class="modalDetail mono">{{ detail }}</div>
       </div>
       <div class="modalBtns">
-        <button type="button" @click="$emit('confirm')" :disabled="guard ? !guard.ok : false" :title="guard && !guard.ok ? guard.reason : ''">
+        <button type="button" @click="emit('confirm')" :disabled="guard ? !guard.ok : false" :title="guard && !guard.ok ? guard.reason : ''">
           Confirm
         </button>
-        <button type="button" @click="$emit('cancel')">Cancel</button>
+        <button type="button" @click="emit('cancel')">Cancel</button>
       </div>
     </div>
   </div>
@@ -56,6 +68,26 @@ export default defineComponent({
   border: 1px solid var(--border-strong);
   background: var(--bg-modal);
   padding: 16px;
+  cursor: default;
+  user-select: none;
+  touch-action: none;
+}
+
+.modalTitle {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: grab;
+}
+.modalTitle:active { cursor: grabbing; }
+
+.dragHint {
+  font-size: 1rem;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .modalBody {
@@ -76,12 +108,6 @@ export default defineComponent({
   object-fit: cover;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.14);
-}
-
-.modalTitle {
-  font-weight: 700;
-  font-size: 16px;
-  margin-bottom: 8px;
 }
 
 .modalDetail {

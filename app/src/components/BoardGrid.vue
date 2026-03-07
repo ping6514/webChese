@@ -391,73 +391,56 @@ export default defineComponent({
 
     const shootOverlayStyle = computed<Record<string, string>>(() => {
       if (!props.shootActionPosKey) {
-        return {
-          left: '0%',
-          top: '0%',
-          transform: 'translate(-50%, -110%)',
-        }
+        return { left: '0%', top: '0%', transform: 'translate(-50%, -110%)' }
       }
       const [xs, ys] = String(props.shootActionPosKey).split(',')
       const x = Number(xs)
       const y = Number(ys)
       if (!(Number.isFinite(x) && Number.isFinite(y))) {
-        return {
-          left: '0%',
-          top: '0%',
-          transform: 'translate(-50%, -110%)',
-        }
+        return { left: '0%', top: '0%', transform: 'translate(-50%, -110%)' }
       }
 
       const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
-      const topPct = ((y + 0.5) / BOARD_HEIGHT) * 100
+      const topPct  = ((y + 0.5) / BOARD_HEIGHT) * 100
 
-      const baseTransformX = (() => {
-        // Prevent overlay from being clipped by the board container near edges.
-        if (x <= 1) return 'translate(0%, -110%)'
-        if (x >= BOARD_WIDTH - 2) return 'translate(-100%, -110%)'
-        return 'translate(-50%, -110%)'
-      })()
+      // Horizontal anchor: prevent clipping near left/right board edges
+      const anchorX = x <= 1 ? '0%' : x >= BOARD_WIDTH - 2 ? '-100%' : '-50%'
+      // Vertical anchor: show below the unit when near the top, above otherwise
+      const anchorY = y <= 1 ? '10%' : '-110%'
 
       return {
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        transform: `${baseTransformX} translate(${overlayOffset.value.x}px, ${overlayOffset.value.y}px)`,
+        transform: `translate(${anchorX}, ${anchorY}) translate(${overlayOffset.value.x}px, ${overlayOffset.value.y}px)`,
       }
     })
 
     const sacrificeOverlayStyle = computed<Record<string, string>>(() => {
+      const dx = sacrificeOverlayOffset.value.x
+      const dy = sacrificeOverlayOffset.value.y
       if (!props.sacrificeActionPosKey) {
-        return {
-          left: '0%',
-          top: '0%',
-          transform: 'translate(-50%, -110%)',
-        }
+        return { left: '50%', top: '6%', transform: `translate(-50%, 0) translate(${dx}px, ${dy}px)` }
       }
       const [xs, ys] = String(props.sacrificeActionPosKey).split(',')
       const x = Number(xs)
       const y = Number(ys)
       if (!(Number.isFinite(x) && Number.isFinite(y))) {
-        return {
-          left: '0%',
-          top: '0%',
-          transform: 'translate(-50%, -110%)',
-        }
+        return { left: '50%', top: '6%', transform: `translate(-50%, 0) translate(${dx}px, ${dy}px)` }
       }
 
-      const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
-      const topPct = ((y + 0.5) / BOARD_HEIGHT) * 100
-
-      const baseTransformX = (() => {
-        // Prevent overlay from being clipped by the board container near edges.
-        if (x <= 1) return 'translate(0%, -110%)'
-        if (x >= BOARD_WIDTH - 2) return 'translate(-100%, -110%)'
-        return 'translate(-50%, -110%)'
-      })()
+      // Place the overlay in the corner of the board farthest from the selected unit
+      // so it's well clear of the click target, reducing misclick risk.
+      const farRight  = x < BOARD_WIDTH / 2   // unit in left half → overlay on right
+      const farBottom = y < BOARD_HEIGHT / 2  // unit in top half  → overlay on bottom
+      const leftPct = farRight  ? 96 : 4
+      const topPct  = farBottom ? 92 : 4
+      const anchorX = farRight  ? '-100%' : '0%'
+      const anchorY = farBottom ? '-100%' : '0%'
 
       return {
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        transform: `${baseTransformX} translate(${sacrificeOverlayOffset.value.x}px, ${sacrificeOverlayOffset.value.y}px)`,
+        transform: `translate(${anchorX}, ${anchorY}) translate(${dx}px, ${dy}px)`,
       }
     })
 

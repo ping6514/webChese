@@ -454,7 +454,11 @@ const kingHp = computed(() => {
 })
 
 const necroActionsUsed = computed(() => state.value.turnFlags.necroActionsUsed ?? 0)
-const necroActionsMax = computed(() => state.value.limits.necroActionsPerTurn + (state.value.turnFlags.necroBonusActions ?? 0))
+const necroActionsMax = computed(() =>
+  state.value.limits.necroActionsPerTurn +
+  (state.value.turnFlags.necroBonusActions ?? 0) +
+  (state.value.turnFlags.itemNecroBonus ?? 0)
+)
 
 // ── Active buff indicator ─────────────────────────────────────────────────────
 const { activeBuffs } = useActiveBuffs(state)
@@ -780,7 +784,15 @@ const reviveGuard = computed(() => {
 })
 
 function reviveAt(pos: Pos) {
-  dispatch({ type: 'REVIVE', pos: { ...pos } })
+  const posKey = `${pos.x},${pos.y}`
+  const stack = state.value.corpsesByPos[posKey] ?? []
+  const side = state.value.turn.side
+  // 從頂層往下找到第一個己方屍體，避免被對手屍體遮擋
+  let corpseIndex: number | undefined
+  for (let i = stack.length - 1; i >= 0; i--) {
+    if (stack[i]?.ownerSide === side) { corpseIndex = i; break }
+  }
+  dispatch({ type: 'REVIVE', pos: { ...pos }, ...(corpseIndex !== undefined ? { corpseIndex } : {}) })
 }
 
 const bloodRitualGuard = computed(() => {

@@ -18,7 +18,10 @@
       "Bash(git add app/api/rooms/create.ts \"app/api/rooms/[roomId]/join.ts\" app/src/components/TopBar.vue app/src/views/Game.vue)",
       "Bash(git add app/src/components/TopBar.vue app/src/views/Game.vue)",
       "Bash(python3 -c \":*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(ls -la /d/workspace/webChese/app/src/components/v2/*.vue)",
+      "Bash(grep -n \"血液祭儀\\\\|BLOOD_RITUAL\\\\|blood.ritual\" /d/workspace/webChese/app/src/data/souls/*.json)",
+      "Bash(grep -i \"blood\\\\|ritual\\\\|祭\" /d/workspace/webChese/app/src/data/souls/*.json)"
     ]
   }
 }

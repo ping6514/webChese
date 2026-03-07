@@ -278,6 +278,14 @@ export default defineComponent({
   box-shadow: 0 8px 48px rgba(0, 0, 0, 0.35);
 }
 
+@media (max-width: 640px) {
+  .modal {
+    padding: 12px;
+    border-radius: 12px;
+    max-height: 95vh;
+  }
+}
+
 .modalHead {
   display: flex;
   align-items: center;
@@ -319,6 +327,12 @@ export default defineComponent({
   grid-template-columns: 1.4fr 1fr;
   gap: 16px;
   align-items: start;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .panel {

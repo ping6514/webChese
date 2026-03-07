@@ -1,6 +1,7 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, watch } from 'vue'
 import type { GuardResult, PieceBase, ShotPreviewEffect, DamageFormulaItem } from '../engine'
+import { useDraggable } from '../composables/useDraggable'
 
 type UnitPreview = {
   id: string
@@ -50,6 +51,11 @@ export default defineComponent({
     },
   },
   emits: ['confirm', 'cancel'],
+  setup(props) {
+    const { dragStyle, onDragDown, onDragMove, onDragUp, resetDrag } = useDraggable()
+    watch(() => props.open, (v) => { if (v) resetDrag() })
+    return { dragStyle, onDragDown, onDragMove, onDragUp }
+  },
   methods: {
     baseLabel(base: string): string { return BASE_LABEL[base] ?? base },
     amountDisplay(amount: number | [number, number]): string {
@@ -82,9 +88,16 @@ export default defineComponent({
 
 <template>
   <div v-if="open" class="modalOverlay" @click.self="$emit('cancel')">
-    <div class="modal">
+    <div
+      class="modal"
+      :style="dragStyle"
+      @pointerdown="onDragDown"
+      @pointermove="onDragMove"
+      @pointerup="onDragUp"
+      @pointercancel="onDragUp"
+    >
       <div class="modalHead">
-        <div class="modalTitle">射擊預覽</div>
+        <div class="modalTitle">射擊預覽 <span class="dragHint">⠿</span></div>
         <button type="button" class="closeBtn" @click="$emit('cancel')">關閉</button>
       </div>
 
@@ -184,6 +197,9 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 12px;
+  user-select: none;
+  touch-action: none;
+  cursor: default;
 }
 
 .modalHead {
@@ -196,6 +212,16 @@ export default defineComponent({
 .modalTitle {
   font-weight: 700;
   font-size: 16px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.modalTitle:active { cursor: grabbing; }
+.dragHint {
+  font-size: 1rem;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
 .closeBtn {

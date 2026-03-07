@@ -665,7 +665,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
 
       const cost = getReviveGoldCost(corpse.base)
-      const effectiveGoldCost = usingLogisticsRevive ? 0 : cost
+      const effectiveGoldCost = (usingLogisticsRevive || usingContract) ? 0 : cost
       if (r.gold < effectiveGoldCost) return { ok: false, error: 'Not enough gold' }
 
       // Create a deterministic new unit id without relying on time/random.

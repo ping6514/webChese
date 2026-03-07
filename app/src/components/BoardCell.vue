@@ -93,17 +93,17 @@ export default defineComponent({
       </div>
     </div>
 
-    <div v-if="unit?.enchantName" class="tip">
+    <div v-if="unit?.enchantName" class="tip" :class="{ 'tip-below': y <= 2 }">
       <div class="tipRow">{{ unit.label }}</div>
       <img v-if="unit.enchantImage" class="tipImg" :src="unit.enchantImage" alt="" />
       <div v-else class="tipNoImg mono">no img</div>
     </div>
-    <div v-else-if="unit?.baseImage" class="tip">
+    <div v-else-if="unit?.baseImage" class="tip" :class="{ 'tip-below': y <= 2 }">
       <div class="tipRow">{{ unit.label }}</div>
       <img class="tipImg" :src="unit.baseImage" alt="" />
     </div>
 
-    <div v-if="!unit && titleText" class="tip tip-invalid">
+    <div v-if="!unit && titleText" class="tip tip-invalid" :class="{ 'tip-below': y <= 2 }">
       <div class="tipRow">{{ titleText }}</div>
     </div>
   </button>
@@ -707,6 +707,11 @@ export default defineComponent({
   transition: opacity 120ms ease;
 }
 
+.tip.tip-below {
+  top: calc(100% + 6px);
+  transform: none;
+}
+
 .cell:hover .tip {
   visibility: visible;
   opacity: 1;
@@ -823,5 +828,25 @@ export default defineComponent({
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+/* ── Mobile: rectangular cells so HP doesn't overlap the piece ── */
+@media (max-width: 767px) {
+  .cell {
+    aspect-ratio: 3 / 4;
+  }
+  .unit {
+    font-size: 0.875rem;
+    line-height: 1;
+  }
+  .hp {
+    font-size: 0.5625rem;
+    padding: 1px 3px;
+    left: 2px;
+    bottom: 2px;
+  }
+  .hpHeart {
+    margin-right: 1px;
+  }
 }
 </style>

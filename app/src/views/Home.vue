@@ -2,13 +2,11 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
-import { useThemeStore } from '../stores/theme'
 import { useConnection } from '../stores/connection'
 import ClanSelector from '../components/ClanSelector.vue'
 
 const router = useRouter()
 const setup = useGameSetup()
-const theme = useThemeStore()
 const conn = useConnection()
 
 const mode = ref<GameMode>(setup.mode)
@@ -50,7 +48,7 @@ const supabaseKeyOk = !!(import.meta.env.VITE_SUPABASE_ANON_KEY)
 watch(() => conn.status, (s) => {
   if (s === 'playing' && mode.value === 'online') {
     setup.mode = 'online'
-    router.push({ name: 'game' })
+    router.push({ name: 'gameV2' })
   }
 })
 
@@ -71,7 +69,7 @@ async function handleOnlineStart() {
       const ok = await conn.joinRoom(id)
       if (ok) {
         setup.mode = 'online'
-        router.push({ name: 'game' })
+        router.push({ name: 'gameV2' })
       } else {
         onlineError.value = conn.errorMsg ?? '加入失敗'
       }
@@ -92,33 +90,20 @@ const buildLabel = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
   hour: '2-digit', minute: '2-digit',
 })
 
-function startGame() {
+function startGame(v2 = true) {
   setup.mode = mode.value
   setup.playerSide = playerSide.value
   setup.firstPlayer = firstPlayer.value
   setup.difficulty = difficulty.value
   setup.enabledClans = selectedClans.value
   setup.resolve()
-  router.push({ name: 'game' })
+  router.push({ name: v2 ? 'gameV2' : 'game' })
 }
 </script>
 
 <template>
   <div class="page">
     <div class="topBtns">
-      <!-- 主題旋鈕 -->
-      <div
-        class="themeSwitch"
-        :class="{ 'is-light': theme.current === 'light' }"
-        @click="theme.toggle()"
-        :title="theme.current === 'dark' ? '目前：暗色 ── 點擊切換亮色' : '目前：亮色 ── 點擊切換暗色'"
-      >
-        <span class="switchLabel">🌙 暗色</span>
-        <div class="switchTrack">
-          <div class="switchKnob"></div>
-        </div>
-        <span class="switchLabel">☀️ 亮色</span>
-      </div>
       <button type="button" class="iconBtn" title="規則與卡牌圖鑑" @click="router.push({ name: 'intro' })">
         📖
       </button>
@@ -288,7 +273,10 @@ function startGame() {
         <!-- 氏族卡池選擇（本機模式） -->
         <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
 
-        <button type="button" class="start-btn" @click="startGame">開始遊戲</button>
+        <div class="startBtnRow">
+          <button type="button" class="start-btn" @click="startGame(true)">開始遊戲</button>
+          <button type="button" class="start-btn start-btn--v2" @click="startGame(false)">舊版</button>
+        </div>
       </template>
     </div>
   </div>
@@ -315,68 +303,6 @@ function startGame() {
   align-items: center;
   gap: 8px;
   z-index: 10;
-}
-
-/* ── Theme toggle switch ─────────────────────── */
-.themeSwitch {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  cursor: pointer;
-  padding: 6px 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(0, 0, 0, 0.40);
-  backdrop-filter: blur(10px);
-  user-select: none;
-  transition: border-color 0.2s, background 0.2s;
-}
-.themeSwitch:hover {
-  border-color: rgba(255, 255, 255, 0.42);
-  background: rgba(0, 0, 0, 0.55);
-}
-
-.switchLabel {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.42);
-  white-space: nowrap;
-  transition: color 0.25s;
-  letter-spacing: 0.03em;
-}
-/* Current active label lights up */
-.themeSwitch:not(.is-light) .switchLabel:first-child { color: rgba(255, 255, 255, 0.92); }
-.themeSwitch.is-light .switchLabel:last-child { color: rgba(255, 255, 255, 0.92); }
-
-.switchTrack {
-  width: 38px;
-  height: 22px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  position: relative;
-  flex-shrink: 0;
-  transition: background 0.3s, border-color 0.3s;
-}
-.themeSwitch.is-light .switchTrack {
-  background: rgba(232, 200, 60, 0.55);
-  border-color: rgba(232, 200, 60, 0.75);
-}
-
-.switchKnob {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  transition: transform 0.26s cubic-bezier(0.4, 0, 0.2, 1), background 0.26s;
-}
-.themeSwitch.is-light .switchKnob {
-  transform: translateX(16px);
-  background: #e8c83c;
 }
 
 /* ── Intro button ────────────────────────────── */
@@ -646,5 +572,25 @@ function startGame() {
 .start-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.startBtnRow {
+  display: flex;
+  gap: 8px;
+}
+
+.startBtnRow .start-btn {
+  flex: 1;
+  margin-top: 0;
+}
+
+.start-btn--v2 {
+  background: rgba(100, 160, 240, 0.15);
+  border-color: rgba(100, 160, 240, 0.45);
+  color: #91caff;
+  font-size: 0.8125rem;
+}
+.start-btn--v2:hover:not(:disabled) {
+  background: rgba(100, 160, 240, 0.26);
 }
 </style>

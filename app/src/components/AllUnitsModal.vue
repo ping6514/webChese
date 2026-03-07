@@ -62,7 +62,7 @@ export default defineComponent({
   display: grid;
   place-items: center;
   padding: 24px;
-  z-index: 50;
+  z-index: 150;
   backdrop-filter: blur(3px);
 }
 
