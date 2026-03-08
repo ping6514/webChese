@@ -79,11 +79,11 @@ export default defineComponent({
     <span v-if="corpseCount" class="corpseBadge mono">x{{ corpseCount }}</span>
     <span v-if="sealedBadge" class="sealBadge mono" title="冥鎖封印：本回合無法移動或射擊">🔒</span>
 
-    <span v-if="unit" class="hp mono"><span class="hpHeart">♥</span>{{ unit.hp }}</span>
-
-    <span v-if="unit" class="unit mono" :class="[unit.sideClass, { enchanted: !!unit.enchantName }]">
-      {{ unit.label }}
-    </span>
+    <div v-if="unit" class="unit mono" :class="[unit.sideClass, { enchanted: !!unit.enchantName }]">
+      <span class="unitBase">{{ unit.label }}</span>
+      <span v-if="unit.enchantName" class="unitSoul">{{ unit.enchantName }}</span>
+      <span class="unitHp"><span class="hpHeart">♥</span>{{ unit.hp }}</span>
+    </div>
 
     <div v-if="floatTexts.length > 0" class="floats">
       <div
@@ -810,33 +810,41 @@ export default defineComponent({
 }
 
 .unit {
-  font-size: 1.125rem;
-  line-height: 20px;
   position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  font-weight: 800;
-  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 
-.hp {
-  position: absolute;
-  left: 3px;
-  bottom: 3px;
-  font-size: 1rem;
-  padding: 1px 6px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.55);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+.unitBase {
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.unitSoul {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  opacity: 0.9;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.unitHp {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.85;
 }
 
 .hpHeart {
   color: #ff4d4f;
-  margin-right: 3px;
+  margin-right: 2px;
 }
 
 .unit-red {
@@ -851,23 +859,19 @@ export default defineComponent({
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 
-/* ── Mobile: rectangular cells so HP doesn't overlap the piece ── */
+/* ── Mobile: rectangular cells ── */
 @media (max-width: 767px) {
   .cell {
     aspect-ratio: 3 / 4;
   }
-  .unit {
-    font-size: 0.875rem;
-    line-height: 1;
+  .unitBase {
+    font-size: 0.9375rem;
   }
-  .hp {
+  .unitSoul {
     font-size: 0.5625rem;
-    padding: 1px 3px;
-    left: 2px;
-    bottom: 2px;
   }
-  .hpHeart {
-    margin-right: 1px;
+  .unitHp {
+    font-size: 0.5625rem;
   }
 }
 </style>

@@ -29,6 +29,7 @@ export default defineComponent({
     cellUnit: { type: Object as PropType<UnitLite | null>, default: null },
     corpses: { type: Array as () => CorpseLite[], required: true },
     reviveGuard: { type: Object as () => GuardResult, required: true },
+    reviveIsFree: { type: Boolean, default: false },
   },
   emits: ['revive'],
   setup(props) {
@@ -90,7 +91,7 @@ export default defineComponent({
         :title="reviveGuard.ok ? '' : reviveGuard.reason"
         @click="$emit('revive', selectedCell)"
       >
-        ✨ 復活 ({{ reviveCost }}💰)
+        ✨ 復活 {{ reviveIsFree ? '（免費）' : `(${reviveCost}💰)` }}
       </button>
     </div>
   </div>

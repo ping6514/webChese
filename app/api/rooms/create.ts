@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const creatorSecret = genSecret()
     const creatorSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
     const firstSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
-    const ALL_CLANS = ['dark_moon', 'styx', 'eternal_night', 'iron_guard']
+    const ALL_CLANS = ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']
     const rawClans: unknown = req.body?.enabledClans
     const enabledClans: string[] = Array.isArray(rawClans) && rawClans.length > 0
       ? (rawClans as string[]).filter((c) => ALL_CLANS.includes(c))

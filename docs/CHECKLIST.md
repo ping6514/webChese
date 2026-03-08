@@ -30,7 +30,7 @@
 | `eternal_night` | 🌑 永夜 | MVP |
 | `iron_guard` | 🛡️ 鐵衛 | MVP |
 | `gold_merc` | 💰 逐利傭兵 | 2026-03-08 |
-| `death_oath` | 🩸 亡命誓約 | 2026-03-08 |
+| `death_oath` | 🩸死誓誓約 | 2026-03-08 |
 
 ---
 

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import type { ComputedRef, Ref } from 'vue'
-import { getItemCard, getSoulCard, BASE_STATS } from '../engine'
+import { getItemCard, getSoulCard, BASE_STATS, canRevive, getReviveGoldCost } from '../engine'
 import type { Action, GameState, Pos, Unit } from '../engine'
 import { useUiStore } from '../stores/ui'
 
@@ -122,10 +122,14 @@ export function useInteractionMode(opts: {
         const targetName = targetUnit?.enchant?.soulId
           ? (getSoulCard(targetUnit.enchant.soulId)?.name ?? targetUnit.base)
           : (targetUnit?.base ?? unitId)
+        const discount = state.value.turnFlags.enchantGoldDiscount ?? 0
+        const baseCost = card?.costGold ?? 0
+        const effectiveCost = Math.max(0, baseCost - discount)
+        const costLine = discount > 0 ? `費用：${effectiveCost} 財力（-${discount} 灌注折扣）` : `費用：${baseCost} 財力`
         setPending({
           action: { type: 'ENCHANT', unitId, soulId },
           title: '確認附魔',
-          detail: [`靈魂：${card?.name ?? soulId}`, `目標：${targetName}`, `費用：${card?.costGold ?? '-'} 財力`].join('\n'),
+          detail: [`靈魂：${card?.name ?? soulId}`, `目標：${targetName}`, costLine].join('\n'),
         })
         ui.clearInteractionMode()
         return
@@ -178,6 +182,40 @@ export function useInteractionMode(opts: {
         boneRefineChoicePos.value = { x: payload.x, y: payload.y }
       }
       return
+    }
+
+    // Necro phase: click cell with friendly corpse → revive popup
+    if (state.value.turn.phase === 'necro' && !payload.unitId) {
+      const posKey = `${payload.x},${payload.y}`
+      const stack = state.value.corpsesByPos[posKey]
+      const hasFriendly = stack?.some((c) => c.ownerSide === state.value.turn.side) ?? false
+      if (hasFriendly) {
+        const revGuard = canRevive(state.value, { x: payload.x, y: payload.y })
+        if (revGuard.ok) {
+          const corpse = stack![stack!.length - 1]
+          const BASE_LABEL: Record<string, string> = { king: '帥', advisor: '士', elephant: '象', rook: '車', knight: '馬', cannon: '炮', soldier: '卒' }
+          const baseName = BASE_LABEL[corpse?.base ?? ''] ?? (corpse?.base ?? '?')
+          const isContract = (state.value.turnFlags.lastStandContractBonus ?? 0) > 0
+          const isLogistics = corpse?.base === 'soldier' && Object.values(state.value.units).some((u) => {
+            if (u.side !== state.value.turn.side || !u.enchant?.soulId) return false
+            const card = getSoulCard(u.enchant.soulId)
+            if (!card) return false
+            const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+            if (!ab) return false
+            const used = state.value.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
+            return used < Number((ab as any).perTurn ?? 1)
+          })
+          const cost = getReviveGoldCost(corpse?.base ?? 'soldier')
+          const isFree = isContract || isLogistics
+          const costLabel = isFree ? '免費' : `${cost} 財力`
+          setPending({
+            action: { type: 'REVIVE', pos: { x: payload.x, y: payload.y } },
+            title: '確認復活',
+            detail: `復活 ${baseName} 於此格\n費用：${costLabel}`,
+          })
+          return
+        }
+      }
     }
 
     const prevSelectedUnit = selectedUnit.value

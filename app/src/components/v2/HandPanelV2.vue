@@ -9,13 +9,19 @@ import {
 import HandSouls from '../HandSouls.vue'
 import HandItems from '../HandItems.vue'
 import { useUiStore } from '../../stores/ui'
+import { useGameSetup } from '../../stores/gameSetup'
 
 const ctx = inject(GAME_V2_KEY) as GameV2Ctx
 const state = ctx.state as Ref<GameState>
 const ui = useUiStore()
+const setup = useGameSetup()
 
-// Which side's hand to show
-const mySide = computed<'red' | 'black'>(() => ctx.onlineSide ?? state.value.turn.side)
+// Which side's hand to show (in PVE always show human player's hand)
+const mySide = computed<'red' | 'black'>(() => {
+  if (ctx.onlineSide) return ctx.onlineSide
+  if (ctx.isPve) return setup.resolvedPlayerSide
+  return state.value.turn.side
+})
 const phase  = computed(() => state.value.turn.phase)
 
 const handSoulCards = computed(() =>

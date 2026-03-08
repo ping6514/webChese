@@ -145,6 +145,7 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
   if (goldFromStorage > 0) reportItems.push({ label: '儲存轉換', amount: goldFromStorage, kind: 'gold' })
   if (incomeBonus > 0) reportItems.push({ label: '附魔加成', amount: incomeBonus, kind: 'gold' })
   reportItems.push({ label: '魔力', amount: state.rules.incomeMana, kind: 'mana' })
+  if (pendingDrain > 0) reportItems.push({ label: '透支扣除', amount: -pendingDrain, kind: 'mana' })
   events.push({ type: 'INCOME_REPORT', side, items: reportItems })
 
   return next

@@ -24,7 +24,7 @@ export const useGameSetup = defineStore('gameSetup', {
       playerSide: 'random' as SideOrRandom,
       firstPlayer: 'random' as SideOrRandom,
       difficulty: 'hard' as Difficulty,
-      enabledClans: (saved.enabledClans ?? ['dark_moon', 'styx', 'eternal_night', 'iron_guard']) as string[],
+      enabledClans: (saved.enabledClans ?? ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']) as string[],
       resolvedPlayerSide: (saved.resolvedPlayerSide ?? 'red') as Side,
       resolvedFirstPlayer: (saved.resolvedFirstPlayer ?? 'red') as Side,
     }

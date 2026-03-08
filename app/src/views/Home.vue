@@ -32,7 +32,7 @@ const ALL_CLANS = [
   { id: 'eternal_night', label: '🌑 永夜' },
   { id: 'iron_guard',    label: '🛡️ 鐵衛' },
   { id: 'gold_merc',     label: '💰 逐利' },
-  { id: 'death_oath',    label: '🩸 亡命' },
+  { id: 'death_oath',    label: '🩸 死誓' },
 ]
 const selectedClans = ref<string[]>(['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath'])
 const clanMode = ref<'all' | 'random'>('all')

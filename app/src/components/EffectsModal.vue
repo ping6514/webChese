@@ -403,7 +403,7 @@ const mobileTab = ref<'my' | 'enemy'>('my')
   margin: 0 4px;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .mobileTabs {
     display: flex;
     gap: 8px;

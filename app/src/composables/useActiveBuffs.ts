@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import type { Ref } from 'vue'
 import type { GameState } from '../engine'
 import { getSoulCard } from '../engine'
+import { DEATH_CHAIN_MAX_KILLS } from '../engine/gameConfig'
 
 export type BuffEntry = { label: string; kind: 'aura' | 'free' | 'buff' }
 
@@ -80,8 +81,8 @@ export function useActiveBuffs(state: Ref<GameState>) {
       buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
     if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
       buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
-    if (s.turnFlags.deathChainActive)
-      buffs.push({ label: '死亡連鎖：擊殺 +1 魔力', kind: 'aura' })
+    if (s.turnFlags.deathChainActive && (s.turnFlags.deathChainKillCount ?? 0) < DEATH_CHAIN_MAX_KILLS)
+      buffs.push({ label: `死亡連鎖：擊殺 +1 魔力（剩 ${DEATH_CHAIN_MAX_KILLS - (s.turnFlags.deathChainKillCount ?? 0)} 次）`, kind: 'aura' })
 
     return buffs
   })

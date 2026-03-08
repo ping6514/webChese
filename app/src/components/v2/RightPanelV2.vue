@@ -78,6 +78,27 @@ const reviveGuard = computed(() => {
   return canRevive(state.value, selectedCell.value)
 })
 
+const reviveIsFree = computed(() => {
+  if (!reviveGuard.value.ok || !selectedCell.value) return false
+  const posKey = `${selectedCell.value.x},${selectedCell.value.y}`
+  const stack = state.value.corpsesByPos[posKey]
+  const corpse = stack?.[stack.length - 1]
+  if (!corpse) return false
+  const isContract = (state.value.turnFlags.lastStandContractBonus ?? 0) > 0
+  if (isContract) return true
+  if (corpse.base !== 'soldier') return false
+  const side = state.value.turn.side
+  return Object.values(state.value.units).some((u) => {
+    if (u.side !== side || !u.enchant?.soulId) return false
+    const card = getSoulCard(u.enchant.soulId)
+    if (!card) return false
+    const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+    if (!ab) return false
+    const used = state.value.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
+    return used < Number((ab as any).perTurn ?? 1)
+  })
+})
+
 const bloodRitualGuard = computed(() => {
   if (isLocked.value) return { ok: false as const, reason: '不是你的回合' }
   return canBloodRitual(state.value)
@@ -169,6 +190,7 @@ const phase = computed(() => state.value.turn.phase)
       :cell-unit="selectedCellUnit"
       :corpses="selectedCellCorpses"
       :revive-guard="reviveGuard"
+      :revive-is-free="reviveIsFree"
       @revive="reviveAt"
     />
 

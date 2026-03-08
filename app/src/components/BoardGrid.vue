@@ -228,7 +228,7 @@ export default defineComponent({
         const soulId = u.enchant?.soulId
         const soul = soulId ? getSoulCard(soulId) : null
         const baseLabel = getChineseLabel(u.side, u.base)
-        const displayLabel = soul?.name ? `${baseLabel}-${soul.name}` : baseLabel
+        const displayLabel = baseLabel
         map.set(`${u.pos.x},${u.pos.y}`, {
           id: u.id,
           side: u.side,

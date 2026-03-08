@@ -142,9 +142,9 @@
     },
     "abilities": [
       { "type": "INCOME_BONUS", "amount": 1 },
-      { "type": "GOLD_THRESHOLD_ATK", "threshold": 8, "atkBonus": 1 }
+      { "type": "GOLD_THRESHOLD_ATK", "threshold": 8, "scope": "global", "atkBonus": 1 }
     ],
-    "text": "【財源廣進】此單位在場時，己方每回合財力收入 +1。【財力共鳴】持有財力 ≥ 8 時，ATK +1。"
+    "text": "【財源廣進】此單位在場時，己方每回合財力收入 +1。【財力共鳴】持有財力 ≥ 8 時，全體己方單位ATK +1。"
   },
   {
     "id": "gold_merc_advisor_bishi",
@@ -178,14 +178,14 @@
       "hp": 11,
       "atk": { "key": "magic", "value": 3 },
       "def": [
-        { "key": "phys", "value": 0 },
+        { "key": "phys", "value": 2 },
         { "key": "magic", "value": 3 }
       ]
     },
     "abilities": [
-      { "type": "GOLD_THRESHOLD_ATK", "threshold": 7, "defBonus": { "phys": 2, "magic": 2 } }
+      { "type": "GOLD_THRESHOLD_ATK", "threshold": 5, "defBonus": { "phys": 2, "magic": 2 } }
     ],
-    "text": "【財力護盾】持有財力 ≥ 7 時，此單位 DEF+2/+2（物魔各+2）。"
+    "text": "【財力護盾】持有財力 ≥ 5 時，此單位 DEF+2/+2（物魔各+2）。"
   },
   {
     "id": "gold_merc_elephant_caishi",
@@ -198,8 +198,8 @@
       "hp": 9,
       "atk": { "key": "phys", "value": 3 },
       "def": [
-        { "key": "phys", "value": 1 },
-        { "key": "magic", "value": 2 }
+        { "key": "phys", "value": 2 },
+        { "key": "magic", "value": 1 }
       ]
     },
     "abilities": [

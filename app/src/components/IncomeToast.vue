@@ -23,8 +23,8 @@ const stackStyle = computed(() => {
           <span
             v-for="(item, i) in t.items"
             :key="i"
-            :class="['item', item.kind]"
-          >+{{ item.amount }} {{ item.kind === 'gold' ? 'G' : '魔' }}<span class="itemLabel">{{ item.label }}</span></span>
+            :class="['item', item.kind, item.amount < 0 ? 'drain' : '']"
+          >{{ item.amount >= 0 ? '+' : '' }}{{ item.amount }} {{ item.kind === 'gold' ? 'G' : '魔' }}<span class="itemLabel">{{ item.label }}</span></span>
         </div>
       </div>
     </TransitionGroup>
@@ -34,7 +34,7 @@ const stackStyle = computed(() => {
 <style scoped>
 .toastStack {
   position: fixed;
-  z-index: 119;
+  z-index: 121;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -77,6 +77,7 @@ const stackStyle = computed(() => {
 
 .item.gold { color: #e8c83c; }
 .item.mana { color: #7dd3fc; }
+.item.drain { color: #f87171; }
 
 .itemLabel {
   font-size: 0.625rem;

@@ -445,13 +445,13 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
           events.push({ type: 'ABILITY_TRIGGERED', unitId: src.id, abilityType: 'KILL_GOLD_GAIN', text: `掠奪 +${gainAmount}G` })
         }
 
-        // BLOOD_TITHE_ON_KILL: kill enchanted enemy → heal allied king ceil(cost/3) HP
+        // BLOOD_TITHE_ON_KILL: kill enchanted enemy → heal allied king ceil(cost/2) HP
         const titheAb = card?.abilities.find((a) => a.type === 'BLOOD_TITHE_ON_KILL')
         if (titheAb) {
           const deadSoulId2 = nextState.graveyard[killedSide]?.[0]
           const deadCard = deadSoulId2 ? getSoulCard(deadSoulId2) : undefined
           if (deadCard) {
-            const healAmount = Math.ceil(deadCard.costGold / 3)
+            const healAmount = Math.ceil(deadCard.costGold / 2)
             if (healAmount > 0) nextState = healKingOnKill(nextState, events, src.id, healAmount)
           }
         }

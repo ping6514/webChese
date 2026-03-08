@@ -137,8 +137,17 @@ const shootChainEligibleEnemyIds = computed(() => {
   const chain = card.abilities.find((a) => a.type === 'CHAIN')
   const radius0 = Number((chain as any)?.radius ?? 0)
   const sb = state.value.status.sacrificeBuffByUnitId?.[attacker.id] ?? null
-  const radius = Number.isFinite(sb?.chainRadius as any) && Number((sb as any).chainRadius) > 0
-    ? Number((sb as any).chainRadius) : radius0
+  const sbRadius = Number.isFinite(sb?.chainRadius as any) && Number((sb as any).chainRadius) > 0
+    ? Number((sb as any).chainRadius) : 0
+  // Also check BLOOD_SACRIFICE → CHAIN when sacrifice toggle is active
+  let bsRadius = 0
+  if (shootSacrificeHp.value) {
+    const bsAb = card.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
+    if (bsAb && (bsAb as any).onActivate?.type === 'CHAIN') {
+      bsRadius = Number((bsAb as any).onActivate?.radius ?? 0)
+    }
+  }
+  const radius = Math.max(radius0, sbRadius, bsRadius)
   if (!(Number.isFinite(radius) && radius > 0)) return []
   const cheb = (a: { x: number; y: number }, b: { x: number; y: number }) =>
     Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))

@@ -33,7 +33,12 @@ const kingHp = computed(() => {
 const res = computed(() => state.value.resources)
 
 // ── Hand data ─────────────────────────────────────────────────────────────────
-const mySide = computed<'red' | 'black'>(() => ctx.onlineSide ?? state.value.turn.side)
+// In PVE mode always show the human player's hand (hide bot cards)
+const mySide = computed<'red' | 'black'>(() => {
+  if (ctx.onlineSide) return ctx.onlineSide
+  if (ctx.isPve) return setup.resolvedPlayerSide
+  return state.value.turn.side
+})
 const phase  = computed(() => state.value.turn.phase)
 
 const handSoulCards = computed(() =>
@@ -293,17 +298,28 @@ function toggleTab(tab: TabKey) {
       <!-- Tab bar (always visible) -->
       <div class="tabBar">
         <button
-          v-for="tab in (['souls', 'items', 'panel', 'tools'] as TabKey[])"
+          v-for="tab in (['souls', 'items'] as TabKey[])"
           :key="tab"
           :class="['tabBtn', activeTab === tab && 'active']"
           @click="toggleTab(tab)"
         >
-          <span class="tabIcon">
-            {{ tab === 'souls' ? '🃏' : tab === 'items' ? '🎒' : tab === 'panel' ? '📋' : '🛠' }}
-          </span>
-          <span class="tabLabel">
-            {{ tab === 'souls' ? '靈魂' : tab === 'items' ? '道具' : tab === 'panel' ? '面板' : '工具' }}
-          </span>
+          <span class="tabIcon">{{ tab === 'souls' ? '🃏' : '🎒' }}</span>
+          <span class="tabLabel">{{ tab === 'souls' ? '靈魂' : '道具' }}</span>
+        </button>
+
+        <button class="tabBtn tabShop" @click="ctx.openShop?.()">
+          <span class="tabIcon">🏪</span>
+          <span class="tabLabel">商店</span>
+        </button>
+
+        <button
+          v-for="tab in (['panel', 'tools'] as TabKey[])"
+          :key="tab"
+          :class="['tabBtn', activeTab === tab && 'active']"
+          @click="toggleTab(tab)"
+        >
+          <span class="tabIcon">{{ tab === 'panel' ? '📋' : '🛠' }}</span>
+          <span class="tabLabel">{{ tab === 'panel' ? '面板' : '工具' }}</span>
         </button>
       </div>
 
@@ -622,6 +638,13 @@ function toggleTab(tab: TabKey) {
 }
 
 .tabBtn:last-child { border-right: none; }
+
+.tabShop {
+  background: rgba(232, 200, 60, 0.08);
+  color: rgba(232, 210, 80, 0.75);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+.tabShop:hover { background: rgba(232, 200, 60, 0.15); color: rgba(232, 210, 80, 1); }
 
 .tabBtn.active {
   background: rgba(255, 255, 255, 0.07);

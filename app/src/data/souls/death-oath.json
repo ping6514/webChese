@@ -18,7 +18,7 @@
       { "type": "FREE_SHOOT_DRAIN" },
       { "type": "BLOOD_TITHE_ON_KILL" }
     ],
-    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 ceil(費用/3) HP。"
+    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 附魂(費用/2) HP。"
   },
   {
     "id": "death_oath_rook_chiyun",
@@ -69,7 +69,7 @@
     "image": "/assets/cards/death_oath/death_oath_knight_nihun.jpg",
     "costGold": 6,
     "stats": {
-      "hp": 10,
+      "hp": 11,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -77,10 +77,10 @@
       ]
     },
     "abilities": [
-      { "type": "UNDERDOG_AURA", "scope": "self" },
+      { "type": "UNDERDOG_AURA", "scope": "self", "stages": [{ "margin": 1, "atkBonus": 2 }] },
       { "type": "DEATH_COUNTER" }
     ],
-    "text": "【逆境】己方活著的單位數少於敵方時，此單位 ATK +1。【最後一搏】死亡前對擊殺者反擊一次。"
+    "text": "【逆境】己方活著的單位數少於敵方時，此單位 ATK +2。【最後一搏】死亡前對擊殺者反擊一次。"
   },
   {
     "id": "death_oath_cannon_yanshi",
@@ -119,10 +119,10 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "CHAIN", "radius": 1 } },
-      { "type": "BLOOD_RAGE_AURA", "scope": "self", "stages": [{ "threshold": 5, "atkBonus": 1 }] }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "CHAIN", "radius": 1 } },
+      { "type": "BLOOD_RAGE_AURA", "scope": "self", "stages": [{ "threshold": 5, "atkBonus": 3 }] }
     ],
-    "text": "【血祭→連鎖】射擊前可消耗帥 1 HP，本次射擊觸發連鎖（波及鄰近 1 格敵方）。帥 HP ≤ 5 時，此單位 ATK +1。"
+    "text": "【血祭→連鎖】射擊前可消耗帥 2 HP，本次射擊觸發連鎖（波及鄰近 1 格敵方）。帥 HP ≤ 5 時，此單位 ATK +3。"
   },
   {
     "id": "death_oath_advisor_tieshi",
@@ -183,7 +183,7 @@
       { "type": "FREE_SHOOT_DRAIN" },
       { "type": "BLOOD_TITHE_ON_KILL" }
     ],
-    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 ceil(費用/3) HP。"
+    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 附魂(費用/2) HP。"
   },
   {
     "id": "death_oath_elephant_jueyu",

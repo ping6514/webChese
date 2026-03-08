@@ -91,7 +91,7 @@ export const useConnection = defineStore('connection', {
 
   actions: {
     // ── Create a new room ────────────────────────────────────────────────
-    async createRoom(enabledClans: string[] = ['dark_moon', 'styx', 'eternal_night', 'iron_guard']) {
+    async createRoom(enabledClans: string[] = ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']) {
       this.status = 'connecting'
       this.errorMsg = null
       const res = await fetch('/api/rooms/create', {

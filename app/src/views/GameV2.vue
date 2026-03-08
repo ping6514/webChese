@@ -107,7 +107,7 @@ function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) 
 watch(
   () => [state.value.turn.side, state.value.turn.phase] as const,
   async ([side, phase]) => {
-    if (!npcSide.value || side !== npcSide.value || botRunning.value) return
+    if (!npcSide.value || side !== npcSide.value || botRunning.value || splashActive.value) return
     if (phase === 'turnStart') return
     botRunning.value = true
     await sleep(botDelays.value.init)
@@ -123,16 +123,6 @@ watch(
   { immediate: true },
 )
 
-// ── Online turn lock ───────────────────────────────────────────────────────────
-const isMyTurn = computed(() =>
-  setup.mode !== 'online' || conn.side === state.value.turn.side
-)
-const actionLocked = computed(() => {
-  if (setup.mode === 'online') return !isMyTurn.value || onlineWaiting.value
-  if (setup.mode === 'pve')    return botRunning.value
-  return false
-})
-
 // ── Win detection ──────────────────────────────────────────────────────────────
 const winnerSide = computed(() => {
   const hasRedKing   = Object.values(state.value.units).some((u) => u.side === 'red'   && u.base === 'king')
@@ -141,7 +131,23 @@ const winnerSide = computed(() => {
   if (!hasBlackKing && hasRedKing) return 'red'
   return null
 })
-watch(winnerSide, (w) => { if (w) router.push({ name: 'gameOver', query: { winner: w } }) }, { immediate: true })
+const kingDying = ref(false)
+watch(winnerSide, (w) => {
+  if (!w) return
+  kingDying.value = true
+  setTimeout(() => router.push({ name: 'gameOver', query: { winner: w } }), 2000)
+}, { immediate: true })
+
+// ── Online turn lock ───────────────────────────────────────────────────────────
+const isMyTurn = computed(() =>
+  setup.mode !== 'online' || conn.side === state.value.turn.side
+)
+const actionLocked = computed(() => {
+  if (kingDying.value) return true
+  if (setup.mode === 'online') return !isMyTurn.value || onlineWaiting.value
+  if (setup.mode === 'pve')    return botRunning.value
+  return false
+})
 
 // ── Effects / Events modals ────────────────────────────────────────────────────
 const effectsOpen = ref(false)
@@ -150,22 +156,38 @@ const eventsOpen  = ref(false)
 // ── Online side-assignment splash ──────────────────────────────────────────────
 const CLAN_LABELS: Record<string, string> = {
   dark_moon: '🌙暗月', styx: '💧冥河', eternal_night: '🌑永夜', iron_guard: '🛡️鐵衛',
+  gold_merc: '💰金傭', death_oath: '🩸死誓',
 }
 const sideSplashVisible = ref(false)
 const sideSplashText = ref('')
+const sideSplashColor = ref<'red' | 'black'>('red')
+const splashActive = ref(false)
 
 onMounted(() => {
+  const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
+  function showSplash(text: string, color: 'red' | 'black') {
+    sideSplashText.value = text
+    sideSplashColor.value = color
+    splashActive.value = true
+    sideSplashVisible.value = true
+    setTimeout(() => { sideSplashVisible.value = false; splashActive.value = false }, 5000)
+  }
   if (setup.mode === 'online' && conn.side) {
     const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
-    const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
-    sideSplashText.value = `${sideLabel}\n${clans}`
-    sideSplashVisible.value = true
-    setTimeout(() => { sideSplashVisible.value = false }, 5000)
+    showSplash(`${sideLabel}\n${clans}`, conn.side)
 
     // Auto-resync when tab regains focus (e.g. after backgrounding)
     const onVisible = () => { if (!document.hidden) conn._fetchState() }
     document.addEventListener('visibilitychange', onVisible)
     onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
+  } else if (setup.mode === 'pve') {
+    const mySide = setup.resolvedPlayerSide
+    const sideLabel = mySide === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
+    showSplash(`${sideLabel}\n${clans}`, mySide)
+  } else {
+    const firstSide = setup.resolvedFirstPlayer
+    const sideLabel = firstSide === 'red' ? '先手：紅方' : '先手：黑方'
+    showSplash(`${sideLabel}\n${clans}`, firstSide)
   }
 })
 
@@ -255,11 +277,13 @@ provideGameV2({
     <div v-if="errorToastText" class="errorToast">{{ errorToastText }}</div>
   </Transition>
 
+  <div v-if="kingDying" class="kingDyingOverlay" />
+
   <Transition name="side-splash">
     <div
       v-if="sideSplashVisible"
       class="sideSplash"
-      :class="conn.side === 'red' ? 'splashRed' : 'splashGreen'"
+      :class="sideSplashColor === 'red' ? 'splashRed' : 'splashGreen'"
     >
       <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">
         {{ line }}
@@ -315,4 +339,19 @@ provideGameV2({
 .error-toast-leave-active { transition: opacity 0.35s ease, transform 0.35s ease; }
 .error-toast-enter-from   { opacity: 0; transform: translateX(-50%) translateY(-12px); }
 .error-toast-leave-to     { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+
+.kingDyingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  pointer-events: all;
+  animation: kingDyingPulse 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes kingDyingPulse {
+  from { background: rgba(0, 0, 0, 0.62); }
+  to   { background: rgba(180, 0, 0, 0.32); }
+}
 </style>
