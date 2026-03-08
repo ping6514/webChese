@@ -186,7 +186,21 @@ const connLabel = computed(() => {
 })
 
 const gearOpen = ref(false)
-function goHome() { router.push({ name: 'home' }); gearOpen.value = false }
+const surrenderPending = ref(false)
+
+function closeGear() { gearOpen.value = false; surrenderPending.value = false }
+function goHome() { router.push({ name: 'home' }); closeGear() }
+function surrender() {
+  if (!surrenderPending.value) { surrenderPending.value = true; return }
+  let losingSide: 'red' | 'black'
+  if (setup.mode === 'online' && conn.side) losingSide = conn.side
+  else if (setup.mode === 'pve') losingSide = setup.resolvedPlayerSide
+  else losingSide = currentSide.value
+  const winner = losingSide === 'red' ? 'black' : 'red'
+  closeGear()
+  router.push({ name: 'gameOver', query: { winner } })
+}
+
 onMounted(() => {
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') gearOpen.value = false }
   window.addEventListener('keydown', onKey)
@@ -260,7 +274,16 @@ function toggleTab(tab: TabKey) {
             </template>
             <div class="gearDivider" />
             <button class="gearItem" @click="ui.cycleBodyFontSize()">🔤 字體：{{ ui.bodyFontSize }}px</button>
-            <button class="gearItem gearClose" @click="gearOpen = false">✕ 關閉</button>
+            <div class="gearDivider" />
+            <button v-if="!surrenderPending" class="gearItem gearSurrender" @click="surrender">🏳️ 投降</button>
+            <template v-else>
+              <div class="gearItem gearSurrenderConfirm">確認投降？</div>
+              <div class="gearConfirmRow">
+                <button class="gearItem gearClose" @click="surrender">確認</button>
+                <button class="gearItem" @click="surrenderPending = false">取消</button>
+              </div>
+            </template>
+            <button class="gearItem gearClose" @click="closeGear">✕ 關閉</button>
           </div>
           <div v-if="gearOpen" class="gearBackdrop" @click="gearOpen = false" />
         </div>
@@ -528,6 +551,12 @@ function toggleTab(tab: TabKey) {
 .gearClose { border-color: rgba(255,77,79,0.2); color: rgba(255,150,150,0.8); }
 .gearClose:hover { background: rgba(255,77,79,0.12); }
 .gearDivider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
+.gearSurrender { border-color: rgba(250,173,20,0.25); color: rgba(250,210,80,0.85); }
+.gearSurrender:hover { background: rgba(250,173,20,0.12); color: #ffd666; }
+.gearSurrenderConfirm { font-weight: 700; color: rgba(250,210,80,0.9); cursor: default; border-color: rgba(250,173,20,0.2); }
+.gearSurrenderConfirm:hover { background: rgba(255,255,255,0.03); color: rgba(250,210,80,0.9); }
+.gearConfirmRow { display: flex; gap: 6px; }
+.gearConfirmRow .gearItem { flex: 1; text-align: center; }
 .gearBackdrop { position: fixed; inset: 0; z-index: 199; }
 
 /* ── Board area ── */
