@@ -60,14 +60,7 @@ const useGuards = computed(() => {
 function tryEnchantOrToast(soulId: string) {
   const side = state.value.turn.side
   const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
-  if (!hasValid) {
-    const card = getSoulCard(soulId)
-    // Prefer a unit of matching base so the error message is accurate
-    const target = Object.values(state.value.units).find(u => u.side === side && u.base === card?.base)
-      ?? Object.values(state.value.units).find(u => u.side === side)
-    if (target) ctx.dispatch({ type: 'ENCHANT', unitId: target.id, soulId })
-    return
-  }
+  if (!hasValid) return
   ui.startEnchantSelectUnit(soulId)
 }
 function selectSoul(id: string) {

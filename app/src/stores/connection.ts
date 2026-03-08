@@ -157,21 +157,24 @@ export const useConnection = defineStore('connection', {
     // ── Send an action to the server ────────────────────────────────────
     async sendAction(action: unknown) {
       if (!this.roomId || !this.secret || !this.side) return { ok: false, error: 'Not connected' }
-      const res = await fetch(`/api/rooms/${this.roomId}/action`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, secret: this.secret, side: this.side }),
-      })
-      const data = await res.json()
-      if (!res.ok) return { ok: false, error: data.error }
-      // Optimistic: update local state immediately with returned events
-      this.lastEvents = data.events ?? []
-      this.localVersion = data.version
-      // Suppress pollEvents during _fetchState so we don't re-emit our own events
+      // Suppress pollEvents for the entire request window so Realtime can't fire
+      // during the fetch and double-process our own events
       this._suppressPollEvents = true
-      await this._fetchState()
-      this._suppressPollEvents = false
-      return { ok: true }
+      try {
+        const res = await fetch(`/api/rooms/${this.roomId}/action`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, secret: this.secret, side: this.side }),
+        })
+        const data = await res.json()
+        if (!res.ok) return { ok: false, error: data.error }
+        this.lastEvents = data.events ?? []
+        this.localVersion = data.version
+        await this._fetchState()
+        return { ok: true }
+      } finally {
+        this._suppressPollEvents = false
+      }
     },
 
     // ── Switch sync mode on the fly ─────────────────────────────────────

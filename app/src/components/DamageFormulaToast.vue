@@ -12,14 +12,14 @@ export type DamageToast = {
 
 const props = defineProps<{
   toasts: DamageToast[]
-  position?: 'top' | 'right'
+  position?: 'top' | 'right' | 'left'
 }>()
 
-const stackStyle = computed(() =>
-  props.position === 'right'
-    ? { top: '80px', right: '16px', left: 'unset', transform: 'none' }
-    : { top: '66px', left: '50%', right: 'unset', transform: 'translateX(-50%)' }
-)
+const stackStyle = computed(() => {
+  if (props.position === 'right') return { top: '80px', right: '16px', left: 'unset', transform: 'none' }
+  if (props.position === 'left')  return { top: '80px', left: '16px', right: 'unset', transform: 'none' }
+  return { top: '66px', left: '50%', right: 'unset', transform: 'translateX(-50%)' }
+})
 
 function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
   return breakdown
@@ -64,21 +64,21 @@ function buildFormulaString(breakdown: DamageBreakdownItem[]): string {
 }
 
 .toastHeader {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.7;
   letter-spacing: 0.04em;
 }
 
 .toastFormula {
   font-family: ui-monospace, monospace;
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.85;
   word-break: break-all;
   line-height: 1.6;
 }
 
 .toastResult {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 900;
   color: #e8c83c;
   text-align: right;

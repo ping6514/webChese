@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { buildShotPreview, canDispatch, getSoulCard, type GuardResult, type GameState, type PieceBase } from './engine'
+import { buildShotPreview, canDispatch, getSoulCard, getDefValueInState, type GuardResult, type GameState, type PieceBase } from './engine'
 import { useUiStore } from './stores/ui'
 
 type UnitPreview = {
@@ -83,6 +83,9 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     const u = s.units[shootPreview.value.targetUnitId]
     if (!u) return null
     const soul = u.enchant?.soulId ? getSoulCard(u.enchant.soulId) : null
+    // Build effective DEF (including aura bonuses) for each key
+    const defKeys = [...new Set(u.def.map((d) => d.key))]
+    const effectiveDef = defKeys.map((key) => ({ key, value: getDefValueInState(s, u, key) }))
     return {
       id: u.id,
       side: u.side,
@@ -90,13 +93,13 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       pos: { ...u.pos },
       hpCurrent: u.hpCurrent,
       atk: { ...u.atk },
-      def: u.def.map((d) => ({ ...d })),
+      def: effectiveDef,
       name: soul?.name ?? u.base,
       image: soul?.image || `/assets/cards/base/${u.base}.jpg`,
     }
   })
 
-  const bloodSacrificeInfo = computed<{ onActivateType: string; label: string } | null>(() => {
+  const bloodSacrificeInfo = computed<{ onActivateType: string; label: string; hpCost: number } | null>(() => {
     const s = opts.getState()
     if (!shootPreview.value) return null
     const u = s.units[shootPreview.value.attackerId]
@@ -105,8 +108,9 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     if (!card) return null
     const ab = card.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
     if (!ab) return null
+    const hpCost = Number((ab as any).hpCost ?? 1)
     const king = Object.values(s.units).find((unit) => unit.side === s.turn.side && unit.base === 'king')
-    if (!king || king.hpCurrent <= 1) return null
+    if (!king || king.hpCurrent <= hpCost) return null
     const onActivate = (ab as any).onActivate as Record<string, unknown> | undefined
     if (!onActivate) return null
     const typeMap: Record<string, string> = {
@@ -115,7 +119,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       MOVE_THEN_SHOOT: '移動後射',
     }
     const label = typeMap[String(onActivate.type ?? '')] ?? String(onActivate.type ?? '')
-    return { onActivateType: String(onActivate.type ?? ''), label }
+    return { onActivateType: String(onActivate.type ?? ''), label, hpCost }
   })
 
   const goldForDamageInfo = computed<{ goldCost: number; damageBonus: number } | null>(() => {

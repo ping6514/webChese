@@ -109,7 +109,7 @@ export default defineComponent({
 .unitPanel { display: grid; gap: 8px; }
 
 .sectionTitle {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   opacity: 0.65;
   letter-spacing: 0.05em;
@@ -158,10 +158,10 @@ export default defineComponent({
   place-items: center;
   background: var(--bg-surface-2);
 }
-.baseChar { font-size: 32px; font-weight: 900; opacity: 0.55; }
+.baseChar { font-size: 2rem; font-weight: 900; opacity: 0.55; }
 
 .soulName {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-align: center;
   word-break: break-all;
@@ -187,15 +187,15 @@ export default defineComponent({
   gap: 5px;
   margin-bottom: 2px;
 }
-.hpIcon { font-size: 15px; }
+.hpIcon { font-size: 0.9375rem; }
 .hpNum {
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: 900;
   line-height: 1;
 }
 .hpNum.red { color: #ff9c9e; }
 .hpNum.green { color: #95de64; }
-.hpLabel { font-size: 13px; opacity: 0.65; font-weight: 600; }
+.hpLabel { font-size: 0.8125rem; opacity: 0.65; font-weight: 600; }
 
 .statRow {
   display: flex;
@@ -203,20 +203,20 @@ export default defineComponent({
   gap: 6px;
 }
 .statLabel {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.55;
   white-space: nowrap;
   flex-shrink: 0;
-  min-width: 52px;
+  min-width: 3.25rem;
 }
 .statVal {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
 }
 .statVal.red { color: #ff9c9e; }
 .statVal.green { color: #95de64; }
 
-.empty { font-size: 13px; opacity: 0.45; padding: 8px 0; }
+.empty { font-size: 0.8125rem; opacity: 0.45; padding: 8px 0; }
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;

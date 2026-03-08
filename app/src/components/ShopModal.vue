@@ -235,7 +235,7 @@ export default defineComponent({
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 20px;
+  padding-block: 20px;
   z-index: 150;
   backdrop-filter: blur(3px);
 }
@@ -244,6 +244,7 @@ export default defineComponent({
   width: min(1100px, 96vw);
   max-height: min(92vh, 920px);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 16px;
   border: 1px solid var(--border-strong);
   background: var(--bg-modal-strong);

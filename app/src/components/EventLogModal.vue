@@ -34,7 +34,7 @@ export default defineComponent({
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
 }
 
@@ -73,6 +73,7 @@ export default defineComponent({
   height: min(70vh, 560px);
   resize: vertical;
   overflow: auto;
+  overscroll-behavior: contain;
   box-sizing: border-box;
   white-space: pre;
   background: var(--bg-surface-2);

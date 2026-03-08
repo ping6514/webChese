@@ -100,7 +100,7 @@ export default defineComponent({
 .cellPanel { display: grid; gap: 8px; }
 
 .sectionTitle {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 800;
   opacity: 0.65;
   letter-spacing: 0.05em;
@@ -121,8 +121,8 @@ export default defineComponent({
   align-items: center;
   gap: 8px;
 }
-.posLabel { font-size: 12px; opacity: 0.55; }
-.posVal { font-size: 15px; font-weight: 800; }
+.posLabel { font-size: 0.75rem; opacity: 0.55; }
+.posVal { font-size: 0.9375rem; font-weight: 800; }
 
 .cellUnitBlock {
   display: grid;
@@ -139,16 +139,16 @@ export default defineComponent({
   gap: 8px;
 }
 
-.sideTag { font-size: 16px; }
+.sideTag { font-size: 1rem; }
 
 .cellUnitName {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 900;
   flex: 1;
 }
 
 .hpBadge {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
@@ -158,13 +158,13 @@ export default defineComponent({
 }
 
 .cellSoulId {
-  font-size: 10px;
+  font-size: 0.625rem;
   opacity: 0.55;
   word-break: break-all;
 }
 
 .cellEmpty {
-  font-size: 13px;
+  font-size: 0.8125rem;
   opacity: 0.4;
 }
 
@@ -180,13 +180,13 @@ export default defineComponent({
 }
 
 .corpseSectionLabel {
-  font-size: 12px;
+  font-size: 0.75rem;
   opacity: 0.55;
   font-weight: 600;
 }
 
 .corpseCount {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 900;
   padding: 1px 7px;
   border-radius: 999px;
@@ -209,23 +209,23 @@ export default defineComponent({
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .corpseNum {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.45;
   min-width: 14px;
 }
 
-.corpseSide { font-size: 13px; }
+.corpseSide { font-size: 0.8125rem; }
 .corpseBase { font-weight: 700; }
 
 .reviveBtn {
   width: 100%;
   padding: 9px 14px;
   border-radius: 10px;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 800;
   cursor: pointer;
   border: 1px solid rgba(145, 202, 255, 0.5);

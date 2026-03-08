@@ -5,6 +5,7 @@ import IntroPage from '../views/IntroPage.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
+  scrollBehavior: () => ({ top: 0 }),
   routes: [
     { path: '/', name: 'home', component: Home },
     { path: '/intro', name: 'intro', component: IntroPage },

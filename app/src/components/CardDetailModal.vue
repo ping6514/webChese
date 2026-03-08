@@ -146,7 +146,7 @@ export default defineComponent({
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
   backdrop-filter: blur(3px);
 }
@@ -290,6 +290,15 @@ export default defineComponent({
   white-space: pre-wrap;
   opacity: 0.85;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+@media (max-width: 480px) {
+  .modal { width: min(660px, 96vw); padding: 14px; }
+  .modalBody { grid-template-columns: 72px 1fr; gap: 10px; }
+  .imgCol { width: 72px; }
+  .img { width: 72px; height: 100px; }
+  .noImg { width: 72px; height: 100px; font-size: 1.5rem; }
+  .statRow { grid-template-columns: 18px 46px 1fr; gap: 5px; }
 }
 
 /* ── Action button ───────────────────────────────────────────────────── */

@@ -450,9 +450,10 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         const attackerCard = attacker?.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
         const bsAb = attackerCard?.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
         if (bsAb && (bsAb as any).onActivate) {
+          const hpCost = Number((bsAb as any).hpCost ?? 1)
           const king = Object.values(stateForShot.units).find((u) => u.side === stateForShot.turn.side && u.base === 'king')
-          if (king && king.hpCurrent > 1) {
-            stateForShot = { ...stateForShot, units: { ...stateForShot.units, [king.id]: { ...king, hpCurrent: king.hpCurrent - 1 } } }
+          if (king && king.hpCurrent > hpCost) {
+            stateForShot = { ...stateForShot, units: { ...stateForShot.units, [king.id]: { ...king, hpCurrent: king.hpCurrent - hpCost } } }
             const onActivate = (bsAb as any).onActivate as Record<string, unknown>
             if (onActivate.type === 'MOVE_THEN_SHOOT') {
               const cur = stateForShot.turnFlags.bloodSacrificeMoveThenShoot ?? {}
@@ -460,7 +461,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
             } else {
               stateForShot = { ...stateForShot, turnFlags: { ...stateForShot.turnFlags, bloodSacrificeActiveShotEffect: { unitId: action.attackerId, effect: onActivate } } }
             }
-            prePlanEvents.push({ type: 'ABILITY_TRIGGERED', unitId: action.attackerId, abilityType: 'BLOOD_SACRIFICE', text: '血祭 帥-1HP' })
+            prePlanEvents.push({ type: 'ABILITY_TRIGGERED', unitId: action.attackerId, abilityType: 'BLOOD_SACRIFICE', text: `血祭 帥-${hpCost}HP` })
           }
         }
       }

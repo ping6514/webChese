@@ -64,7 +64,7 @@ watch(() => props.open, (v) => { if (v) resetDrag() })
   background: rgba(0, 0, 0, 0.6);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
   backdrop-filter: blur(3px);
 }

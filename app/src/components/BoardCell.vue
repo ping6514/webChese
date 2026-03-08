@@ -32,6 +32,7 @@ export default defineComponent({
     splashMark: { type: String as PropType<string | null>, required: false, default: null },
     chainMark: { type: String as PropType<string | null>, required: false, default: null },
     sealedBadge: { type: Boolean, required: false, default: false },
+    showTip: { type: Boolean, required: false, default: true },
   },
   emits: {
     click: (_payload: { x: number; y: number; unitId: string | null }) => true,
@@ -95,19 +96,20 @@ export default defineComponent({
       </div>
     </div>
 
-    <div v-if="unit?.enchantName" class="tip" :class="{ 'tip-below': y <= 2 }">
-      <div class="tipRow">{{ unit.label }}</div>
-      <img v-if="unit.enchantImage" class="tipImg" :src="unit.enchantImage" alt="" />
-      <div v-else class="tipNoImg mono">no img</div>
-    </div>
-    <div v-else-if="unit?.baseImage" class="tip" :class="{ 'tip-below': y <= 2 }">
-      <div class="tipRow">{{ unit.label }}</div>
-      <img class="tipImg" :src="unit.baseImage" alt="" />
-    </div>
-
-    <div v-if="!unit && titleText" class="tip tip-invalid" :class="{ 'tip-below': y <= 2 }">
-      <div class="tipRow">{{ titleText }}</div>
-    </div>
+    <template v-if="showTip">
+      <div v-if="unit?.enchantName" class="tip" :class="{ 'tip-below': y <= 2 }">
+        <div class="tipRow">{{ unit.label }}</div>
+        <img v-if="unit.enchantImage" class="tipImg" :src="unit.enchantImage" alt="" />
+        <div v-else class="tipNoImg mono">no img</div>
+      </div>
+      <div v-else-if="unit?.baseImage" class="tip" :class="{ 'tip-below': y <= 2 }">
+        <div class="tipRow">{{ unit.label }}</div>
+        <img class="tipImg" :src="unit.baseImage" alt="" />
+      </div>
+      <div v-if="!unit && titleText" class="tip tip-invalid" :class="{ 'tip-below': y <= 2 }">
+        <div class="tipRow">{{ titleText }}</div>
+      </div>
+    </template>
   </button>
 </template>
 
@@ -816,6 +818,9 @@ export default defineComponent({
   place-items: center;
   font-weight: 800;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .hp {

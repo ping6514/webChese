@@ -3,7 +3,7 @@ export default { name: 'EffectsModal' }
 </script>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { GameState, Unit } from '../engine/state'
 import { getSoulCard } from '../engine/cards'
 import type { SoulAbility } from '../engine/cards'
@@ -40,6 +40,8 @@ function highestTier(tiers: { count: number; amount: number }[], n: number): { c
   return sorted.find((t) => n >= t.count) ?? null
 }
 
+const DEF_KEY_LABEL: Record<string, string> = { phys: '物理', magic: '魔法' }
+
 function getAbilityLabel(ab: SoulAbility): string {
   const perT = Number((ab as any).perTurn ?? 0)
   const perS = perT > 0 ? `（每回合 ${perT} 次）` : ''
@@ -50,15 +52,15 @@ function getAbilityLabel(ab: SoulAbility): string {
     }
     case 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS': {
       const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
-      return `軍勢氣場：全軍 ATK 提升（${tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
+      return `軍勢氣場：全軍攻擊力提升（${tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
     }
     case 'SOLDIERS_TIERED_DMG_REDUCTION_AURA': {
       const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
-      return `軍勢氣場：全軍 減傷（${tiers.map((t) => `≥${t.count}→-${t.amount}`).join(' / ')}）`
+      return `軍勢氣場：全軍減傷（${tiers.map((t) => `≥${t.count}→−${t.amount}`).join(' / ')}）`
     }
     case 'IGNORE_BLOCKING': return `無視阻擋${condLabel(ab)}`
     case 'FREE_SHOOT': return `免費射擊${perS}${condLabel(ab)}`
-    case 'CHAIN': return `連鎖 R=${(ab as any).radius ?? 1}${condLabel(ab)}`
+    case 'CHAIN': return `連鎖（範圍 ${(ab as any).radius ?? 1}）${perS}${condLabel(ab)}`
     case 'MOVE_THEN_SHOOT': return `移動後射擊${perS}${condLabel(ab)}`
     case 'DAMAGE_BONUS': return `傷害 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
     case 'ARMY_RALLY': return '軍援：射擊聯動相鄰卒追加攻擊'
@@ -69,13 +71,16 @@ function getAbilityLabel(ab: SoulAbility): string {
     case 'CROSS_RIVER': return '過河後效果生效'
     case 'MINGLEI': return '冥雷：穿透魔法防禦，過河目標額外傷害'
     case 'AURA_DAMAGE_BONUS': return `氣場：友軍攻擊傷害 +${(ab as any).amount ?? '?'}`
-    case 'TARGET_DEF_MINUS': return `穿透防禦（${(ab as any).key ?? '?'}）`
+    case 'TARGET_DEF_MINUS': {
+      const k = String((ab as any).key ?? '')
+      return `穿透防禦（${DEF_KEY_LABEL[k] ?? k}）${condLabel(ab)}`
+    }
     case 'IGNORE_PATH_BLOCKING': return `無視路徑阻擋${condLabel(ab)}`
-    case 'SPLASH': return `濺射 R=${(ab as any).radius ?? 1}，${(ab as any).splashAmount ?? '?'} 傷${condLabel(ab)}`
+    case 'SPLASH': return `濺射（範圍 ${(ab as any).radius ?? 1}）${perS}${condLabel(ab)}`
     case 'AURA_IGNORE_BLOCKING': return `氣場：友軍射擊無視阻擋`
     case 'DAMAGE_SHARE': return `傷害轉移：帥受傷分攤給自身${condLabel(ab)}`
     case 'COUNTER_ON_KING_DAMAGED': return `反擊：帥受傷時對攻擊者反擊${condLabel(ab)}`
-    case 'RESONANCE': return `共鳴：同族單位場上數量達標時生效`
+    case 'RESONANCE': return `共鳴：同族單位達 ${(ab as any).need ?? 3} 名時生效`
     case 'PIERCE': return `貫穿：射擊穿透目標${condLabel(ab)}`
     case 'SACRIFICE_SHOT_BUFF': return `死後射擊強化：提升攻擊力`
     case 'ON_DEATH_FIXED_DAMAGE': return `死亡觸發：對帥造成 ${(ab as any).amount ?? '?'} 固定傷害`
@@ -84,6 +89,42 @@ function getAbilityLabel(ab: SoulAbility): string {
     case 'PALACE_ONLY': return `僅在九宮格內生效`
     case 'ATK_BONUS': return `攻擊力 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
     case 'AURA_HP_REGEN_ON_KILL': return `氣場：友軍擊殺後回復 HP`
+    // ── 死誓氏族 ──────────────────────────────────────────────────────────
+    case 'FREE_SHOOT_DRAIN': return '透支：射擊不消耗魔力（下回合魔力回復 −1）'
+    case 'BLOOD_TITHE_ON_KILL': return '血什一稅：擊殺附魂敵方後帥回復 HP'
+    case 'BLOOD_SACRIFICE': {
+      const hpCost = Number((ab as any).hpCost ?? 1)
+      const onActivate = (ab as any).onActivate as SoulAbility | undefined
+      const inner = onActivate ? `→ ${getAbilityLabel(onActivate)}` : ''
+      return `血祭（帥 −${hpCost} HP）${inner}`
+    }
+    case 'DEATH_COUNTER': return '最後一搏：死前對擊殺者反擊'
+    case 'UNDERDOG_AURA': {
+      const scope = String((ab as any).scope ?? 'self')
+      const scopeLabel = scope === 'global' ? '全場' : '自身'
+      return `逆境（${scopeLabel}）：己方劣勢時攻擊力提升`
+    }
+    case 'BLOOD_RAGE_AURA': {
+      const scope = String((ab as any).scope ?? 'self')
+      const scopeLabel = scope === 'global' ? '全場' : '自身'
+      return `血憤（${scopeLabel}）：帥 HP 低時攻擊力提升`
+    }
+    // ── 金傭氏族 ──────────────────────────────────────────────────────────
+    case 'KILL_GOLD_GAIN': return `血金掠奪：擊殺敵方獲得 ${(ab as any).amount ?? '?'} 財力`
+    case 'GOLD_FOR_DAMAGE': return `以財傷敵：可消耗 ${(ab as any).goldCost ?? '?'} 財力，傷害 +${(ab as any).damageBonus ?? '?'}`
+    case 'ITEM_VALUE_ATK_BONUS': return `高價震懾：道具總費用 ≥ ${(ab as any).threshold ?? '?'} 時攻擊力 +${(ab as any).atkBonus ?? '?'}`
+    case 'GOLD_THRESHOLD_ATK': {
+      const threshold = (ab as any).threshold ?? '?'
+      const atkBonus = (ab as any).atkBonus
+      const defBonus = (ab as any).defBonus as { phys?: number; magic?: number } | undefined
+      const scope = String((ab as any).scope ?? 'self')
+      const scopeLabel = scope === 'global' ? '全體' : '自身'
+      if (atkBonus != null) return `財力共鳴：持有 ≥ ${threshold} 財力，${scopeLabel}攻擊力 +${atkBonus}`
+      if (defBonus) return `財力護甲：持有 ≥ ${threshold} 財力，${scopeLabel}防禦 +${defBonus.phys ?? 0}/+${defBonus.magic ?? 0}`
+      return `財力門檻（≥ ${threshold}）：效果生效`
+    }
+    case 'ITEM_COUNT_ATK_BONUS': return '道具備戰：攻擊力 +（手牌道具數）'
+    case 'INCOME_BONUS': return `財源廣進：每回合財力收入 +${(ab as any).amount ?? '?'}`
     default: return String(ab.type)
   }
 }
@@ -100,6 +141,50 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
   const side = unit.side
   const soldiers = countSoldiers(state, side)
   const corpses = countCorpses(state, side)
+
+  const gold = state.resources[side].gold
+
+  // GOLD_THRESHOLD_ATK: active if gold >= threshold
+  if (ab.type === 'GOLD_THRESHOLD_ATK') {
+    const threshold = Number((ab as any).threshold ?? 0)
+    if (gold >= threshold) return { active: true, note: `財力 ${gold}/${threshold}` }
+    return { active: false, note: `財力 ${gold}/${threshold}` }
+  }
+
+  // UNDERDOG_AURA: active if enemy has more living units
+  if (ab.type === 'UNDERDOG_AURA') {
+    const stages = ((ab as any).stages ?? []) as { margin?: number; atkBonus: number }[]
+    const myCount = Object.values(state.units).filter(u => u.side === side).length
+    const enemyCount = Object.values(state.units).filter(u => u.side !== side).length
+    const margin = enemyCount - myCount
+    const hit = [...stages].sort((a, b) => (b.margin ?? 0) - (a.margin ?? 0)).find(s => margin >= (s.margin ?? 1))
+    if (hit) return { active: true, note: `劣勢 ${margin} 位（ATK +${hit.atkBonus}）` }
+    const minStage = [...stages].sort((a, b) => (a.margin ?? 0) - (b.margin ?? 0))[0]
+    return { active: false, note: `劣勢 ${margin}/${minStage?.margin ?? 1}` }
+  }
+
+  // BLOOD_RAGE_AURA: active if king HP <= threshold
+  if (ab.type === 'BLOOD_RAGE_AURA') {
+    const stages = ((ab as any).stages ?? []) as { threshold: number; atkBonus: number }[]
+    const king = Object.values(state.units).find(u => u.side === side && u.base === 'king')
+    const kingHp = king?.hpCurrent ?? 999
+    const hit = [...stages].sort((a, b) => a.threshold - b.threshold).find(s => kingHp <= s.threshold)
+    if (hit) return { active: true, note: `帥 HP ${kingHp}（ATK +${hit.atkBonus}）` }
+    const maxThreshold = [...stages].sort((a, b) => b.threshold - a.threshold)[0]
+    return { active: false, note: `帥 HP ${kingHp}（觸發需 ≤${maxThreshold?.threshold ?? '?'}）` }
+  }
+
+  // RESONANCE: active if same-clan units >= need
+  if (ab.type === 'RESONANCE') {
+    const need = Number((ab as any).need ?? 3)
+    const myCard = getSoulCard(unit.enchant?.soulId ?? '')
+    const clan = myCard?.clan
+    const count = clan
+      ? Object.values(state.units).filter(u => u.side === side && u.enchant && getSoulCard(u.enchant.soulId)?.clan === clan).length
+      : 0
+    if (count >= need) return { active: true, note: `同族 ${count}/${need}` }
+    return { active: false, note: `同族 ${count}/${need}` }
+  }
 
   // Tiered abilities: active if at least one tier met
   if (ab.type === 'SOLDIERS_TIERED_DAMAGE_BONUS' || ab.type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS' || ab.type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
@@ -170,6 +255,8 @@ const myRows = computed(() => buildRows(mySide.value))
 const enemyRows = computed(() => buildRows(enemySide.value))
 const mySideLabel = computed(() => mySide.value === 'red' ? '紅方（己方）' : '黑方（己方）')
 const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵方）' : '黑方（敵方）')
+
+const mobileTab = ref<'my' | 'enemy'>('my')
 </script>
 
 <template>
@@ -180,9 +267,15 @@ const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵�
         <button type="button" class="closeBtn" @click="$emit('close')">✕ 關閉</button>
       </div>
 
+      <!-- Mobile tab bar -->
+      <div class="mobileTabs">
+        <button class="mobileTabBtn" :class="{ active: mobileTab === 'my' }" @click="mobileTab = 'my'">{{ mySideLabel }}</button>
+        <button class="mobileTabBtn" :class="{ active: mobileTab === 'enemy' }" @click="mobileTab = 'enemy'">{{ enemySideLabel }}</button>
+      </div>
+
       <div class="grid">
         <!-- 己方 -->
-        <div class="col">
+        <div class="col" :class="{ mobileHidden: mobileTab !== 'my' }">
           <div class="colTitle">{{ mySideLabel }}</div>
           <div v-if="myRows.length === 0" class="empty">— 無附魔單位 —</div>
           <div v-for="row in myRows" :key="row.unitId" class="cardRow">
@@ -210,10 +303,10 @@ const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵�
           </div>
         </div>
 
-        <div class="divider" />
+        <div class="divider mobileHiddenFlex" />
 
         <!-- 敵方 -->
-        <div class="col">
+        <div class="col" :class="{ mobileHidden: mobileTab !== 'enemy' }">
           <div class="colTitle">{{ enemySideLabel }}</div>
           <div v-if="enemyRows.length === 0" class="empty">— 無附魔單位 —</div>
           <div v-for="row in enemyRows" :key="row.unitId" class="cardRow">
@@ -252,7 +345,7 @@ const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵�
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
   backdrop-filter: blur(3px);
 }
@@ -294,6 +387,8 @@ const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵�
 }
 .closeBtn:hover { background: var(--bg-surface-1); }
 
+.mobileTabs { display: none; }
+
 .grid {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -306,6 +401,34 @@ const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵�
   background: var(--border);
   align-self: stretch;
   margin: 0 4px;
+}
+
+@media (max-width: 640px) {
+  .mobileTabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mobileTabBtn {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mobileTabBtn.active {
+    background: rgba(145, 202, 255, 0.15);
+    border-color: rgba(145, 202, 255, 0.5);
+    color: #91caff;
+  }
+  .grid { grid-template-columns: 1fr; }
+  .mobileHidden { display: none; }
+  .mobileHiddenFlex { display: none; }
 }
 
 .col {

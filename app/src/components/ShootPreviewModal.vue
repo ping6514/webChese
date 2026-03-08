@@ -184,7 +184,7 @@ export default defineComponent({
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
 }
 

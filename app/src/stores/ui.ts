@@ -73,7 +73,9 @@ export const useUiStore = defineStore('ui', {
 
     handCollapsedUser: false as boolean,
     handCollapsedOverride: null as boolean | null,
-    toastPosition: (localStorage.getItem('v2_toast_pos') ?? 'top') as 'top' | 'right',
+    toastPosition: (localStorage.getItem('v2_toast_pos') ?? 'top') as 'top' | 'right' | 'left',
+    boardHoverEnabled: localStorage.getItem('v2_board_hover') !== '0',
+    bodyFontSize: Number(localStorage.getItem('v2_font_size') ?? 16),
   }),
   actions: {
     openShop: function () {
@@ -165,8 +167,19 @@ export const useUiStore = defineStore('ui', {
       this.handCollapsedOverride = next == null ? null : !!next
     },
     toggleToastPosition: function () {
-      this.toastPosition = this.toastPosition === 'top' ? 'right' : 'top'
+      this.toastPosition = this.toastPosition === 'top' ? 'right' : this.toastPosition === 'right' ? 'left' : 'top'
       localStorage.setItem('v2_toast_pos', this.toastPosition)
+    },
+    toggleBoardHover: function () {
+      this.boardHoverEnabled = !this.boardHoverEnabled
+      localStorage.setItem('v2_board_hover', this.boardHoverEnabled ? '1' : '0')
+    },
+    cycleBodyFontSize: function () {
+      const sizes = [14, 15, 16, 17, 18]
+      const idx = sizes.indexOf(this.bodyFontSize)
+      this.bodyFontSize = sizes[(idx + 1) % sizes.length] ?? 16
+      localStorage.setItem('v2_font_size', String(this.bodyFontSize))
+      document.documentElement.style.fontSize = `${this.bodyFontSize}px`
     },
   },
 })

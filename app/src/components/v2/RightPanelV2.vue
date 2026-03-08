@@ -181,9 +181,10 @@ const phase = computed(() => state.value.turn.phase)
     />
 
     <!-- Event log -->
-    <div class="eventsBlock">
+    <div class="eventsBlock" role="button" tabindex="0" @click="ctx.openEvents?.()" @keydown.enter="ctx.openEvents?.()">
       <div class="eventsHead">
         <span class="eventsTitle">📜 最近事件</span>
+        <span class="eventsMore">▶</span>
       </div>
       <div class="eventsArea">
         <div
@@ -191,7 +192,6 @@ const phase = computed(() => state.value.turn.phase)
           :key="i"
           class="eventsRow"
           :class="{ eventsRowAlt: i % 2 === 1 }"
-          @click="ui.openDetailModal({ title: '事件詳情', image: null, detail: line, actionLabel: null, actionDisabled: false, actionTitle: '' })"
         >{{ line }}</div>
       </div>
     </div>
@@ -242,11 +242,20 @@ const phase = computed(() => state.value.turn.phase)
   flex: 1 1 0;
   min-height: 120px;
   overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.eventsBlock:hover {
+  border-color: var(--border-strong);
 }
 
 .eventsHead {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-shrink: 0;
 }
 
@@ -255,6 +264,11 @@ const phase = computed(() => state.value.turn.phase)
   font-weight: 700;
   opacity: 0.65;
   letter-spacing: 0.04em;
+}
+
+.eventsMore {
+  font-size: 0.6rem;
+  opacity: 0.4;
 }
 
 .eventsArea {

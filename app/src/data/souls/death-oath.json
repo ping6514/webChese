@@ -57,9 +57,9 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "MOVE_THEN_SHOOT", "perTurn": 1 } }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "MOVE_THEN_SHOOT", "perTurn": 1 } }
     ],
-    "text": "【血祭→移動後射】射擊前可消耗帥 1 HP，本回合移動後可額外射擊一次（每回合限 1 次）。"
+    "text": "【血祭→移動後射】射擊前可消耗帥 2 HP，本回合移動後可額外射擊一次（每回合限 1 次）。"
   },
   {
     "id": "death_oath_knight_nihun",

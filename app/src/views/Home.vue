@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
 import { useConnection } from '../stores/connection'
 import ClanSelector from '../components/ClanSelector.vue'
 
 const router = useRouter()
+const route  = useRoute()
 const setup = useGameSetup()
 const conn = useConnection()
 
@@ -100,6 +101,27 @@ function copyRoomId() {
   navigator.clipboard.writeText(createdRoomId.value)
 }
 
+const joinUrl = computed(() =>
+  createdRoomId.value
+    ? `${window.location.origin}/?join=${createdRoomId.value}`
+    : ''
+)
+const qrSrc = computed(() =>
+  joinUrl.value
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=6&data=${encodeURIComponent(joinUrl.value)}`
+    : ''
+)
+
+onMounted(() => {
+  const joinId = String(route.query.join ?? '').trim().toUpperCase()
+  if (joinId) {
+    mode.value = 'online'
+    onlineAction.value = 'join'
+    joinRoomId.value = joinId
+    handleOnlineStart()
+  }
+})
+
 // ── Local game start ───────────────────────────────────────────────────────
 const buildLabel = new Date(__BUILD_TIME__).toLocaleString('zh-TW', {
   year: 'numeric', month: '2-digit', day: '2-digit',
@@ -161,6 +183,8 @@ function startGame() {
             <span class="room-code">{{ createdRoomId }}</span>
             <button type="button" class="copy-btn" @click="copyRoomId" title="複製">複製</button>
           </div>
+          <img v-if="qrSrc" :src="qrSrc" class="qr-img" alt="掃描加入" title="手機掃描此 QR Code 即可直接加入" />
+          <div class="qr-hint">手機相機掃描即可直接加入</div>
           <div class="waiting-dots">等待中<span class="dots">…</span></div>
         </div>
 
@@ -318,7 +342,7 @@ function startGame() {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   position: relative;
   color: rgba(255, 255, 255, 0.92);
   background:
@@ -528,6 +552,22 @@ function startGame() {
 }
 .copy-btn:hover {
   background: rgba(60, 140, 200, 0.28);
+}
+
+.qr-img {
+  width: 160px;
+  height: 160px;
+  border-radius: 10px;
+  border: 2px solid rgba(160, 200, 232, 0.35);
+  background: #fff;
+  display: block;
+}
+
+.qr-hint {
+  font-size: 0.6875rem;
+  opacity: 0.45;
+  letter-spacing: 0.04em;
+  margin-top: -4px;
 }
 
 .waiting-dots {

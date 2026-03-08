@@ -4,14 +4,14 @@ import type { IncomeToast } from '../composables/useGameEffects'
 
 const props = defineProps<{
   toasts: IncomeToast[]
-  position?: 'top' | 'right'
+  position?: 'top' | 'right' | 'left'
 }>()
 
-const stackStyle = computed(() =>
-  props.position === 'right'
-    ? { top: '80px', left: '16px', right: 'unset', transform: 'none' }
-    : { top: '66px', left: '50%', right: 'unset', transform: 'translateX(-50%)' }
-)
+const stackStyle = computed(() => {
+  if (props.position === 'right') return { top: '80px', left: '16px', right: 'unset', transform: 'none' }
+  if (props.position === 'left')  return { top: '80px', right: '16px', left: 'unset', transform: 'none' }
+  return { top: '66px', left: '50%', right: 'unset', transform: 'translateX(-50%)' }
+})
 </script>
 
 <template>
@@ -56,7 +56,7 @@ const stackStyle = computed(() =>
 }
 
 .toastHeader {
-  font-size: 11px;
+  font-size: 0.6875rem;
   opacity: 0.65;
   letter-spacing: 0.04em;
 }
@@ -68,7 +68,7 @@ const stackStyle = computed(() =>
 }
 
 .item {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 700;
   display: flex;
   align-items: baseline;
@@ -79,7 +79,7 @@ const stackStyle = computed(() =>
 .item.mana { color: #7dd3fc; }
 
 .itemLabel {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 400;
   opacity: 0.7;
 }

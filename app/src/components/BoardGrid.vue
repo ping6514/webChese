@@ -168,6 +168,10 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    showTip: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: {
     'select-unit': (_unitId: string | null) => true,
@@ -503,6 +507,7 @@ export default defineComponent({
       onSacrificeCancel,
       isSelectingTarget,
       sealedUnitSet,
+      showTip: computed(() => props.showTip),
     }
   },
 })
@@ -618,6 +623,7 @@ export default defineComponent({
             return !!(u && sealedUnitSet.has(u.id))
           })()
         "
+        :show-tip="showTip"
         @click="onCellClick($event.x, $event.y)"
         @drop-soul="onDropSoul"
       />

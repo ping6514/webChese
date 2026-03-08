@@ -5,8 +5,10 @@ import type { Phase, Side } from '../../engine'
 import { useConnection } from '../../stores/connection'
 import { useGameSetup } from '../../stores/gameSetup'
 import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
+import { useUiStore } from '../../stores/ui'
 
 const gameCtx = inject(GAME_V2_KEY) as GameV2Ctx | null
+const ui = useUiStore()
 
 const props = defineProps<{
   currentSide: Side
@@ -169,6 +171,8 @@ onMounted(() => {
                 🤖 Bot速度：{{ gameCtx?.botSpeedLabel?.value ?? '正常' }}
               </button>
             </template>
+            <div class="gearDivider" />
+            <button class="gearItem" @click="ui.cycleBodyFontSize()">🔤 字體大小：{{ ui.bodyFontSize }}px</button>
             <button class="gearItem gearClose" @click="closeGear">✕ 關閉</button>
           </div>
           <div v-if="gearOpen" class="gearBackdrop" @click="closeGear" />

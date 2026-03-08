@@ -125,6 +125,37 @@ function computeDamageCore(
     }
   }
 
+  // ATK_BONUS (conditional ATK increase, e.g. eternal_night_knight_minggu: corpses >= 4 → +2)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
+      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
+      if (crossedOk) {
+        for (const ab of card.abilities) {
+          if (ab.type !== 'ATK_BONUS') continue
+          const when = (ab as any).when
+          if (when) {
+            const whenType = String(when.type ?? '')
+            if (whenType === 'CORPSES_GTE') {
+              const need = Number(when.count ?? 0)
+              if (Number.isFinite(need) && need > 0 && countCorpses(state, attacker.side) < need) continue
+            }
+            if (whenType === 'SOLDIERS_GTE') {
+              const need = Number(when.count ?? 0)
+              if (Number.isFinite(need) && need > 0 && countSoldiers(state, attacker.side) < need) continue
+            }
+          }
+          const amount = Number((ab as any).amount ?? 0)
+          if (Number.isFinite(amount) && amount > 0) {
+            bonus += amount
+            breakdown.push({ label: card.name + ' 攻擊+', amount })
+          }
+        }
+      }
+    }
+  }
+
   // SOLDIERS_TIERED_DAMAGE_BONUS
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)

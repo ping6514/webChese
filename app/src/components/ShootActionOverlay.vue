@@ -15,7 +15,7 @@ export default defineComponent({
     showDetails: { type: Boolean, required: false, default: true },
     goldForDamage: { type: Object as PropType<{ goldCost: number; damageBonus: number } | null>, default: null },
     spendGoldForDamage: { type: Boolean, required: false, default: false },
-    bloodSacrifice: { type: Object as PropType<{ label: string } | null>, default: null },
+    bloodSacrifice: { type: Object as PropType<{ label: string; hpCost?: number } | null>, default: null },
     sacrificeHp: { type: Boolean, required: false, default: false },
     offset: {
       type: Object as PropType<{ x: number; y: number }>,
@@ -114,7 +114,7 @@ export default defineComponent({
         :class="{ active: sacrificeHp }"
         @click.stop="$emit('update:sacrificeHp', !sacrificeHp)"
       >
-        血祭 帥-1HP → {{ bloodSacrifice.label }}
+        血祭 帥-{{ bloodSacrifice.hpCost ?? 1 }}HP → {{ bloodSacrifice.label }}
       </button>
     </div>
     <div v-if="goldForDamage" class="goldToggleRow">

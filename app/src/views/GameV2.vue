@@ -98,7 +98,7 @@ const botDelays = computed((): { init: number; action: number } => {
     case '慢':   return { init: 1000, action: 1000 }
     case '快':   return { init: 120,  action: 60  }
     case '即時': return { init: 0,    action: 0   }
-    default:     return { init: 500,  action: 300 }
+    default:     return { init: 800,  action: 700 }
   }
 })
 
@@ -187,7 +187,7 @@ watch(
     const side = state.value.turn.side
     if (setup.mode === 'pve' && side === npcSide.value) return  // skip bot turns
     if (setup.mode === 'online' && conn.side !== side) return   // skip opponent turns
-    setTimeout(() => ui.openShop(), 1200)
+    setTimeout(() => ui.openShop(), 1600) // 自動彈出商店秒數
   },
 )
 
@@ -197,6 +197,12 @@ watchEffect(() => {
     state.value.turn.side === 'red'
       ? 'linear-gradient(180deg, rgba(255, 77, 79, 0.22) 0%, rgba(0,0,0,0) 50%)'
       : 'linear-gradient(180deg, rgba(82, 196, 26, 0.22) 0%, rgba(0,0,0,0) 50%)'
+})
+
+// ── Disable pull-to-refresh when any modal is open ─────────────────────────────
+watchEffect(() => {
+  const anyOpen = ui.shopOpen || ui.allUnitsOpen || effectsOpen.value || eventsOpen.value
+  document.body.style.overscrollBehavior = anyOpen ? 'none' : ''
 })
 
 onUnmounted(() => {

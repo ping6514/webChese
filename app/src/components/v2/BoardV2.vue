@@ -266,6 +266,25 @@ const fxBeams          = computed(() => ctx.fx?.fxBeams.value          ?? [])
 const damageToasts     = computed(() => ctx.fx?.damageToasts.value     ?? [])
 const incomeToasts     = computed(() => ctx.fx?.incomeToasts.value     ?? [])
 
+// ── Position toast ─────────────────────────────────────────────────────────────
+const posToastVisible = ref(false)
+const posToastText = ref('')
+let posToastTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleToggleToastPosition() {
+  ui.toggleToastPosition()
+  const label = ui.toastPosition === 'top' ? '頂部' : ui.toastPosition === 'right' ? '右側' : '左側'
+  posToastText.value = `通知位置：${label}`
+  posToastVisible.value = true
+  if (posToastTimer) clearTimeout(posToastTimer)
+  posToastTimer = setTimeout(() => { posToastVisible.value = false }, 1500)
+}
+
+// ── Board hover + showTip ──────────────────────────────────────────────────────
+const showTip = computed(() =>
+  ui.boardHoverEnabled && !(props.mobile && state.value.turn.phase === 'combat')
+)
+
 // ── Board scale + 3D style ─────────────────────────────────────────────────────
 type BoardScale = 33 | 50 | 75 | 100
 const VALID_SCALES: BoardScale[] = [33, 50, 75, 100]
@@ -326,9 +345,16 @@ defineExpose({ onUseItem })
       <button
         type="button"
         class="scaleBtn"
-        :title="ui.toastPosition === 'top' ? '通知位置：頂部（點擊切換右側）' : '通知位置：右側（點擊切換頂部）'"
-        @click="ui.toggleToastPosition()"
-      >{{ ui.toastPosition === 'top' ? '通知⬆' : '通知➡' }}</button>
+        :title="`通知位置：${ui.toastPosition === 'top' ? '頂部' : ui.toastPosition === 'right' ? '右側' : '左側'}`"
+        @click="handleToggleToastPosition()"
+      >{{ ui.toastPosition === 'top' ? '通知⬆' : ui.toastPosition === 'right' ? '通知➡' : '通知⬅' }}</button>
+      <button
+        type="button"
+        class="scaleBtn"
+        :class="{ scaleActive: ui.boardHoverEnabled }"
+        :title="ui.boardHoverEnabled ? '棋盤hover說明：開（點擊關閉）' : '棋盤hover說明：關（點擊開啟）'"
+        @click="ui.toggleBoardHover()"
+      >{{ ui.boardHoverEnabled ? '👁提示' : '👁關' }}</button>
       <span class="scaleDivider" />
       <button
         type="button"
@@ -382,6 +408,7 @@ defineExpose({ onUseItem })
         :float-texts-by-pos="floatTextsByPos"
         :fx-beams="fxBeams"
         :sealed-unit-ids="state.turnFlags.sealedUnitIds ?? []"
+        :show-tip="showTip"
         @cell-click="onCellClick"
         @select-unit="onSelectUnit"
         @enchant-drop="onEnchantDrop"
@@ -396,7 +423,12 @@ defineExpose({ onUseItem })
 
     <!-- Damage formula toast -->
     <DamageFormulaToast :toasts="damageToasts" :position="ui.toastPosition" />
-    <IncomeToast :toasts="incomeToasts" :position="ui.toastPosition === 'right' ? 'right' : 'top'" />
+    <IncomeToast :toasts="incomeToasts" :position="ui.toastPosition" />
+
+    <!-- Position toggle toast -->
+    <Transition name="pos-toast">
+      <div v-if="posToastVisible" class="posToast">{{ posToastText }}</div>
+    </Transition>
 
     <!-- Shoot preview modal -->
     <ShootPreviewModal
@@ -641,4 +673,26 @@ defineExpose({ onUseItem })
   color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
 }
+
+/* ── Position toggle toast ── */
+.posToast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 250;
+  background: rgba(20, 22, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 6px 18px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  pointer-events: none;
+  white-space: nowrap;
+  backdrop-filter: blur(6px);
+}
+.pos-toast-enter-active { transition: opacity 0.2s ease; }
+.pos-toast-leave-active { transition: opacity 0.4s ease; }
+.pos-toast-enter-from, .pos-toast-leave-to { opacity: 0; }
 </style>

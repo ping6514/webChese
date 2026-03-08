@@ -65,11 +65,7 @@ const useGuards = computed(() => {
 function tryEnchantOrToast(soulId: string) {
   const side = state.value.turn.side
   const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
-  if (!hasValid) {
-    const firstOwn = Object.values(state.value.units).find(u => u.side === side)
-    if (firstOwn) ctx.dispatch({ type: 'ENCHANT', unitId: firstOwn.id, soulId })
-    return
-  }
+  if (!hasValid) return
   ui.startEnchantSelectUnit(soulId)
 }
 function selectSoul(id: string) {
@@ -118,6 +114,17 @@ function useItem(itemId: string) {
   }
 }
 function getItemName(id: string) { return getItemCard(id)?.name ?? id }
+
+const BASE_TIMING_LABEL: Record<string, string> = { buy: '購買', necro: '死靈術', combat: '戰鬥' }
+function showHandItemDetail(itemId: string) {
+  const item = getItemCard(itemId)
+  if (!item) return
+  const lines: string[] = []
+  lines.push(`timing: ${BASE_TIMING_LABEL[item.timing ?? ''] ?? item.timing ?? '—'}`)
+  lines.push(`cost: ${item.costGold ?? 0} 財力`)
+  if (item.text) lines.push(`text: ${item.text}`)
+  ui.openDetailModal({ title: item.name, image: (item as any).image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
+}
 
 const BASE_NAMES: Record<string, string> = {
   king: '帥', advisor: '士', elephant: '象', rook: '車', knight: '馬', cannon: '炮', soldier: '兵',
@@ -246,6 +253,8 @@ function toggleTab(tab: TabKey) {
                 🤖 Bot速度：{{ ctx.botSpeedLabel?.value ?? '正常' }}
               </button>
             </template>
+            <div class="gearDivider" />
+            <button class="gearItem" @click="ui.cycleBodyFontSize()">🔤 字體：{{ ui.bodyFontSize }}px</button>
             <button class="gearItem gearClose" @click="gearOpen = false">✕ 關閉</button>
           </div>
           <div v-if="gearOpen" class="gearBackdrop" @click="gearOpen = false" />
@@ -324,6 +333,7 @@ function toggleTab(tab: TabKey) {
           :get-item="getItemCard"
           @discard="discardItem"
           @use-item="useItem"
+          @show-item-detail="showHandItemDetail"
         />
         <RightPanelV2
           v-else-if="activeTab === 'panel'"

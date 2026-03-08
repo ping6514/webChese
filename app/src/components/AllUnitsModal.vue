@@ -25,6 +25,7 @@ export default defineComponent({
     enemyUnits: { type: Array as () => UnitRow[], required: true },
   },
   emits: ['close', 'show-unit-detail', 'select-cell'],
+  data: () => ({ mobileTab: 'my' as 'my' | 'enemy' }),
 })
 </script>
 
@@ -36,14 +37,22 @@ export default defineComponent({
         <button type="button" class="closeBtn" @click="$emit('close')">✕ 關閉</button>
       </div>
 
+      <!-- Mobile tab bar -->
+      <div class="mobileTabs">
+        <button class="mobileTabBtn" :class="{ active: mobileTab === 'my' }" @click="mobileTab = 'my'">{{ myTitle }}</button>
+        <button class="mobileTabBtn" :class="{ active: mobileTab === 'enemy' }" @click="mobileTab = 'enemy'">{{ enemyTitle }}</button>
+      </div>
+
       <div class="grid">
         <UnitListPanel
+          :class="{ mobileHidden: mobileTab !== 'my' }"
           :title="myTitle"
           :units="myUnits"
           @show-unit-detail="$emit('show-unit-detail', $event)"
           @select-cell="$emit('select-cell', $event)"
         />
         <UnitListPanel
+          :class="{ mobileHidden: mobileTab !== 'enemy' }"
           :title="enemyTitle"
           :units="enemyUnits"
           @show-unit-detail="$emit('show-unit-detail', $event)"
@@ -61,7 +70,7 @@ export default defineComponent({
   background: var(--bg-modal-overlay);
   display: grid;
   place-items: center;
-  padding: 24px;
+  padding-block: 24px;
   z-index: 150;
   backdrop-filter: blur(3px);
 }
@@ -70,6 +79,7 @@ export default defineComponent({
   width: min(1000px, 96vw);
   max-height: min(90vh, 860px);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 16px;
   border: 1px solid var(--border-strong);
   background: var(--bg-modal-strong);
@@ -104,10 +114,39 @@ export default defineComponent({
 }
 .closeBtn:hover { background: var(--bg-surface-1); }
 
+.mobileTabs { display: none; }
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
   align-items: start;
+}
+
+@media (max-width: 640px) {
+  .mobileTabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .mobileTabBtn {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    border: 1px solid var(--border-strong);
+    background: var(--bg-surface-2);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .mobileTabBtn.active {
+    background: rgba(145, 202, 255, 0.15);
+    border-color: rgba(145, 202, 255, 0.5);
+    color: #91caff;
+  }
+  .grid { grid-template-columns: 1fr; }
+  .mobileHidden { display: none; }
 }
 </style>
