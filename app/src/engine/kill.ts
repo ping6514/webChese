@@ -42,7 +42,7 @@ export function killUnit(s: GameState, unitId: string, events: Event[], killerId
         const raw = Math.max(1, 1 + counterAtkValue - defValue)
         const killerNextHp = killer.hpCurrent - raw
         s.units[killerId] = { ...killer, hpCurrent: killerNextHp }
-        events.push({ type: 'ABILITY_TRIGGERED', unitId: deadId, text: '最後一搏' })
+        events.push({ type: 'ABILITY_TRIGGERED',abilityType: 'DEATH_COUNTER', unitId: deadId, text: '最後一搏' })
         events.push({ type: 'DAMAGE_DEALT', attackerId: deadId, targetUnitId: killerId, amount: raw })
         if (killerNextHp <= 0) {
           s = killUnit(s, killerId, events)
