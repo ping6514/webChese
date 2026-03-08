@@ -68,6 +68,11 @@ const board3D = ref(localStorage.getItem('board3d') === '1')
 watch(board3D, (v) => localStorage.setItem('board3d', v ? '1' : '0'))
 function toggleBoard3D() { board3D.value = !board3D.value }
 
+const sideSplashVisible = ref(false)
+const sideSplashText = ref('')
+const sideSplashColor = ref<'red' | 'black'>('red')
+const splashActive = ref(false)
+
 // ── PVE bot ────────────────────────────────────────────────────────────────────
 const npcSide = computed<'red' | 'black' | null>(() => {
   if (setup.mode !== 'pve') return null
@@ -104,23 +109,62 @@ const botDelays = computed((): { init: number; action: number } => {
 
 function sleep(ms: number) { return new Promise<void>((r) => setTimeout(r, ms)) }
 
+// ──────────────── 修改重點：這裡的 watch ────────────────────────
 watch(
-  () => [state.value.turn.side, state.value.turn.phase] as const,
-  async ([side, phase]) => {
-    if (!npcSide.value || side !== npcSide.value || botRunning.value || splashActive.value) return
-    if (phase === 'turnStart') return
+  () => [state.value.turn.side, state.value.turn.phase, splashActive.value] as const,
+  async ([side, phase, isSplashActive]) => {
+    // 為了 debug，先印出每次觸發的狀態（之後可以註解或刪除）
+    console.log('[BOT WATCH TRIGGER]', {
+      side,
+      phase,
+      isSplashActive,
+      npcSide: npcSide.value,
+      botRunning: botRunning.value
+    })
+
+    // 基本防呆條件
+    if (!npcSide.value) return
+    if (side !== npcSide.value) return
+    if (botRunning.value) return
+
+    // 如果 splash 還在顯示 → 先跳過，不執行 bot
+    if (isSplashActive) {
+      console.log('[BOT] Splash 還在顯示，暫不行動')
+      return
+    }
+
+    // 跳過 turnStart 階段
+    if (phase === 'turnStart') {
+      console.log('[BOT] 目前是 turnStart 階段，跳過')
+      return
+    }
+
+    // 到這裡代表：splash 已結束 + 輪到 bot + 不是 turnStart
+    console.log('[BOT] Splash 已結束，開始執行 bot 決策', { phase })
+
     botRunning.value = true
+
+    // 初始延遲
     await sleep(botDelays.value.init)
+
     const weightsMode = setup.difficulty === 'easy' ? 'base' : 'blend'
     const ctx: BotContext = { seed: botSeed++, epsilon: 0, weightsMode }
+
     const result = decideActions(state.value, side as 'red' | 'black', ctx)
+
     for (const action of result.actions) {
+      console.log('[BOT ACTION]', action)
       dispatch(action)
-      if (action.type !== 'NEXT_PHASE') await sleep(botDelays.value.action)
+      // 注意：只有非 NEXT_PHASE 的動作才需要等待
+      if (action.type !== 'NEXT_PHASE') {
+        await sleep(botDelays.value.action)
+      }
     }
+
     botRunning.value = false
+    console.log('[BOT] 本回合 bot 行動結束')
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 // ── Win detection ──────────────────────────────────────────────────────────────
@@ -158,10 +202,6 @@ const CLAN_LABELS: Record<string, string> = {
   dark_moon: '🌙暗月', styx: '💧冥河', eternal_night: '🌑永夜', iron_guard: '🛡️鐵衛',
   gold_merc: '💰金傭', death_oath: '🩸死誓',
 }
-const sideSplashVisible = ref(false)
-const sideSplashText = ref('')
-const sideSplashColor = ref<'red' | 'black'>('red')
-const splashActive = ref(false)
 
 onMounted(() => {
   const clans = (state.value.rules.enabledClans ?? []).map((c) => CLAN_LABELS[c] ?? c).join('・')
@@ -170,7 +210,7 @@ onMounted(() => {
     sideSplashColor.value = color
     splashActive.value = true
     sideSplashVisible.value = true
-    setTimeout(() => { sideSplashVisible.value = false; splashActive.value = false }, 5000)
+    setTimeout(() => { sideSplashVisible.value = false; splashActive.value = false }, 3500)
   }
   if (setup.mode === 'online' && conn.side) {
     const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'

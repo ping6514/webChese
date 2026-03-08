@@ -204,6 +204,6 @@
       { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1 } },
       { "type": "UNDERDOG_AURA", "scope": "self", "stages": [{ "margin": 1, "atkBonus": 2 }] }
     ],
-    "text": "【血祭→無視阻擋+1】射擊前可消耗帥 1 HP，本次射擊無視 1 個阻擋。【逆境】己方劣勢時，此單位 ATK +2。"
+    "text": "【血祭→無視阻擋+1】射擊前可消耗帥 1 HP，本次射擊無視 1 個阻擋。【逆境】己方活著的單位數少於敵方時，此單位 ATK +2"
   }
 ]
