@@ -16,6 +16,8 @@ const CLAN_META: Record<string, { name: string; color: string; borderColor: stri
   styx:          { name: '冥河氏族', color: '#38bdf8', borderColor: 'rgba(56,189,248,0.35)',  desc: '冥河氏族擅長以犧牲換取暴發。強大的波及與連鎖傷害讓一次攻擊波及多個目標。' },
   eternal_night: { name: '永夜氏族', color: '#4ade80', borderColor: 'rgba(74,222,128,0.35)',  desc: '永夜氏族以持久戰為核心。吸血恢復與堅韌防禦讓其在殘局中佔得優勢。' },
   iron_guard:    { name: '鐵衛氏族', color: '#f97316', borderColor: 'rgba(249,115,22,0.35)', desc: '鐵衛氏族以卒的數量為核心。卒越多，全軍傷害與防禦越強。整編、後勤讓卒永不停歇。' },
+  gold_merc:     { name: '逐利傭兵', color: '#fbbf24', borderColor: 'rgba(251,191,36,0.35)',  desc: '逐利傭兵以財力驅動戰力。金幣越多防禦越強，擊殺可掠奪財富，甚至以黃金換取額外傷害。' },
+  death_oath:    { name: '亡命誓約', color: '#f43f5e', borderColor: 'rgba(244,63,94,0.35)',   desc: '亡命誓約以逆境激發潛能。帥血量越低或兵力劣勢越大，全軍攻擊越猛，誓死不退。' },
 }
 
 const activeClanId = ref<string>('dark_moon')
@@ -100,7 +102,7 @@ function selectItem(c: ItemCard) {
             </div>
             <div class="resourceCard">
               <div class="resTitle">✨ 魔力</div>
-              <div class="resDesc">砲系棋子射擊時消耗 1 魔力。每回合開始 +3。未使用的魔力可在回合結束儲存（上限 5），下回合轉換為財力。</div>
+              <div class="resDesc">所有單位射擊均消耗 1 魔力。每回合開始 +3。未使用的魔力可在回合結束儲存（上限 5），下回合轉換為財力。</div>
             </div>
           </div>
         </section>
@@ -112,9 +114,9 @@ function selectItem(c: ItemCard) {
               <div class="phaseTag buy">💰 購買</div>
               <div class="phaseDesc">
                 <ul>
-                  <li><strong>購買靈魂卡</strong>：每次花費 2~1 魔力，從對應棋子類型的展示卡中購入手牌（上限 5 張）。每回合限 1 次。</li>
+                  <li><strong>購買靈魂卡</strong>：每次花費 2~1 財力，從對應棋子類型的展示卡中購入手牌（上限 5 張）。每回合限 1 次。</li>
                   <li><strong>購買道具卡</strong>：花費道具標示費用，加入手牌（上限 3 張）。每回合限 1 次。</li>
-                  <li><strong>盜取</strong>：消耗 3 魔力，從敵方墓場頂部盜取一張靈魂卡。</li>
+                  <li><strong>盜取</strong>：消耗 3 財力，從敵方墓場頂部盜取一張靈魂卡。</li>
                   <li><strong>使用「購買」道具</strong>：使用手牌中時機為「購買」的道具卡。</li>
                 </ul>
               </div>
@@ -151,6 +153,15 @@ function selectItem(c: ItemCard) {
             <li>附魂後棋子的 HP、ATK、DEF 替換為靈魂卡數值，並獲得特殊能力。</li>
             <li>棋子死亡後靈魂卡進入己方墓場。可於死靈術階段復活並重新附魂。</li>
             <li>敵方墓場頂部的靈魂卡可被「盜取」。</li>
+          </ul>
+        </section>
+
+        <section class="ruleSection">
+          <h2>💀 屍骸系統</h2>
+          <ul>
+            <li>棋子被擊殺後，除了靈魂卡進入墓場，其<strong>屍骸</strong>也會留在原地格子上。</li>
+            <li>屍骸不影響移動或射擊，但部分靈魂卡能力以場上屍骸數量為觸發條件（如永夜氏族）。</li>
+            <li>道具卡「骸骨煉化」可消耗己方屍骸換取財力或魔力。</li>
           </ul>
         </section>
 

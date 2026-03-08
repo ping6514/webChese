@@ -66,11 +66,11 @@ describe('styx abilities', () => {
     expect(preview.ok).toBe(true)
     if (!preview.ok) return
 
-    // minglei: target magic def -1 and +1 damage if target crossed river
+    // minglei: target magic def -2 (min 0) and +2 damage if target crossed river
     // base: dice(3) + atk(3) - def(target.magic=0) = 6
-    // with magicDefMinus(1): def stays 0 (min 0)
-    // with crossed bonus +1 => 7
-    expect(preview.rawDamage).toBe(7)
+    // with magicDefMinus(2): def stays 0 (already 0, min 0)
+    // with crossed bonus +2 => 8
+    expect(preview.rawDamage).toBe(8)
   })
 
   test('HEAL_KING_ON_KILL heals allied king by 1 and does not exceed max HP', () => {

@@ -155,45 +155,37 @@ All purchases push the acquired soul id into `hands[currentSide].souls`.
 ## 8) UI component map (current)
 
 - `App.vue`
-  - app shell, currently renders `<Game />`
+  - app shell, renders `<GameV2 />` (V2 is current main game view)
 
-- `views/Game.vue`
-  - main sandbox UI
-  - should stay thin: render + glue code; UI state moves into Pinia UI store
+- `views/GameV2.vue`
+  - main game view (V1 `Game.vue` 已移除)
+  - dispatches engine actions, renders all game components
 
-- Components
-  - `TopBar.vue`
-  - `BoardGrid.vue`
-  - `ShootActionOverlay.vue` (draggable inline shoot confirm/cancel menu)
-  - (reused) `ShootActionOverlay.vue` is also used for sacrifice menu
-  - `HandBar.vue` (wraps HandSouls + HandItems)
+- Components (`src/components/v2/`)
+  - `BoardGridV2.vue`
+  - `HandPanelV2.vue`
+  - `RightPanelV2.vue`
+  - `ShootActionOverlay.vue` (draggable inline shoot confirm/cancel, also reused for sacrifice)
   - `ShopModal.vue`
-  - `SidePanel.vue` (wraps UnitInfo/CellInfo/Graveyard + last events)
-  - `UnitInfoPanel.vue`
-  - `CellInfoPanel.vue`
-  - `GraveyardPanel.vue`
   - `ConfirmModal.vue`
   - `CardDetailModal.vue`
   - `ShootPreviewModal.vue`
   - `AllUnitsModal.vue`
+  - `ClanSelector.vue` (clan pool toggle for Home page)
 
-- Composables (UI glue)
-  - `useSelection`
-  - `usePendingConfirm`
-  - `useShootPreview`
-  - `useCardDetailModal`
-
-- Store
-  - `stores/ui.ts` (UI-only single source of truth)
+- Stores (`src/stores/`)
+  - `ui.ts` — UI-only state (selection / pending confirm / shoot preview / item target mode)
+  - `gameSetup.ts` — pre-game settings (mode / side / clans / difficulty)
+  - `connection.ts` — online multiplayer state (WebSocket + polling)
 
 ## 9) Known TODOs (suggested next)
 
-- Formalize phase enum & flow (document exact order and allowed actions).
-- Add tests for:
-  - shooting legality (with/without IGNORE_BLOCKING)
-  - per-turn/per-unit attack limits
-  - shop purchase + refill logic
-- Keep Pinia UI store as the home for UI-only state (selection/detail modals/pending confirms/shoot preview), keeping engine `GameState` deterministic.
+- Add tests for `REVIVE` gold cost (success + insufficient gold)
+- Surrender / resign action
+- Room expiry / cleanup (old rooms linger in Supabase)
+- Localize `ShootPreviewModal` effect text to Chinese
+- BLOOD_SACRIFICE (亡命誓約: 以帥血換傷害) — deferred, needs custom UI
+- DEATH_COUNTER (亡命誓約: 死亡觸發反擊) — deferred, needs event system extension
 
 ## 10) Development progress (log)
 

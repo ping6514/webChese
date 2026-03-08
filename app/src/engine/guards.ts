@@ -15,34 +15,34 @@ export type GuardResult = { ok: true } | { ok: false; reason: string }
 const EN_SACRIFICE_SELF_SOUL_IDS = new Set(['eternal_night_advisor_guhu', 'eternal_night_advisor_hunshi'])
 
 export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitId: string, range?: number): GuardResult {
-  if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+  if (state.turn.phase !== 'combat') return fail('需要在戰鬥階段')
 
   const src = state.units[sourceUnitId]
   const tgt = state.units[targetUnitId]
-  if (!src || !tgt) return fail('Unit not found')
+  if (!src || !tgt) return fail('找不到單位')
   const srcSoulId = src.enchant?.soulId ?? null
   const srcCard = srcSoulId ? getSoulCard(srcSoulId) : null
-  if (!srcSoulId || !srcCard) return fail('Source has no sacrifice ability')
-  if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('Source has no sacrifice ability')
+  if (!srcSoulId || !srcCard) return fail('來源單位沒有獻祭技能')
+  if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('來源單位沒有獻祭技能')
   const sacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
   const hasSacrifice = !!sacAb || EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)
-  if (!hasSacrifice) return fail('Source has no sacrifice ability')
+  if (!hasSacrifice) return fail('來源單位沒有獻祭技能')
 
-  if (state.turnFlags.shotUsed?.[src.id]) return fail('Already shot this turn')
-  if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('Must move before sacrifice')
+  if (state.turnFlags.shotUsed?.[src.id]) return fail('本回合已射擊過')
+  if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('獻祭前必須先移動')
 
   // Advisors: sacrifice self only.
   if (EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)) {
-    if (src.id !== tgt.id) return fail('Must sacrifice self')
+    if (src.id !== tgt.id) return fail('此技能只能對自身獻祭')
   }
 
   // Rook/Knight: sacrifice allied unit (not self).
   if (sacAb) {
-    if (src.id === tgt.id) return fail('Cannot sacrifice self')
+    if (src.id === tgt.id) return fail('不能對自身獻祭')
   }
-  if (src.side !== state.turn.side) return fail('Not your turn')
-  if (tgt.side !== state.turn.side) return fail('Cannot sacrifice enemy')
-  if (tgt.base === 'king') return fail('Cannot sacrifice king')
+  if (src.side !== state.turn.side) return fail('不是你的回合')
+  if (tgt.side !== state.turn.side) return fail('不能獻祭敵方單位')
+  if (tgt.base === 'king') return fail('不能獻祭帥/將')
 
   const r = (() => {
     const r0 = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : null
@@ -54,42 +54,42 @@ export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitI
     return 1
   })()
   const dist = Math.max(Math.abs(src.pos.x - tgt.pos.x), Math.abs(src.pos.y - tgt.pos.y))
-  if (dist > r) return fail('Out of range')
+  if (dist > r) return fail('超出範圍')
 
   return ok()
 }
 
 export function canBuyItemFromDisplay(state: GameState, slot: number): GuardResult {
-  if (state.turn.phase !== 'buy') return fail('Not in buy phase')
-  if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('No item buy actions left this turn')
+  if (state.turn.phase !== 'buy') return fail('需要在購買階段')
+  if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('本回合購買道具次數已用完')
   const hand = state.hands[state.turn.side].items
-  if (hand.length >= state.limits.itemHandMax) return fail(`Item hand full (${state.limits.itemHandMax})`)
-  if (!Number.isInteger(slot) || slot < 0 || slot >= 3) return fail('Invalid item slot')
+  if (hand.length >= state.limits.itemHandMax) return fail(`道具手牌已滿（${state.limits.itemHandMax}張）`)
+  if (!Number.isInteger(slot) || slot < 0 || slot >= 3) return fail('無效的道具欄位')
   const itemId = state.itemDisplay[slot]
-  if (!itemId) return fail('No item in display')
+  if (!itemId) return fail('展示區無道具')
   const item = getItemCard(itemId)
-  if (!item) return fail('Item not found')
+  if (!item) return fail('找不到道具卡')
   const r = state.resources[state.turn.side]
-  if (r.gold < item.costGold) return fail('Not enough gold')
+  if (r.gold < item.costGold) return fail('財力不足')
   return ok()
 }
 
 export function canBloodRitual(state: GameState): GuardResult {
-  if (state.turn.phase !== 'necro') return fail('Not in necro phase')
-  if (state.turnFlags.bloodRitualUsed) return fail('Blood ritual already used this turn')
+  if (state.turn.phase !== 'necro') return fail('需要在死靈術階段')
+  if (state.turnFlags.bloodRitualUsed) return fail('本回合已使用過血液祭儀')
 
   // Find current side king.
   const king = Object.values(state.units).find((u) => u.side === state.turn.side && u.base === 'king')
-  if (!king) return fail('King not found')
-  if (king.hpCurrent <= 3) return fail('King HP too low')
+  if (!king) return fail('找不到帥/將')
+  if (king.hpCurrent <= 3) return fail('帥/將血量過低（最少需要 4 HP）')
   return ok()
 }
 
 export function canDiscardItemFromHand(state: GameState, itemId: string): GuardResult {
-  if (state.turn.phase !== 'buy') return fail('Not in buy phase')
-  if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('No item buy actions left this turn')
+  if (state.turn.phase !== 'buy') return fail('需要在購買階段')
+  if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('本回合購買道具次數已用完')
   const hand = state.hands[state.turn.side].items
-  if (!hand.includes(itemId)) return fail('Item not in hand')
+  if (!hand.includes(itemId)) return fail('道具不在手牌中')
   return ok()
 }
 
@@ -145,13 +145,13 @@ function necroActionsPerTurn(state: GameState): number {
 export function canUseItemFromHand(state: GameState, itemId: string): GuardResult {
   const side = state.turn.side
   const hand = state.hands[side].items
-  if (!hand.includes(itemId)) return fail('Item not in hand')
+  if (!hand.includes(itemId)) return fail('道具不在手牌中')
   const item = getItemCard(itemId)
-  if (!item) return fail('Item not found')
+  if (!item) return fail('找不到道具卡')
   const timing = item.timing
-  if (timing === 'buy' && state.turn.phase !== 'buy') return fail('Must be in buy phase')
-  if (timing === 'necro' && state.turn.phase !== 'necro') return fail('Must be in necro phase')
-  if (timing === 'combat' && state.turn.phase !== 'combat') return fail('Must be in combat phase')
+  if (timing === 'buy' && state.turn.phase !== 'buy') return fail('此道具只能在購買階段使用')
+  if (timing === 'necro' && state.turn.phase !== 'necro') return fail('此道具只能在死靈術階段使用')
+  if (timing === 'combat' && state.turn.phase !== 'combat') return fail('此道具只能在戰鬥階段使用')
   // 牢籠掠奪：己方牢籠已有 5 張 or 敵方牢籠為空
   if (itemId === 'item_cage_plunder') {
     const enemySide = side === 'red' ? 'black' : 'red'
@@ -184,9 +184,9 @@ function findFormationCommand(state: GameState, unitId: string): { allyId: strin
 
 export function canMove(state: GameState, unitId: string, to: Pos): GuardResult {
   const unit = state.units[unitId]
-  if (!unit) return fail('Unit not found')
-  if (unit.side !== state.turn.side) return fail('Not your turn')
-  if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+  if (!unit) return fail('找不到單位')
+  if (unit.side !== state.turn.side) return fail('不是你的回合')
+  if (state.turn.phase !== 'combat') return fail('需要在戰鬥階段')
   if ((state.turnFlags.sealedUnitIds ?? []).includes(unitId)) return fail('此單位已被冥鎖封印，本回合無法移動')
 
   const r = state.resources[state.turn.side]
@@ -194,21 +194,21 @@ export function canMove(state: GameState, unitId: string, to: Pos): GuardResult 
   // 整編：周圍有 FORMATION_COMMAND 的卒免費移動
   const fc = findFormationCommand(state, unit.id)
   const effectiveManaCost = fc ? 0 : cost
-  if (r.mana < effectiveManaCost) return fail('Not enough mana')
-  if (!isOnBoard(to)) return fail('Target position out of board')
-  if (getUnitAt(state, to)) return fail('Target position occupied')
-  if (!isLegalMove(state, unit.id, to)) return fail('Illegal move')
+  if (r.mana < effectiveManaCost) return fail('魔力不足')
+  if (!isOnBoard(to)) return fail('目標位置超出棋盤')
+  if (getUnitAt(state, to)) return fail('目標位置已有單位')
+  if (!isLegalMove(state, unit.id, to)) return fail('不合法的移動')
   return ok()
 }
 
 export function canShootAction(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): GuardResult {
-  if (state.turn.phase !== 'combat') return fail('Not in combat phase')
+  if (state.turn.phase !== 'combat') return fail('需要在戰鬥階段')
 
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
-  if (!attacker || !target) return fail('Unit not found')
+  if (!attacker || !target) return fail('找不到單位')
   if ((state.turnFlags.sealedUnitIds ?? []).includes(attackerId)) return fail('此單位已被冥鎖封印，本回合無法射擊')
-  if (attacker.side !== state.turn.side) return fail('Not your turn')
+  if (attacker.side !== state.turn.side) return fail('不是你的回合')
 
   // 魂能超載: 若有免費射擊，暫時提升魔力以通過消耗檢查
   const stateForCheck = (state.turnFlags.freeShootBonus ?? 0) > 0 ? {
@@ -228,13 +228,13 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
 }
 
 export function canEnchant(state: GameState, unitId: string, soulId: string): GuardResult {
-  if (state.turn.phase !== 'necro') return fail('Not in necro phase')
-  if (state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) return fail('No necro actions left this turn')
+  if (state.turn.phase !== 'necro') return fail('需要在死靈術階段')
+  if (state.turnFlags.necroActionsUsed >= necroActionsPerTurn(state)) return fail('本回合死靈術行動已用完')
 
   const unit = state.units[unitId]
-  if (!unit) return fail('Unit not found')
-  if (unit.side !== state.turn.side) return fail('Not your turn')
-  if (unit.enchant) return fail('Unit already enchanted')
+  if (!unit) return fail('找不到單位')
+  if (unit.side !== state.turn.side) return fail('不是你的回合')
+  if (unit.enchant) return fail('單位已有附魔')
 
   // 死戰契約：本回合由契約復活的單位不可附魔
   if ((state.turnFlags.lastStandNoEnchantUnitIds ?? []).includes(unitId)) {
@@ -242,17 +242,17 @@ export function canEnchant(state: GameState, unitId: string, soulId: string): Gu
   }
 
   const card = getSoulCard(soulId)
-  if (!card) return fail('Soul card not found')
-  if (card.base !== unit.base) return fail('Soul base mismatch')
+  if (!card) return fail('找不到靈魂卡')
+  if (card.base !== unit.base) return fail('靈魂卡棋種不符')
 
   const r = state.resources[state.turn.side]
   // 冥魂灌注：附魔成本折扣
   const discount = state.turnFlags.enchantGoldDiscount ?? 0
   const effectiveCost = Math.max(0, card.costGold - discount)
-  if (r.gold < effectiveCost) return fail('Not enough gold')
+  if (r.gold < effectiveCost) return fail('財力不足')
 
   const hand = state.hands[state.turn.side].souls
-  if (!hand.includes(soulId)) return fail('Soul not in hand')
+  if (!hand.includes(soulId)) return fail('靈魂卡不在手牌中')
 
   return ok()
 }

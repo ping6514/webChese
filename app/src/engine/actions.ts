@@ -16,6 +16,8 @@ export type ShootAction = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  spendGoldForDamage?: boolean
+  sacrificeHp?: boolean
 }
 
 export type EnchantAction = {

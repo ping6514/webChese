@@ -39,7 +39,7 @@ describe('items: hand limit + discard', () => {
 
     const gBlocked = canBuyItemFromDisplay(fullHandState, 0)
     expect(gBlocked.ok).toBe(false)
-    if (!gBlocked.ok) expect(gBlocked.reason).toBe('Item hand full (3)')
+    if (!gBlocked.ok) expect(gBlocked.reason).toBe('道具手牌已滿（3張）')
 
     const discardId = fullHandState.hands[side].items[0]!
     const gDiscard = canDiscardItemFromHand(fullHandState, discardId)

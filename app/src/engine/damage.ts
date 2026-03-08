@@ -1,6 +1,7 @@
 import type { GameState } from './state'
 import type { DamageBreakdownItem } from './events'
 import { getSoulCard } from './cards'
+import { getItemCard } from './items'
 import { getDefValueInState } from './stats'
 import { countCorpses, countSoldiers } from './corpses'
 
@@ -28,6 +29,7 @@ function computeDamageCore(
   attackerId: string,
   targetUnitId: string,
   diceValue: number,
+  extraBonus: number = 0,
 ): { damage: number; breakdown: DamageBreakdownItem[] } {
   const breakdown: DamageBreakdownItem[] = []
   const attacker = state.units[attackerId]
@@ -160,6 +162,185 @@ function computeDamageCore(
         if (amount > 0) {
           bonus += amount
           breakdown.push({ label: card.name + ' 聯軍', amount })
+        }
+      }
+    }
+  }
+
+  // BLOOD_RAGE_AURA: ATK bonus when king HP <= threshold (self or global)
+  {
+    const kingHp = (() => {
+      for (const u of Object.values(state.units)) {
+        if (u.side === attacker.side && u.base === 'king') return u.hpCurrent
+      }
+      return 999
+    })()
+
+    // self scope: attacker's own card
+    if (attackerSoulId) {
+      const card = getSoulCard(attackerSoulId)
+      if (card) {
+        for (const ab of card.abilities) {
+          if (ab.type !== 'BLOOD_RAGE_AURA') continue
+          const scope = String((ab as any).scope ?? 'self')
+          if (scope !== 'self') continue
+          const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
+          if (Array.isArray(stages)) {
+            const sorted = [...stages].sort((a, b) => a.threshold - b.threshold)
+            let bestBonus = 0
+            for (const s of sorted) {
+              if (kingHp <= s.threshold) bestBonus = s.atkBonus
+            }
+            if (bestBonus > 0) {
+              bonus += bestBonus
+              breakdown.push({ label: card.name + ' 血憤', amount: bestBonus })
+            }
+          }
+        }
+      }
+    }
+
+    // global scope: aura from allied unit
+    for (const auraUnit of Object.values(state.units)) {
+      if (auraUnit.side !== attacker.side) continue
+      const auraSoulId = auraUnit.enchant?.soulId
+      if (!auraSoulId) continue
+      const auraCard = getSoulCard(auraSoulId)
+      if (!auraCard) continue
+      for (const ab of auraCard.abilities) {
+        if (ab.type !== 'BLOOD_RAGE_AURA') continue
+        const scope = String((ab as any).scope ?? 'self')
+        if (scope !== 'global') continue
+        const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
+        if (!Array.isArray(stages)) continue
+        const sorted = [...stages].sort((a, b) => a.threshold - b.threshold)
+        let bestBonus = 0
+        for (const s of sorted) {
+          if (kingHp <= s.threshold) bestBonus = s.atkBonus
+        }
+        if (bestBonus > 0) {
+          bonus += bestBonus
+          breakdown.push({ label: auraCard.name + ' 血憤', amount: bestBonus })
+        }
+      }
+    }
+  }
+
+  // UNDERDOG_AURA: ATK bonus when own unit count < enemy count by margin (self or global)
+  {
+    const ownCount = Object.values(state.units).filter((u) => u.side === attacker.side).length
+    const enemyCount = Object.values(state.units).filter((u) => u.side !== attacker.side).length
+    const deficit = enemyCount - ownCount  // positive = we have fewer units
+
+    // self scope
+    if (attackerSoulId) {
+      const card = getSoulCard(attackerSoulId)
+      if (card) {
+        for (const ab of card.abilities) {
+          if (ab.type !== 'UNDERDOG_AURA') continue
+          const scope = String((ab as any).scope ?? 'self')
+          if (scope !== 'self') continue
+          const stages = (ab as any).stages as Array<{ margin: number; atkBonus: number }> | undefined
+          if (Array.isArray(stages)) {
+            const sorted = [...stages].sort((a, b) => a.margin - b.margin)
+            let bestBonus = 0
+            for (const s of sorted) {
+              if (deficit >= s.margin) bestBonus = s.atkBonus
+            }
+            if (bestBonus > 0) {
+              bonus += bestBonus
+              breakdown.push({ label: card.name + ' 逆境', amount: bestBonus })
+            }
+          } else if (deficit > 0) {
+            // Legacy single-threshold (no stages): any deficit triggers
+            const atkBonus = Number((ab as any).atkBonus ?? 1)
+            if (atkBonus > 0) {
+              bonus += atkBonus
+              breakdown.push({ label: card.name + ' 逆境', amount: atkBonus })
+            }
+          }
+        }
+      }
+    }
+
+    // global scope: aura from allied unit
+    for (const auraUnit of Object.values(state.units)) {
+      if (auraUnit.side !== attacker.side) continue
+      const auraSoulId = auraUnit.enchant?.soulId
+      if (!auraSoulId) continue
+      const auraCard = getSoulCard(auraSoulId)
+      if (!auraCard) continue
+      for (const ab of auraCard.abilities) {
+        if (ab.type !== 'UNDERDOG_AURA') continue
+        const scope = String((ab as any).scope ?? 'self')
+        if (scope !== 'global') continue
+        const stages = (ab as any).stages as Array<{ margin: number; atkBonus: number }> | undefined
+        if (!Array.isArray(stages)) continue
+        const sorted = [...stages].sort((a, b) => a.margin - b.margin)
+        let bestBonus = 0
+        for (const s of sorted) {
+          if (deficit >= s.margin) bestBonus = s.atkBonus
+        }
+        if (bestBonus > 0) {
+          bonus += bestBonus
+          breakdown.push({ label: auraCard.name + ' 逆境', amount: bestBonus })
+        }
+      }
+    }
+  }
+
+  // GOLD_THRESHOLD_ATK (self ATK bonus)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
+        const scope = String((ab as any).scope ?? 'self')
+        if (scope !== 'self') continue
+        const atkBonus = Number((ab as any).atkBonus ?? 0)
+        if (!Number.isFinite(atkBonus) || atkBonus <= 0) continue
+        const threshold = Number((ab as any).threshold ?? 0)
+        if (!Number.isFinite(threshold) || threshold <= 0) continue
+        if (state.resources[attacker.side].gold < threshold) continue
+        bonus += atkBonus
+        breakdown.push({ label: card.name + ' 財力', amount: atkBonus })
+      }
+    }
+  }
+
+  // ITEM_COUNT_ATK_BONUS (ATK += number of items in hand)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'ITEM_COUNT_ATK_BONUS') continue
+        const itemCount = state.hands[attacker.side].items.length
+        if (itemCount > 0) {
+          bonus += itemCount
+          breakdown.push({ label: card.name + ' 道具', amount: itemCount })
+        }
+      }
+    }
+  }
+
+  // ITEM_VALUE_ATK_BONUS (ATK bonus if total item value >= threshold)
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'ITEM_VALUE_ATK_BONUS') continue
+        const threshold = Number((ab as any).threshold ?? 0)
+        const atkBonus = Number((ab as any).atkBonus ?? 0)
+        if (!Number.isFinite(threshold) || threshold <= 0) continue
+        if (!Number.isFinite(atkBonus) || atkBonus <= 0) continue
+        let totalValue = 0
+        for (const itemId of state.hands[attacker.side].items) {
+          const itemCard = getItemCard(itemId)
+          totalValue += Number(itemCard?.costGold ?? 0)
+        }
+        if (totalValue >= threshold) {
+          bonus += atkBonus
+          breakdown.push({ label: card.name + ' 高價', amount: atkBonus })
         }
       }
     }
@@ -311,6 +492,12 @@ function computeDamageCore(
     breakdown.push({ label: dmgReductionLabel + ' 減傷', amount: -dmgReduction })
   }
 
+  // extraBonus from active abilities (e.g. GOLD_FOR_DAMAGE)
+  if (extraBonus > 0) {
+    bonus += extraBonus
+    breakdown.push({ label: '以財傷敵', amount: extraBonus })
+  }
+
   const beforeReduction = Math.max(1, diceValue + attacker.atk.value + bonus - defValue)
   const damage = Math.max(0, beforeReduction - dmgReduction)
 
@@ -327,6 +514,7 @@ export function computeDamageWithBreakdown(
   attackerId: string,
   targetUnitId: string,
   diceValue: number,
+  extraBonus: number = 0,
 ): { damage: number; breakdown: DamageBreakdownItem[] } {
-  return computeDamageCore(state, attackerId, targetUnitId, diceValue)
+  return computeDamageCore(state, attackerId, targetUnitId, diceValue, extraBonus)
 }

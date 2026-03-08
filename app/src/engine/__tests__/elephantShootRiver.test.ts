@@ -85,6 +85,6 @@ describe('shooting: elephant can shoot across river', () => {
     const blocked = buildShotPlan(withEyeBlock, attackerId, targetId)
     expect(blocked.ok).toBe(false)
     if (blocked.ok) return
-    expect(blocked.error).toBe('Blocked')
+    expect(blocked.error).toBe('路徑被阻擋')
   })
 })

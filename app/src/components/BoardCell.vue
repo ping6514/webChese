@@ -23,8 +23,8 @@ export default defineComponent({
     x: { type: Number, required: true },
     y: { type: Number, required: true },
     cellClass: { type: Object as PropType<Record<string, boolean>>, required: true },
-    unit: { type: Object as () => UnitView | null, required: true },
-    corpseCount: { type: Number as PropType<number | null>, required: true },
+    unit: { type: Object as PropType<UnitView | null>, default: null },
+    corpseCount: { type: Number, required: true },
     titleText: { type: String as PropType<string | null>, required: false, default: null },
     allowDrop: { type: Boolean, required: false, default: false },
     floatTexts: { type: Array as () => FloatText[], required: false, default: () => [] },
@@ -704,7 +704,7 @@ export default defineComponent({
   border-radius: 8px;
   padding: 6px 8px;
   color: var(--text);
-  min-width: 180px;
+  width: max-content;
   pointer-events: none;
   transition: opacity 120ms ease;
 }
@@ -736,17 +736,17 @@ export default defineComponent({
 
 .tipImg {
   margin-top: 6px;
-  width: 120px;
-  height: 165px;
-  object-fit: cover;
+  display: block;
+  max-width: 140px;
+  height: auto;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.14);
 }
 
 .tipNoImg {
   margin-top: 6px;
-  width: 120px;
-  height: 165px;
+  width: 80px;
+  height: 110px;
   border-radius: 8px;
   border: 1px dashed rgba(255, 255, 255, 0.18);
   display: grid;

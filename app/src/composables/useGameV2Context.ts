@@ -1,7 +1,7 @@
 import { provide, type InjectionKey, type Ref } from 'vue'
 import type { GameState } from '../engine'
 import type { BuffEntry } from './useActiveBuffs'
-import type { FloatText, BeamFx, DamageToast } from './useGameEffects'
+import type { FloatText, BeamFx, DamageToast, IncomeToast } from './useGameEffects'
 
 export interface GameV2FxCtx {
   fxAttackUnitIds: Ref<string[]>
@@ -14,6 +14,7 @@ export interface GameV2FxCtx {
   floatTextsByPos: Ref<Record<string, FloatText[]>>
   fxBeams: Ref<BeamFx[]>
   damageToasts: Ref<DamageToast[]>
+  incomeToasts: Ref<IncomeToast[]>
 }
 
 export interface GameV2Ctx {

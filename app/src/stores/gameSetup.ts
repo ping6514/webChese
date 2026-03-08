@@ -5,17 +5,30 @@ export type GameMode = 'pvp' | 'pve' | 'online'
 export type SideOrRandom = Side | 'random'
 export type Difficulty = 'easy' | 'hard'
 
+const SESSION_KEY = 'gameSetup_v1'
+
+function loadSession(): { enabledClans?: string[]; resolvedPlayerSide?: Side; resolvedFirstPlayer?: Side } {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
 export const useGameSetup = defineStore('gameSetup', {
-  state: () => ({
-    mode: 'pvp' as GameMode,
-    playerSide: 'random' as SideOrRandom,  // PVE：玩家選哪方
-    firstPlayer: 'random' as SideOrRandom,  // 先攻方
-    difficulty: 'hard' as Difficulty,
-    enabledClans: ['dark_moon', 'styx', 'eternal_night', 'iron_guard'] as string[],
-    // 隨機解析後的最終值（開局時 resolve() 後設定）
-    resolvedPlayerSide: 'red' as Side,
-    resolvedFirstPlayer: 'red' as Side,
-  }),
+  state: () => {
+    const saved = loadSession()
+    return {
+      mode: 'pvp' as GameMode,
+      playerSide: 'random' as SideOrRandom,
+      firstPlayer: 'random' as SideOrRandom,
+      difficulty: 'hard' as Difficulty,
+      enabledClans: (saved.enabledClans ?? ['dark_moon', 'styx', 'eternal_night', 'iron_guard']) as string[],
+      resolvedPlayerSide: (saved.resolvedPlayerSide ?? 'red') as Side,
+      resolvedFirstPlayer: (saved.resolvedFirstPlayer ?? 'red') as Side,
+    }
+  },
 
   actions: {
     resolve() {
@@ -28,6 +41,14 @@ export const useGameSetup = defineStore('gameSetup', {
         this.firstPlayer === 'random'
           ? (Math.random() < 0.5 ? 'red' : 'black')
           : this.firstPlayer
+
+      try {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+          enabledClans: this.enabledClans,
+          resolvedPlayerSide: this.resolvedPlayerSide,
+          resolvedFirstPlayer: this.resolvedFirstPlayer,
+        }))
+      } catch { /* ignore */ }
     },
   },
 })

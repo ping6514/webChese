@@ -25,7 +25,13 @@
       "Bash(xargs grep -l \"hover\\\\|Hover\\\\|popup\\\\|Popup\")",
       "Bash(grep -h \"ability\\\\.type\\\\|ab\\\\.type\\\\|ab as any\" app/src/engine/*.ts)",
       "Bash(npx vitest run src/engine)",
-      "Bash(grep -n \"MobileLayout\\\\|mobile.*layout\\\\|mobileLayout\" components/v2/*.vue views/*.vue)"
+      "Bash(grep -n \"MobileLayout\\\\|mobile.*layout\\\\|mobileLayout\" components/v2/*.vue views/*.vue)",
+      "Bash(npm run test -- --reporter=verbose src/engine/__tests__/ignoreBlocking.test.ts)",
+      "Bash(npm run test -- src/engine/__tests__)",
+      "Bash(grep -l \"import.*from.*components/\" views/Game.vue components/v2/*.vue)",
+      "Bash(npx vitest run src/engine/__tests__/darkMoonAbilities.test.ts src/engine/__tests__/styxAbilities.test.ts)",
+      "Bash(npx vitest run src/)",
+      "Read(//d/workspace/webChese/docs/**)"
     ]
   }
 }

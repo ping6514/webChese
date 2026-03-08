@@ -72,7 +72,7 @@ describe('shooting ignore blocking', () => {
     const blocked = buildShotPlan(baseState, attackerId, targetId)
     expect(blocked.ok).toBe(false)
     if (blocked.ok) return
-    expect(blocked.error).toBe('Blocked')
+    expect(blocked.error).toBe('路徑被阻擋')
 
     // dark_moon_rook_lanhua abilities include CROSS_RIVER + IGNORE_BLOCKING count=1
     const withEnchant = {

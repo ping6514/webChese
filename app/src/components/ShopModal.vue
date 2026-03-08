@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { defineComponent, type PropType } from 'vue'
 import type { GuardResult, PieceBase } from '../engine'
 import { getItemCard, getSoulCard, type GameState } from '../engine'
 
@@ -39,7 +39,7 @@ export default defineComponent({
 
     itemDeckCount: { type: Number, required: false, default: 0 },
 
-    enemyGraveTop: { type: String as () => string | null, required: true },
+    enemyGraveTop: { type: String as PropType<string | null>, default: null },
     enemyGraveyard: { type: Array as () => string[], required: false, default: () => [] },
 
     buyEnemyGraveGuard: { type: Object as () => GuardResult, required: true },

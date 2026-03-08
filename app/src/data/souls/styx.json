@@ -14,8 +14,8 @@
         { "key": "magic", "value": 1 }
       ]
     },
-    "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 1 }],
-    "text": "【貫穿】：射擊路徑上包含目標在內的「前 1 個敵方單位」均受到同等傷害。"
+    "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 }],
+    "text": "【貫穿】：射擊路徑上包含目標在內的「前 2 個敵方單位」均受到同等傷害。"
   },
   {
     "id": "styx_rook_feiyan",

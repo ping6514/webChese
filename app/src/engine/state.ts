@@ -87,7 +87,10 @@ export type GameState = {
     deathChainActive: boolean
     deathChainKillCount: number
     sealedUnitIds: string[]
+    bloodSacrificeActiveShotEffect?: { unitId: string; effect: Record<string, unknown> }
+    bloodSacrificeMoveThenShoot?: Record<string, boolean>
   }
+  pendingManaDrainBySide: Record<Side, number>
   hands: Record<Side, HandState>
   resources: Record<Side, Resources>
   limits: {
@@ -301,6 +304,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       deathChainKillCount: 0,
       sealedUnitIds: [],
     },
+    pendingManaDrainBySide: { red: 0, black: 0 },
     hands: {
       red: { souls: [], items: [] },
       black: { souls: [], items: [] },

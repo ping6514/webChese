@@ -74,7 +74,7 @@ const selectedCellCorpses = computed(() => {
 // ── Guards ─────────────────────────────────────────────────────────────────────
 const reviveGuard = computed(() => {
   if (isLocked.value) return { ok: false as const, reason: '不是你的回合' }
-  if (!selectedCell.value) return { ok: false as const, reason: 'Select a cell' }
+  if (!selectedCell.value) return { ok: false as const, reason: '請先選擇格子' }
   return canRevive(state.value, selectedCell.value)
 })
 
@@ -111,19 +111,19 @@ function showSoulDetail(id: string | null | undefined) {
   const c = getSoulCard(id)
   if (!c) return
   const lines: string[] = []
-  lines.push(`base: ${BASE_NAMES[c.base] ?? c.base}`)
-  lines.push(`clan: ${CLAN_NAMES[c.clan] ?? c.clan}`)
-  lines.push(`hp: ${c.stats.hp}`)
+  lines.push(`棋種：${BASE_NAMES[c.base] ?? c.base}`)
+  lines.push(`氏族：${CLAN_NAMES[c.clan] ?? c.clan}`)
+  lines.push(`生命：${c.stats.hp}`)
   if (c.stats.atk) {
     const k = c.stats.atk.key === 'phys' ? '物理' : '魔法'
-    lines.push(`atk: ${k} ${c.stats.atk.value}`)
+    lines.push(`攻擊：${k} ${c.stats.atk.value}`)
   }
   if (c.stats.def && c.stats.def.length > 0) {
     const defStr = c.stats.def.map((d) => `${d.key === 'phys' ? '物理' : '魔法'} ${d.value}`).join(' / ')
-    lines.push(`def: ${defStr}`)
+    lines.push(`防禦：${defStr}`)
   }
-  lines.push(`cost: ${c.costGold} 財力`)
-  if (c.text) lines.push(`text: ${c.text}`)
+  lines.push(`費用：${c.costGold} 財力`)
+  if (c.text) lines.push(`\n效果：${c.text}`)
   ui.openDetailModal({
     title: c.name,
     image: c.image || null,
@@ -185,7 +185,15 @@ const phase = computed(() => state.value.turn.phase)
       <div class="eventsHead">
         <span class="eventsTitle">📜 最近事件</span>
       </div>
-      <textarea class="eventsArea" readonly :value="lastEvents.slice(-30).join('\n')" />
+      <div class="eventsArea">
+        <div
+          v-for="(line, i) in lastEvents.slice().reverse()"
+          :key="i"
+          class="eventsRow"
+          :class="{ eventsRowAlt: i % 2 === 1 }"
+          @click="ui.openDetailModal({ title: '事件詳情', image: null, detail: line, actionLabel: null, actionDisabled: false, actionTitle: '' })"
+        >{{ line }}</div>
+      </div>
     </div>
   </div>
 </template>
@@ -231,12 +239,15 @@ const phase = computed(() => state.value.turn.phase)
   display: flex;
   flex-direction: column;
   gap: 6px;
-  flex-shrink: 0;
+  flex: 1 1 0;
+  min-height: 120px;
+  overflow: hidden;
 }
 
 .eventsHead {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .eventsTitle {
@@ -247,19 +258,32 @@ const phase = computed(() => state.value.turn.phase)
 }
 
 .eventsArea {
-  width: 100%;
-  height: 120px;
-  resize: none;
-  overflow: auto;
+  flex: 1 1 0;
+  overflow-y: auto;
   box-sizing: border-box;
-  white-space: pre;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
-  font-size: 0.625rem;
-  line-height: 1.5;
   background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
-  padding: 6px 8px;
+  padding: 4px 0;
+}
+
+.eventsRow {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  font-size: 0.625rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 2px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s, color 0.1s;
+}
+.eventsRow:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.85);
+}
+.eventsRowAlt {
+  background: rgba(255, 255, 255, 0.015);
 }
 </style>

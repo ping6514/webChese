@@ -50,7 +50,7 @@ export type ExecuteShotPlanResult = { ok: true; state: GameState; events: Event[
 
 export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPlanResult {
   const attacker = state.units[plan.attackerId]
-  if (!attacker) return { ok: false, error: 'Attacker not found' }
+  if (!attacker) return { ok: false, error: '找不到攻擊者' }
 
   const events: Event[] = []
 
@@ -81,13 +81,13 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       const need = Number(when.count ?? 0)
       if (Number.isFinite(need) && need > 0) {
         const corpses = countCorpses(state, attacker.side)
-        if (corpses < need) return { ok: false, error: 'Already shot this turn' }
+        if (corpses < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
     if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
       const need = Number(when.count ?? 0)
       if (Number.isFinite(need) && need > 0) {
-        if (countSoldiers(state, attacker.side) < need) return { ok: false, error: 'Already shot this turn' }
+        if (countSoldiers(state, attacker.side) < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
     const perTurn = Number((ab as any)?.perTurn ?? 0)
@@ -95,14 +95,20 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     const key = `${plan.attackerId}:MOVE_THEN_SHOOT`
     const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
     const canExtra = moved && Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
-    if (!canExtra) return { ok: false, error: 'Already shot this turn' }
+    // BLOOD_SACRIFICE MOVE_THEN_SHOOT: grants move-then-shoot via blood sacrifice
+    const bsMtsKey = `${plan.attackerId}:BLOOD_SACRIFICE_MTS`
+    const bsMts = !!(state.turnFlags.bloodSacrificeMoveThenShoot?.[plan.attackerId])
+    const bsMtsUsed = Number(state.turnFlags.abilityUsed?.[bsMtsKey] ?? 0)
+    const canExtraBS = bsMts && moved && bsMtsUsed < 1
+    if (!canExtra && !canExtraBS) return { ok: false, error: '本回合已射擊過' }
     const nextUses = plan.abilityUses ? [...plan.abilityUses] : []
-    nextUses.push({ key })
+    if (canExtra) nextUses.push({ key })
+    else nextUses.push({ key: bsMtsKey })
     plan.abilityUses = nextUses
   }
 
   const r = state.resources[state.turn.side]
-  if (r.mana < plan.cost) return { ok: false, error: 'Not enough mana' }
+  if (r.mana < plan.cost) return { ok: false, error: '魔力不足' }
 
   let nextState: GameState = {
     ...state,
@@ -131,6 +137,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
   if (plan.abilityUses && plan.abilityUses.length > 0) {
     const cur = nextState.turnFlags.abilityUsed ?? {}
     const next: Record<string, number> = { ...cur }
+    let drainCount = 0
     for (const u of plan.abilityUses) {
       const key = String((u as any).key ?? '')
       if (!key) continue
@@ -142,6 +149,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (unitId && abilityType) {
         events.push({ type: 'ABILITY_TRIGGERED', unitId, abilityType, text: abilityType })
       }
+      if (abilityType === 'FREE_SHOOT_DRAIN') drainCount++
     }
     nextState = {
       ...nextState,
@@ -150,6 +158,30 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         abilityUsed: next,
       },
     }
+    // FREE_SHOOT_DRAIN: accumulate mana drain for next turn start
+    if (drainCount > 0) {
+      const side = state.turn.side
+      const prevDrain = nextState.pendingManaDrainBySide[side] ?? 0
+      nextState = {
+        ...nextState,
+        pendingManaDrainBySide: { ...nextState.pendingManaDrainBySide, [side]: prevDrain + drainCount },
+      }
+    }
+  }
+
+  // BLOOD_SACRIFICE DAMAGE_BONUS: bonus damage from blood sacrifice effect
+  const bsShotEffect = state.turnFlags.bloodSacrificeActiveShotEffect
+  const bloodSacrificeBonus = (bsShotEffect?.unitId === plan.attackerId && String(bsShotEffect?.effect.type ?? '') === 'DAMAGE_BONUS')
+    ? Number((bsShotEffect.effect as any).amount ?? 0)
+    : 0
+
+  // GOLD_FOR_DAMAGE: deduct gold and store bonus for damage computation
+  const goldForDamage = (plan as any).__goldForDamage as { cost: number; bonus: number } | undefined
+  if (goldForDamage) {
+    const side = state.turn.side
+    const rg = nextState.resources[side]
+    nextState = { ...nextState, resources: { ...nextState.resources, [side]: { ...rg, gold: Math.max(0, rg.gold - goldForDamage.cost) } } }
+    events.push({ type: 'ABILITY_TRIGGERED', unitId: plan.attackerId, abilityType: 'GOLD_FOR_DAMAGE', text: `以財傷敵 -${goldForDamage.cost}G +${goldForDamage.bonus}` })
   }
 
   const rngState: RngState | null = state.rules.rngMode === 'seeded' ? (state.rngState ? { x: state.rngState.x } : null) : null
@@ -313,8 +345,8 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return s
   }
 
-  function killUnit(s: GameState, unitId: string, events: Event[]): GameState {
-    return killUnitShared(s, unitId, events)
+  function killUnit(s: GameState, unitId: string, events: Event[], killerId?: string): GameState {
+    return killUnitShared(s, unitId, events, killerId)
   }
 
   for (const inst of sortedInstances) {
@@ -324,9 +356,11 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
     const fixedDamage = Number((inst as any).fixedDamage ?? 0)
     const isFixed = Number.isFinite(fixedDamage) && fixedDamage > 0
+    // GOLD_FOR_DAMAGE bonus only applies to the direct shot (not splash/chain)
+    const extraBonus = (inst.kind === 'direct' && inst.sourceUnitId === plan.attackerId) ? ((goldForDamage?.bonus ?? 0) + bloodSacrificeBonus) : 0
     const rawResult = isFixed
       ? { damage: Math.floor(fixedDamage), breakdown: undefined }
-      : computeDamageWithBreakdown(nextState, src.id, tgt.id, dice)
+      : computeDamageWithBreakdown(nextState, src.id, tgt.id, dice, extraBonus)
     const rawDamage = rawResult.damage
 
     // DAMAGE_SHARE: transfer up to N damage from target to an eligible allied unit.
@@ -388,7 +422,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     if (nextHp <= 0) {
       if (kingInvincible) continue
       const killedSide = tgt.side
-      nextState = killUnit(nextState, tgt.id, events)
+      nextState = killUnit(nextState, tgt.id, events, src.id)
 
       // HEAL_KING_ON_KILL: if src has the ability and it killed an enemy, heal allied king.
       if (killedSide !== src.side) {
@@ -398,6 +432,28 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         const amount = Number((heal as any)?.amount ?? 0)
         if (Number.isFinite(amount) && amount > 0) {
           nextState = healKingOnKill(nextState, events, src.id, amount)
+        }
+
+        // KILL_GOLD_GAIN: gain gold when this unit kills an enemy
+        const gainAb = card?.abilities.find((a) => a.type === 'KILL_GOLD_GAIN')
+        const gainAmount = Number((gainAb as any)?.amount ?? 0)
+        if (Number.isFinite(gainAmount) && gainAmount > 0) {
+          const gs = src.side
+          const rg = nextState.resources[gs]
+          const newGold = Math.min(nextState.limits.goldMax, rg.gold + gainAmount)
+          nextState = { ...nextState, resources: { ...nextState.resources, [gs]: { ...rg, gold: newGold } } }
+          events.push({ type: 'ABILITY_TRIGGERED', unitId: src.id, abilityType: 'KILL_GOLD_GAIN', text: `掠奪 +${gainAmount}G` })
+        }
+
+        // BLOOD_TITHE_ON_KILL: kill enchanted enemy → heal allied king ceil(cost/3) HP
+        const titheAb = card?.abilities.find((a) => a.type === 'BLOOD_TITHE_ON_KILL')
+        if (titheAb) {
+          const deadSoulId2 = nextState.graveyard[killedSide]?.[0]
+          const deadCard = deadSoulId2 ? getSoulCard(deadSoulId2) : undefined
+          if (deadCard) {
+            const healAmount = Math.ceil(deadCard.costGold / 3)
+            if (healAmount > 0) nextState = healKingOnKill(nextState, events, src.id, healAmount)
+          }
         }
       }
     }

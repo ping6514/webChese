@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import type { GameState, DamageBreakdownItem } from '../engine'
+import type { GameState, DamageBreakdownItem, IncomeReportItem } from '../engine'
 import { getSoulCard } from '../engine'
 
 export type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
@@ -10,6 +10,11 @@ export type DamageToast = {
   targetName: string
   breakdown: DamageBreakdownItem[]
   finalAmount: number
+}
+export type IncomeToast = {
+  id: string
+  side: 'red' | 'black'
+  items: IncomeReportItem[]
 }
 
 const BASE_LABELS: Record<string, string> = {
@@ -45,6 +50,7 @@ export function useGameEffects() {
   const fxRevivedPosKeys = ref<string[]>([])
   const fxEnchantedPosKeys = ref<string[]>([])
   const damageToasts = ref<DamageToast[]>([])
+  const incomeToasts = ref<IncomeToast[]>([])
 
   function addFloatText(posKey: string, text: string, kind: FloatText['kind'], ms = FX_FLOAT_MS) {
     const id = `${Date.now()}-${Math.random()}`
@@ -169,6 +175,16 @@ export function useGameEffects() {
         const u = unitId ? nextState.units[unitId] : null
         if (u) addPosKeyFx(fxEnchantedPosKeys, `${u.pos.x},${u.pos.y}`, FX_ENCHANT_MS)
       }
+
+      if (type === 'INCOME_REPORT') {
+        const side = (e as any).side as 'red' | 'black'
+        const items = (e as any).items as IncomeReportItem[]
+        const toastId = `${Date.now()}-${Math.random()}`
+        incomeToasts.value = [...incomeToasts.value, { id: toastId, side, items }]
+        window.setTimeout(() => {
+          incomeToasts.value = incomeToasts.value.filter((t) => t.id !== toastId)
+        }, FX_TOAST_MS)
+      }
     }
 
     // Fallback: if engine didn't emit UNIT_KILLED but a unit disappeared this dispatch, still show killed FX.
@@ -191,6 +207,7 @@ export function useGameEffects() {
     fxRevivedPosKeys,
     fxEnchantedPosKeys,
     damageToasts,
+    incomeToasts,
     addFloatText,
     processEventFx,
   }

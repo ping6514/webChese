@@ -34,7 +34,7 @@ const selectedUnit = computed(() => {
 
 const enchantGuard = computed(() => {
   if (!selectedUnit.value || !selectedSoulId.value)
-    return { ok: false as const, reason: 'Select soul + unit' }
+    return { ok: false as const, reason: '請先選擇靈魂卡及目標單位' }
   return canEnchant(state.value, selectedUnit.value.id, selectedSoulId.value)
 })
 
@@ -61,8 +61,11 @@ function tryEnchantOrToast(soulId: string) {
   const side = state.value.turn.side
   const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
   if (!hasValid) {
-    const firstOwn = Object.values(state.value.units).find(u => u.side === side)
-    if (firstOwn) ctx.dispatch({ type: 'ENCHANT', unitId: firstOwn.id, soulId })
+    const card = getSoulCard(soulId)
+    // Prefer a unit of matching base so the error message is accurate
+    const target = Object.values(state.value.units).find(u => u.side === side && u.base === card?.base)
+      ?? Object.values(state.value.units).find(u => u.side === side)
+    if (target) ctx.dispatch({ type: 'ENCHANT', unitId: target.id, soulId })
     return
   }
   ui.startEnchantSelectUnit(soulId)
@@ -152,19 +155,30 @@ function showHandSoulDetail(soulId: string) {
   const c = getSoulCard(soulId)
   if (!c) return
   const lines: string[] = []
-  lines.push(`base: ${BASE_NAMES[c.base] ?? c.base}`)
-  lines.push(`clan: ${CLAN_NAMES[c.clan] ?? c.clan}`)
-  lines.push(`hp: ${c.stats.hp}`)
+  lines.push(`棋種：${BASE_NAMES[c.base] ?? c.base}`)
+  lines.push(`氏族：${CLAN_NAMES[c.clan] ?? c.clan}`)
+  lines.push(`生命：${c.stats.hp}`)
   if (c.stats.atk) {
     const k = c.stats.atk.key === 'phys' ? '物理' : '魔法'
-    lines.push(`atk: ${k} ${c.stats.atk.value}`)
+    lines.push(`攻擊：${k} ${c.stats.atk.value}`)
   }
   if (c.stats.def?.length) {
-    lines.push(`def: ${c.stats.def.map((d) => `${d.key === 'phys' ? '物理' : '魔法'} ${d.value}`).join(' / ')}`)
+    lines.push(`防禦：${c.stats.def.map((d) => `${d.key === 'phys' ? '物理' : '魔法'} ${d.value}`).join(' / ')}`)
   }
-  lines.push(`cost: ${c.costGold} 財力`)
-  if (c.text) lines.push(`text: ${c.text}`)
+  lines.push(`費用：${c.costGold} 財力`)
+  if (c.text) lines.push(`\n效果：${c.text}`)
   ui.openDetailModal({ title: c.name, image: c.image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
+}
+
+function showHandItemDetail(itemId: string) {
+  const item = getItemCard(itemId)
+  if (!item) return
+  const lines: string[] = []
+  const timingLabel: Record<string, string> = { buy: '購買階段', necro: '死靈術階段', combat: '戰鬥階段' }
+  lines.push(`時機：${item.timing ? (timingLabel[item.timing] ?? item.timing) : '任意'}`)
+  lines.push(`費用：${item.costGold} 財力`)
+  if (item.text) lines.push(`\n效果：${item.text}`)
+  ui.openDetailModal({ title: item.name, image: item.image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
 }
 
 type TabKey = 'souls' | 'items'
@@ -227,6 +241,7 @@ defineExpose({ selectedSoulId })
         :get-item="getItemCard"
         @discard="discardItem"
         @use-item="useItem"
+        @show-item-detail="showHandItemDetail"
       />
     </div>
     </Transition>

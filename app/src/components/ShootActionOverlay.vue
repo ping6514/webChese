@@ -13,6 +13,10 @@ export default defineComponent({
     // cancelLabel: { type: String as PropType<string>, required: false, default: '取消 (Esc)' },
     detailsLabel: { type: String as PropType<string>, required: false, default: '射擊預覽' },
     showDetails: { type: Boolean, required: false, default: true },
+    goldForDamage: { type: Object as PropType<{ goldCost: number; damageBonus: number } | null>, default: null },
+    spendGoldForDamage: { type: Boolean, required: false, default: false },
+    bloodSacrifice: { type: Object as PropType<{ label: string } | null>, default: null },
+    sacrificeHp: { type: Boolean, required: false, default: false },
     offset: {
       type: Object as PropType<{ x: number; y: number }>,
       required: false,
@@ -24,6 +28,8 @@ export default defineComponent({
     cancel: () => true,
     details: () => true,
     'update:offset': (_next: { x: number; y: number }) => true,
+    'update:spendGoldForDamage': (_v: boolean) => true,
+    'update:sacrificeHp': (_v: boolean) => true,
   },
   setup(props, { emit }) {
     let dragging = false
@@ -101,6 +107,26 @@ export default defineComponent({
     @click.stop
   >
     <div class="shootActionsTitle"><span>{{ title }}</span> <button type="button" @click="onCancel">Ｘ</button></div>
+    <div v-if="bloodSacrifice" class="goldToggleRow">
+      <button
+        type="button"
+        class="goldToggleBtn sacrificeBtn"
+        :class="{ active: sacrificeHp }"
+        @click.stop="$emit('update:sacrificeHp', !sacrificeHp)"
+      >
+        血祭 帥-1HP → {{ bloodSacrifice.label }}
+      </button>
+    </div>
+    <div v-if="goldForDamage" class="goldToggleRow">
+      <button
+        type="button"
+        class="goldToggleBtn"
+        :class="{ active: spendGoldForDamage }"
+        @click.stop="$emit('update:spendGoldForDamage', !spendGoldForDamage)"
+      >
+        以財傷敵 -{{ goldForDamage.goldCost }}G +{{ goldForDamage.damageBonus }}
+      </button>
+    </div>
     <div class="shootActionsButtons">
       <button type="button" class="shootBtn" :disabled="confirmDisabled" :title="confirmDisabled ? confirmTitle : ''" @click="onConfirm">
         {{ confirmLabel }}
@@ -162,5 +188,36 @@ export default defineComponent({
 .shootBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.goldToggleRow {
+  display: flex;
+}
+
+.goldToggleBtn {
+  flex: 1;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 5px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+
+.goldToggleBtn.active {
+  background: #78420a;
+  border-color: #d97706;
+  color: #fde68a;
+  opacity: 1;
+}
+
+.sacrificeBtn.active {
+  background: #5b0e0e;
+  border-color: #dc2626;
+  color: #fca5a5;
 }
 </style>

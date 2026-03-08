@@ -435,10 +435,29 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         for (const a of myUnits) {
           for (const t of enemies) {
             if (canShootAction(tmp, a.id as string, t.id as string, null).ok) {
+              const baseScore = scoreShootTarget(W, t, myCorpses)
               shootCandidates.push({
                 action: { type: 'SHOOT', attackerId: a.id as string, targetUnitId: t.id as string },
-                score: scoreShootTarget(W, t, myCorpses),
+                score: baseScore,
               })
+              // GOLD_FOR_DAMAGE: if attacker has this ability and we have enough gold, also consider spending gold
+              const aSoulId = (a.enchant?.soulId as string) ?? ''
+              if (aSoulId) {
+                const aCard = getSoulCard(aSoulId)
+                const goldAb = aCard?.abilities.find((ab: any) => ab.type === 'GOLD_FOR_DAMAGE')
+                if (goldAb) {
+                  const goldCost = Number((goldAb as any).goldCost ?? 0)
+                  if ((tmp.resources[side].gold as number) >= goldCost) {
+                    // Higher-value targets (king or enchanted) warrant spending gold
+                    if ((t.base === 'king' || t.enchant) && rng() < 0.7) {
+                      shootCandidates.push({
+                        action: { type: 'SHOOT', attackerId: a.id as string, targetUnitId: t.id as string, spendGoldForDamage: true } as Action,
+                        score: baseScore + 200,
+                      })
+                    }
+                  }
+                }
+              }
             }
           }
         }

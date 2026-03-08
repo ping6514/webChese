@@ -164,7 +164,7 @@ describe('dark moon missing abilities', () => {
     expect(preview.ok).toBe(true)
 
     // Baseline damage without aura would be: diceFixed(3) + atk(2) - def(0) = 5
-    // With aura +1: 6
-    expect((preview as any).rawDamage).toBe(6)
+    // With yueji AURA_DAMAGE_BONUS +2 (amount=2, resonance need=3 with 4 dark_moon units): 7
+    expect((preview as any).rawDamage).toBe(7)
   })
 })

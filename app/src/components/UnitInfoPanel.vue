@@ -30,8 +30,8 @@ const ATK_LABEL: Record<string, string> = {
 export default defineComponent({
   name: 'UnitInfoPanel',
   props: {
-    unit: { type: Object as () => UnitLite | null, required: true },
-    enchantSoul: { type: Object as () => EnchantSoulLite | null, required: true },
+    unit: { type: Object as () => UnitLite | null, default: null },
+    enchantSoul: { type: Object as () => EnchantSoulLite | null, default: null },
     baseImage: { type: String as () => string | undefined, required: false, default: undefined },
   },
   emits: ['show-soul-detail'],

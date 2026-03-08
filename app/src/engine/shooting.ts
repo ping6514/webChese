@@ -47,7 +47,7 @@ function isLegalShootByBase(
 ): ShootCheck {
   const attacker = state.units[attackerId]
   const target = state.units[targetId]
-  if (!attacker || !target) return { ok: false, error: 'Unit not found' }
+  if (!attacker || !target) return { ok: false, error: '找不到單位' }
 
   const ax = attacker.pos.x
   const ay = attacker.pos.y
@@ -57,52 +57,52 @@ function isLegalShootByBase(
   switch (attacker.base) {
     case 'rook': {
       const between = countBetweenOrthogonal(state, attacker.pos, target.pos)
-      if (between === null) return { ok: false, error: 'Out of range' }
+      if (between === null) return { ok: false, error: '射程不足' }
 
       const ignoreAll = !!rules?.ignoreBlockingAll
       const ignoreCount = rules?.ignoreBlockingCount ?? 0
       const ok = ignoreAll ? true : between <= ignoreCount
-      return ok ? { ok: true } : { ok: false, error: 'Blocked' }
+      return ok ? { ok: true } : { ok: false, error: '路徑被阻擋' }
     }
     case 'cannon': {
       const between = countBetweenOrthogonal(state, attacker.pos, target.pos)
-      if (between === null) return { ok: false, error: 'Out of range' }
+      if (between === null) return { ok: false, error: '射程不足' }
       // Cannon always needs at least 1 screen (砲架), even with ignore-blocking abilities.
-      if (between < 1) return { ok: false, error: 'Need screen' }
+      if (between < 1) return { ok: false, error: '需要砲架' }
 
       const ignoreAll = !!rules?.ignoreBlockingAll
       const ignoreCount = rules?.ignoreBlockingCount ?? 0
       if (ignoreAll) return { ok: true }
       if (ignoreCount > 0) {
         // Can fire through up to 1 (normal screen) + ignoreCount extra blockers.
-        return between <= 1 + ignoreCount ? { ok: true } : { ok: false, error: 'Blocked' }
+        return between <= 1 + ignoreCount ? { ok: true } : { ok: false, error: '路徑被阻擋' }
       }
 
-      return between === 1 ? { ok: true } : { ok: false, error: 'Need screen' }
+      return between === 1 ? { ok: true } : { ok: false, error: '需要砲架' }
     }
     case 'king': {
       // palace 1 step (orthogonal)
       const dx = Math.abs(tx - ax)
       const dy = Math.abs(ty - ay)
-      if (dx + dy !== 1) return { ok: false, error: 'Out of range' }
-      if (!palaceContains(attacker.side, target.pos)) return { ok: false, error: 'Out of range' }
+      if (dx + dy !== 1) return { ok: false, error: '射程不足' }
+      if (!palaceContains(attacker.side, target.pos)) return { ok: false, error: '射程不足' }
       return { ok: true }
     }
     case 'advisor': {
       // diagonal 1
       const dx = Math.abs(tx - ax)
       const dy = Math.abs(ty - ay)
-      if (dx !== 1 || dy !== 1) return { ok: false, error: 'Out of range' }
+      if (dx !== 1 || dy !== 1) return { ok: false, error: '射程不足' }
       return { ok: true }
     }
     case 'elephant': {
       // 2-diagonal with eye block
       const dx = tx - ax
       const dy = ty - ay
-      if (Math.abs(dx) !== 2 || Math.abs(dy) !== 2) return { ok: false, error: 'Out of range' }
+      if (Math.abs(dx) !== 2 || Math.abs(dy) !== 2) return { ok: false, error: '射程不足' }
 
       const eye = { x: ax + dx / 2, y: ay + dy / 2 }
-      if (getUnitAt(state, eye)) return { ok: false, error: 'Blocked' }
+      if (getUnitAt(state, eye)) return { ok: false, error: '路徑被阻擋' }
       return { ok: true }
     }
     case 'knight': {
@@ -111,10 +111,10 @@ function isLegalShootByBase(
       const dy = ty - ay
       const adx = Math.abs(dx)
       const ady = Math.abs(dy)
-      if (!((adx === 1 && ady === 2) || (adx === 2 && ady === 1))) return { ok: false, error: 'Out of range' }
+      if (!((adx === 1 && ady === 2) || (adx === 2 && ady === 1))) return { ok: false, error: '射程不足' }
 
       const leg = adx === 2 ? { x: ax + dx / 2, y: ay } : { x: ax, y: ay + dy / 2 }
-      if (getUnitAt(state, leg)) return { ok: false, error: 'Blocked' }
+      if (getUnitAt(state, leg)) return { ok: false, error: '路徑被阻擋' }
       return { ok: true }
     }
     case 'soldier': {
@@ -124,10 +124,10 @@ function isLegalShootByBase(
       if (tx === ax && ty === ay + forwardDy) return { ok: true }
       // after crossing river: left/right 1
       if (hasCrossed && ty === ay && Math.abs(tx - ax) === 1) return { ok: true }
-      return { ok: false, error: 'Out of range' }
+      return { ok: false, error: '射程不足' }
     }
     default: {
-      return { ok: false, error: 'Out of range' }
+      return { ok: false, error: '射程不足' }
     }
   }
 }
@@ -147,17 +147,17 @@ function isClearSameFile(state: GameState, a: { x: number; y: number }, b: { x: 
 
 export function canShoot(state: GameState, attackerId: string, targetUnitId: string, rules?: ShootRulesOverride): ShootCheck {
   const attacker = state.units[attackerId]
-  if (!attacker) return { ok: false, error: 'Attacker not found' }
+  if (!attacker) return { ok: false, error: '找不到攻擊者' }
   const target = state.units[targetUnitId]
-  if (!target) return { ok: false, error: 'Target not found' }
+  if (!target) return { ok: false, error: '找不到目標' }
 
-  if (state.turn.phase !== 'combat') return { ok: false, error: 'Not in combat phase' }
-  if (attacker.side !== state.turn.side) return { ok: false, error: 'Not your turn' }
-  if (target.side === attacker.side) return { ok: false, error: 'Cannot target ally' }
+  if (state.turn.phase !== 'combat') return { ok: false, error: '需要在戰鬥階段' }
+  if (attacker.side !== state.turn.side) return { ok: false, error: '不是你的回合' }
+  if (target.side === attacker.side) return { ok: false, error: '不能攻擊己方單位' }
 
   const cost = Number.isFinite(rules?.manaCostOverride as any) ? Math.max(0, Math.floor(rules?.manaCostOverride as number)) : state.rules.shootManaCost
   const r = state.resources[state.turn.side]
-  if (r.mana < cost) return { ok: false, error: 'Not enough mana' }
+  if (r.mana < cost) return { ok: false, error: '魔力不足' }
 
   if (state.turnFlags.shotUsed[attackerId]) {
     const soulId = attacker.enchant?.soulId
@@ -168,7 +168,7 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
       const need = Number(when.count ?? 0)
       if (Number.isFinite(need) && need > 0) {
         const corpses = countCorpses(state, attacker.side)
-        if (corpses < need) return { ok: false, error: 'Already shot this turn' }
+        if (corpses < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
     const perTurn = Number((ab as any)?.perTurn ?? 0)
@@ -176,7 +176,11 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
     const key = `${attackerId}:MOVE_THEN_SHOOT`
     const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
     const canExtra = moved && Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
-    if (!canExtra) return { ok: false, error: 'Already shot this turn' }
+    // BLOOD_SACRIFICE MOVE_THEN_SHOOT
+    const bsMts = !!(state.turnFlags.bloodSacrificeMoveThenShoot?.[attackerId])
+    const bsMtsUsed = Number(state.turnFlags.abilityUsed?.[`${attackerId}:BLOOD_SACRIFICE_MTS`] ?? 0)
+    const canExtraBS = bsMts && moved && bsMtsUsed < 1
+    if (!canExtra && !canExtraBS) return { ok: false, error: '本回合已射擊過' }
   }
 
   // base range/blocking rules
@@ -185,7 +189,7 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
 
   // facing-kings rule as an active shot: king can shoot enemy king only if same file and unblocked
   if (attacker.base === 'king' && target.base === 'king') {
-    if (!isClearSameFile(state, attacker.pos, target.pos)) return { ok: false, error: 'Kings not in line' }
+    if (!isClearSameFile(state, attacker.pos, target.pos)) return { ok: false, error: '兩帥不在同一列' }
   }
 
   return { ok: true }

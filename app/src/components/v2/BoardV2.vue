@@ -7,6 +7,7 @@ import BoardGrid from '../BoardGrid.vue'
 import ConfirmModal from '../ConfirmModal.vue'
 import ShootPreviewModal from '../ShootPreviewModal.vue'
 import DamageFormulaToast from '../DamageFormulaToast.vue'
+import IncomeToast from '../IncomeToast.vue'
 import { useSelection } from '../../useSelection'
 import { useShootPreview } from '../../useShootPreview'
 import { usePendingConfirm } from '../../usePendingConfirm'
@@ -37,6 +38,10 @@ const {
   guard: shootPreviewGuard,
   info: shootPreviewInfo,
   confirm: confirmShootPreviewFromComposable,
+  goldForDamageInfo: shootGoldForDamageInfo,
+  spendGoldForDamage: shootSpendGoldForDamage,
+  bloodSacrificeInfo: shootBloodSacrificeInfo,
+  sacrificeHp: shootSacrificeHp,
 } = useShootPreview({ getState: () => state.value })
 
 const shootExtraTargetUnitId = computed(() => shootPreview.value?.extraTargetUnitId ?? null)
@@ -186,7 +191,7 @@ function onEnchantDrop(payload: { unitId: string; soulId: string }) {
   if (unit.side !== state.value.turn.side) return
   setPending({
     action: { type: 'ENCHANT', unitId: unit.id, soulId: card.id },
-    title: 'Confirm Enchant',
+    title: '確認附魔',
     detail: [`${card.name} -> ${unit.id}`, `base: ${card.base}`, `cost: ${card.costGold}G`].join('\n'),
   })
 }
@@ -199,6 +204,14 @@ function confirmPending() {
 function confirmShootPreview() {
   shootDetailsOpen.value = false
   confirmShootPreviewFromComposable((a) => ctx.dispatch(a))
+}
+
+function setShootSpendGold(v: boolean) {
+  shootSpendGoldForDamage.value = v
+}
+
+function setShootSacrificeHp(v: boolean) {
+  shootSacrificeHp.value = v
 }
 
 // ── Phase toast ────────────────────────────────────────────────────────────────
@@ -251,6 +264,7 @@ const fxEnchantedPosKeys = computed(() => ctx.fx?.fxEnchantedPosKeys.value ?? []
 const floatTextsByPos  = computed(() => ctx.fx?.floatTextsByPos.value  ?? {})
 const fxBeams          = computed(() => ctx.fx?.fxBeams.value          ?? [])
 const damageToasts     = computed(() => ctx.fx?.damageToasts.value     ?? [])
+const incomeToasts     = computed(() => ctx.fx?.incomeToasts.value     ?? [])
 
 // ── Board scale + 3D style ─────────────────────────────────────────────────────
 type BoardScale = 33 | 50 | 75 | 100
@@ -312,9 +326,9 @@ defineExpose({ onUseItem })
       <button
         type="button"
         class="scaleBtn"
-        :title="ui.toastPosition === 'top' ? '傷害提示：頂部（點擊切換右側）' : '傷害提示：右側（點擊切換頂部）'"
+        :title="ui.toastPosition === 'top' ? '通知位置：頂部（點擊切換右側）' : '通知位置：右側（點擊切換頂部）'"
         @click="ui.toggleToastPosition()"
-      >{{ ui.toastPosition === 'top' ? '傷害報告💥⬆' : '傷害報告💥➡' }}</button>
+      >{{ ui.toastPosition === 'top' ? '通知⬆' : '通知➡' }}</button>
       <span class="scaleDivider" />
       <button
         type="button"
@@ -348,6 +362,12 @@ defineExpose({ onUseItem })
         :shoot-actions-visible="!shootDetailsOpen"
         :shoot-confirm-disabled="!shootPreviewGuard.ok"
         :shoot-confirm-title="shootPreviewGuard.ok ? '' : (shootPreviewGuard as any).reason ?? ''"
+        :shoot-gold-for-damage="shootGoldForDamageInfo"
+        :shoot-spend-gold-for-damage="shootSpendGoldForDamage"
+        :shoot-blood-sacrifice="shootBloodSacrificeInfo"
+        :shoot-sacrifice-hp="shootSacrificeHp"
+        @update:shoot-spend-gold-for-damage="setShootSpendGold"
+        @update:shoot-sacrifice-hp="setShootSacrificeHp"
         :sacrifice-action-pos-key="sacrificeOverlayVisible && selectedUnit ? `${selectedUnit.pos.x},${selectedUnit.pos.y}` : null"
         :sacrifice-actions-visible="sacrificeOverlayVisible"
         :sacrifice-confirm-disabled="!canStartSacrificeMode.ok"
@@ -376,6 +396,7 @@ defineExpose({ onUseItem })
 
     <!-- Damage formula toast -->
     <DamageFormulaToast :toasts="damageToasts" :position="ui.toastPosition" />
+    <IncomeToast :toasts="incomeToasts" :position="ui.toastPosition === 'right' ? 'right' : 'top'" />
 
     <!-- Shoot preview modal -->
     <ShootPreviewModal

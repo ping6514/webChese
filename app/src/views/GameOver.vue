@@ -36,7 +36,7 @@ const DIRS = [
 
 const chars = computed(() =>
   winnerLabel.value.split('').map((ch, i) => {
-    const d = DIRS[i % DIRS.length]
+    const d = DIRS[i % DIRS.length]!
     return {
       ch,
       style: {

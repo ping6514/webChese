@@ -1,0 +1,209 @@
+[
+  {
+    "id": "death_oath_rook_xuelie",
+    "clan": "death_oath",
+    "base": "rook",
+    "name": "血裂",
+    "image": "/assets/cards/death_oath/death_oath_rook_xuelie.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 12,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "FREE_SHOOT_DRAIN" },
+      { "type": "BLOOD_TITHE_ON_KILL" }
+    ],
+    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 ceil(費用/3) HP。"
+  },
+  {
+    "id": "death_oath_rook_chiyun",
+    "clan": "death_oath",
+    "base": "rook",
+    "name": "赤殞",
+    "image": "/assets/cards/death_oath/death_oath_rook_chiyun.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 11,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 } },
+      { "type": "DEATH_COUNTER" }
+    ],
+    "text": "【血祭→貫穿】射擊前可消耗帥 1 HP，本次射擊穿透前兩個目標。【最後一搏】死亡前對擊殺者反擊一次。"
+  },
+  {
+    "id": "death_oath_knight_mingyan",
+    "clan": "death_oath",
+    "base": "knight",
+    "name": "命焰",
+    "image": "/assets/cards/death_oath/death_oath_knight_mingyan.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "MOVE_THEN_SHOOT", "perTurn": 1 } }
+    ],
+    "text": "【血祭→移動後射】射擊前可消耗帥 1 HP，本回合移動後可額外射擊一次（每回合限 1 次）。"
+  },
+  {
+    "id": "death_oath_knight_nihun",
+    "clan": "death_oath",
+    "base": "knight",
+    "name": "逆魂",
+    "image": "/assets/cards/death_oath/death_oath_knight_nihun.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "phys", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "UNDERDOG_AURA", "scope": "self" },
+      { "type": "DEATH_COUNTER" }
+    ],
+    "text": "【逆境】己方活著的單位數少於敵方時，此單位 ATK +1。【最後一搏】死亡前對擊殺者反擊一次。"
+  },
+  {
+    "id": "death_oath_cannon_yanshi",
+    "clan": "death_oath",
+    "base": "cannon",
+    "name": "炎誓",
+    "image": "/assets/cards/death_oath/death_oath_cannon_yanshi.jpg",
+    "costGold": 8,
+    "stats": {
+      "hp": 10,
+      "atk": { "key": "magic", "value": 4 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "FREE_SHOOT_DRAIN" },
+      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "DAMAGE_BONUS", "amount": 1 } }
+    ],
+    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。【血祭→傷害+1】射擊前可消耗帥 1 HP，本次傷害額外 +1。"
+  },
+  {
+    "id": "death_oath_cannon_nupo",
+    "clan": "death_oath",
+    "base": "cannon",
+    "name": "怒魄",
+    "image": "/assets/cards/death_oath/death_oath_cannon_nupo.jpg",
+    "costGold": 7,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 0 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "CHAIN", "radius": 1 } },
+      { "type": "BLOOD_RAGE_AURA", "scope": "self", "stages": [{ "threshold": 5, "atkBonus": 1 }] }
+    ],
+    "text": "【血祭→連鎖】射擊前可消耗帥 1 HP，本次射擊觸發連鎖（波及鄰近 1 格敵方）。帥 HP ≤ 5 時，此單位 ATK +1。"
+  },
+  {
+    "id": "death_oath_advisor_tieshi",
+    "clan": "death_oath",
+    "base": "advisor",
+    "name": "鐵誓",
+    "image": "/assets/cards/death_oath/death_oath_advisor_tieshi.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "phys", "value": 1 },
+      "def": [
+        { "key": "phys", "value": 2 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      { "type": "BLOOD_RAGE_AURA", "scope": "global", "stages": [{ "threshold": 10, "atkBonus": 1 }, { "threshold": 5, "atkBonus": 2 }] }
+    ],
+    "text": "【血憤・全場】常駐光環：帥 HP ≤ 10 時，全體己方單位 ATK +1；帥 HP ≤ 5 時，ATK 提升為 +2。"
+  },
+  {
+    "id": "death_oath_advisor_moming",
+    "clan": "death_oath",
+    "base": "advisor",
+    "name": "末命",
+    "image": "/assets/cards/death_oath/death_oath_advisor_moming.jpg",
+    "costGold": 4,
+    "stats": {
+      "hp": 8,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 1 }
+      ]
+    },
+    "abilities": [
+      { "type": "UNDERDOG_AURA", "scope": "global", "stages": [{ "margin": 1, "atkBonus": 1 }, { "margin": 3, "atkBonus": 2 }] }
+    ],
+    "text": "【逆境・全場】常駐光環：己方活著的單位數少於敵方 1 位時，全體己方單位 ATK +1；少於 3 位時，ATK 提升為 +2。"
+  },
+  {
+    "id": "death_oath_elephant_fenhun",
+    "clan": "death_oath",
+    "base": "elephant",
+    "name": "焚魂",
+    "image": "/assets/cards/death_oath/death_oath_elephant_fenhun.jpg",
+    "costGold": 5,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "magic", "value": 2 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      { "type": "FREE_SHOOT_DRAIN" },
+      { "type": "BLOOD_TITHE_ON_KILL" }
+    ],
+    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 ceil(費用/3) HP。"
+  },
+  {
+    "id": "death_oath_elephant_jueyu",
+    "clan": "death_oath",
+    "base": "elephant",
+    "name": "絕域",
+    "image": "/assets/cards/death_oath/death_oath_elephant_jueyu.jpg",
+    "costGold": 6,
+    "stats": {
+      "hp": 9,
+      "atk": { "key": "phys", "value": 3 },
+      "def": [
+        { "key": "phys", "value": 1 },
+        { "key": "magic", "value": 2 }
+      ]
+    },
+    "abilities": [
+      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1 } },
+      { "type": "UNDERDOG_AURA", "scope": "self", "stages": [{ "margin": 1, "atkBonus": 2 }] }
+    ],
+    "text": "【血祭→無視阻擋+1】射擊前可消耗帥 1 HP，本次射擊無視 1 個阻擋。【逆境】己方劣勢時，此單位 ATK +2。"
+  }
+]

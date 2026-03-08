@@ -16,6 +16,49 @@ function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): b
 export function getDefValueInState(state: GameState, unit: Unit, atkKey: string): number {
   let defValue = getDefValue(unit, atkKey)
 
+  // GOLD_THRESHOLD_ATK self DEF bonus (守金 style: threshold-based self DEF)
+  {
+    const selfSoulId = unit.enchant?.soulId
+    if (selfSoulId) {
+      const selfCard = getSoulCard(selfSoulId)
+      if (selfCard) {
+        for (const ab of selfCard.abilities) {
+          if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
+          const scope = String((ab as any).scope ?? 'self')
+          if (scope !== 'self') continue
+          const defBonus = (ab as any).defBonus
+          if (!defBonus) continue
+          const bonusAmount = Number(defBonus[atkKey] ?? 0)
+          if (!Number.isFinite(bonusAmount) || bonusAmount <= 0) continue
+          const threshold = Number((ab as any).threshold ?? 0)
+          if (!Number.isFinite(threshold) || threshold <= 0) continue
+          if (state.resources[unit.side].gold >= threshold) defValue += bonusAmount
+        }
+      }
+    }
+  }
+
+  // GOLD_THRESHOLD_ATK global DEF aura (幣侍 style: all allies get DEF bonus)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities) {
+      if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
+      const scope = String((ab as any).scope ?? 'self')
+      if (scope !== 'global') continue
+      const defBonus = (ab as any).defBonus
+      if (!defBonus) continue
+      const bonusAmount = Number(defBonus[atkKey] ?? 0)
+      if (!Number.isFinite(bonusAmount) || bonusAmount <= 0) continue
+      const threshold = Number((ab as any).threshold ?? 0)
+      if (!Number.isFinite(threshold) || threshold <= 0) continue
+      if (state.resources[auraUnit.side].gold >= threshold) defValue += bonusAmount
+    }
+  }
+
   // AURA_DEF_BONUS: allied aura units can add to defenders' DEF.
   for (const auraUnit of Object.values(state.units)) {
     if (auraUnit.side !== unit.side) continue

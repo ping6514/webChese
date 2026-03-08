@@ -118,10 +118,14 @@ export function useInteractionMode(opts: {
       const soulId = ui.interactionMode.soulId
       if (unitId && enchantableUnitIds.value.includes(unitId)) {
         const card = getSoulCard(soulId)
+        const targetUnit = state.value.units[unitId]
+        const targetName = targetUnit?.enchant?.soulId
+          ? (getSoulCard(targetUnit.enchant.soulId)?.name ?? targetUnit.base)
+          : (targetUnit?.base ?? unitId)
         setPending({
           action: { type: 'ENCHANT', unitId, soulId },
-          title: 'Confirm Enchant',
-          detail: [`${card?.name ?? soulId} -> ${unitId}`, `base: ${card?.base ?? '-'}`, `cost: ${card?.costGold ?? '-'}G`].join('\n'),
+          title: '確認附魔',
+          detail: [`靈魂：${card?.name ?? soulId}`, `目標：${targetName}`, `費用：${card?.costGold ?? '-'} 財力`].join('\n'),
         })
         ui.clearInteractionMode()
         return
@@ -135,10 +139,14 @@ export function useInteractionMode(opts: {
       const sourceUnitId = ui.interactionMode.sourceUnitId
       const range = ui.interactionMode.range
       if (targetUnitId && sacrificeTargetableUnitIds.value.includes(targetUnitId)) {
+        const srcUnit = state.value.units[sourceUnitId]
+        const srcName = srcUnit?.enchant?.soulId ? (getSoulCard(srcUnit.enchant.soulId)?.name ?? srcUnit.base) : (srcUnit?.base ?? sourceUnitId)
+        const tgtUnit = state.value.units[targetUnitId]
+        const tgtName = tgtUnit?.enchant?.soulId ? (getSoulCard(tgtUnit.enchant.soulId)?.name ?? tgtUnit.base) : (tgtUnit?.base ?? targetUnitId)
         setPending({
           action: { type: 'SACRIFICE', sourceUnitId, targetUnitId, range },
-          title: 'Confirm Sacrifice',
-          detail: [`${sourceUnitId} -> sacrifice ${targetUnitId}`, `range: ${range}`].join('\n'),
+          title: '確認獻祭',
+          detail: [`攻擊者：${srcName}`, `目標：${tgtName}`, `範圍：${range}`].join('\n'),
         })
         ui.clearInteractionMode()
         return
@@ -207,10 +215,13 @@ export function useInteractionMode(opts: {
     if (!prevSelectedUnit) return
     if (!legalMoves.value.some((p) => p.x === payload.x && p.y === payload.y)) return
 
+    const movingName = prevSelectedUnit.enchant?.soulId
+      ? (getSoulCard(prevSelectedUnit.enchant.soulId)?.name ?? prevSelectedUnit.base)
+      : prevSelectedUnit.base
     setPending({
       action: { type: 'MOVE', unitId: prevSelectedUnit.id, to: { x: payload.x, y: payload.y } },
-      title: 'Confirm Move',
-      detail: `${prevSelectedUnit.id} -> (${payload.x},${payload.y})`,
+      title: '確認移動',
+      detail: `${movingName} 移動至 (${payload.x}, ${payload.y})`,
     })
   }
 

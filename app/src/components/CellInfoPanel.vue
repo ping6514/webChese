@@ -1,5 +1,5 @@
 <script lang="ts">
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, type PropType } from 'vue'
 import type { GameState, Pos, PieceBase } from '../engine'
 import type { GuardResult } from '../engine'
 import { getReviveGoldCost } from '../engine'
@@ -25,8 +25,8 @@ export default defineComponent({
   name: 'CellInfoPanel',
   props: {
     phase: { type: String as () => GameState['turn']['phase'], required: true },
-    selectedCell: { type: Object as () => Pos | null, required: true },
-    cellUnit: { type: Object as () => UnitLite | null, required: true },
+    selectedCell: { type: Object as () => Pos | null, default: null },
+    cellUnit: { type: Object as PropType<UnitLite | null>, default: null },
     corpses: { type: Array as () => CorpseLite[], required: true },
     reviveGuard: { type: Object as () => GuardResult, required: true },
   },

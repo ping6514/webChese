@@ -46,7 +46,7 @@ watch(() => conn.gameState, (gs) => {
 const {
   fxAttackUnitIds, fxHitUnitIds, fxKilledUnitIds, fxAbilityUnitIds,
   fxKilledPosKeys, fxRevivedPosKeys, fxEnchantedPosKeys,
-  floatTextsByPos, fxBeams, damageToasts, processEventFx,
+  floatTextsByPos, fxBeams, damageToasts, incomeToasts, processEventFx,
 } = useGameEffects()
 const { dispatch, onlineWaiting, lastEvents, lastError } = useGameDispatch({ state, processEventFx, setup, conn })
 
@@ -169,6 +169,16 @@ onMounted(() => {
   }
 })
 
+// ── Clear all interaction state on any phase transition ────────────────────────
+watch(
+  () => state.value.turn.phase,
+  () => {
+    ui.clearInteractionMode()
+    ui.clearPendingConfirm()
+    ui.clearShootPreview()
+  },
+)
+
 // ── Auto-open shop at buy phase (human turn only) ──────────────────────────────
 watch(
   () => state.value.turn.phase,
@@ -177,7 +187,7 @@ watch(
     const side = state.value.turn.side
     if (setup.mode === 'pve' && side === npcSide.value) return  // skip bot turns
     if (setup.mode === 'online' && conn.side !== side) return   // skip opponent turns
-    ui.openShop()
+    setTimeout(() => ui.openShop(), 1200)
   },
 )
 
@@ -225,6 +235,7 @@ provideGameV2({
     floatTextsByPos,
     fxBeams,
     damageToasts,
+    incomeToasts,
   },
 })
 </script>

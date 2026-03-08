@@ -30,14 +30,30 @@ const ALL_CLANS = [
   { id: 'styx',          label: '💧 冥河' },
   { id: 'eternal_night', label: '🌑 永夜' },
   { id: 'iron_guard',    label: '🛡️ 鐵衛' },
+  { id: 'gold_merc',     label: '💰 逐利' },
+  { id: 'death_oath',    label: '🩸 亡命' },
 ]
-const selectedClans = ref<string[]>(['dark_moon', 'styx', 'eternal_night', 'iron_guard'])
+const selectedClans = ref<string[]>(['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath'])
+const clanMode = ref<'all' | 'random'>('all')
+const randomClanCount = ref(4)
+
 function toggleClan(id: string) {
   const next = selectedClans.value.includes(id)
     ? selectedClans.value.filter((c) => c !== id)
     : [...selectedClans.value, id]
   // 至少保留一個氏族
   if (next.length > 0) selectedClans.value = next
+}
+
+function resolveClans(): string[] {
+  if (clanMode.value === 'all') return selectedClans.value
+  const pool = [...selectedClans.value]
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j]!, pool[i]!]
+  }
+  const count = Math.min(Math.max(1, randomClanCount.value), pool.length)
+  return pool.slice(0, count)
 }
 
 // Debug: check if env vars are baked in at build time
@@ -48,7 +64,7 @@ const supabaseKeyOk = !!(import.meta.env.VITE_SUPABASE_ANON_KEY)
 watch(() => conn.status, (s) => {
   if (s === 'playing' && mode.value === 'online') {
     setup.mode = 'online'
-    router.push({ name: 'gameV2' })
+    router.push({ name: 'game' })
   }
 })
 
@@ -57,7 +73,7 @@ async function handleOnlineStart() {
   onlineLoading.value = true
   try {
     if (onlineAction.value === 'create') {
-      const roomId = await conn.createRoom(selectedClans.value)
+      const roomId = await conn.createRoom(resolveClans())
       if (!roomId) {
         onlineError.value = conn.errorMsg ?? '建立失敗'
       } else {
@@ -69,7 +85,7 @@ async function handleOnlineStart() {
       const ok = await conn.joinRoom(id)
       if (ok) {
         setup.mode = 'online'
-        router.push({ name: 'gameV2' })
+        router.push({ name: 'game' })
       } else {
         onlineError.value = conn.errorMsg ?? '加入失敗'
       }
@@ -95,9 +111,9 @@ function startGame() {
   setup.playerSide = playerSide.value
   setup.firstPlayer = firstPlayer.value
   setup.difficulty = difficulty.value
-  setup.enabledClans = selectedClans.value
+  setup.enabledClans = resolveClans()
   setup.resolve()
-  router.push({ name: 'gameV2' })
+  router.push({ name: 'game' })
 }
 </script>
 
@@ -152,6 +168,15 @@ function startGame() {
         <template v-else>
           <!-- 氏族卡池選擇 -->
           <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
+          <div class="clanModeRow">
+            <button type="button" :class="['opt-btn', 'clanModeBtn', clanMode === 'all' && 'active']" @click="clanMode = 'all'">全部啟用</button>
+            <button type="button" :class="['opt-btn', 'clanModeBtn', clanMode === 'random' && 'active']" @click="clanMode = 'random'">隨機取 N</button>
+            <template v-if="clanMode === 'random'">
+              <button type="button" class="countBtn" :disabled="randomClanCount <= 1" @click="randomClanCount = Math.max(1, randomClanCount - 1)">−</button>
+              <span class="countVal">{{ randomClanCount }}</span>
+              <button type="button" class="countBtn" :disabled="randomClanCount >= selectedClans.length" @click="randomClanCount = Math.min(selectedClans.length, randomClanCount + 1)">＋</button>
+            </template>
+          </div>
 
           <!-- 建立新房間 -->
           <button
@@ -272,6 +297,15 @@ function startGame() {
 
         <!-- 氏族卡池選擇（本機模式） -->
         <ClanSelector :clans="ALL_CLANS" :selected="selectedClans" @toggle="toggleClan" />
+        <div class="clanModeRow">
+          <button type="button" :class="['opt-btn', 'clanModeBtn', clanMode === 'all' && 'active']" @click="clanMode = 'all'">全部啟用</button>
+          <button type="button" :class="['opt-btn', 'clanModeBtn', clanMode === 'random' && 'active']" @click="clanMode = 'random'">隨機取 N</button>
+          <template v-if="clanMode === 'random'">
+            <button type="button" class="countBtn" :disabled="randomClanCount <= 1" @click="randomClanCount = Math.max(1, randomClanCount - 1)">−</button>
+            <span class="countVal">{{ randomClanCount }}</span>
+            <button type="button" class="countBtn" :disabled="randomClanCount >= selectedClans.length" @click="randomClanCount = Math.min(selectedClans.length, randomClanCount + 1)">＋</button>
+          </template>
+        </div>
 
         <button type="button" class="start-btn" @click="startGame()">開始遊戲</button>
       </template>
@@ -569,6 +603,40 @@ function startGame() {
 .start-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.clanModeRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.clanModeBtn {
+  flex: unset;
+  min-width: unset;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+}
+.countBtn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+.countBtn:disabled { opacity: 0.3; cursor: not-allowed; }
+.countVal {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #e8d8a0;
+  min-width: 16px;
+  text-align: center;
 }
 
 </style>

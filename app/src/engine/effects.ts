@@ -255,6 +255,28 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
       })
     }
 
+    // FREE_SHOOT_DRAIN: free mana cost, but next turn mana income -1
+    for (const ab of card.abilities) {
+      if (ab.type !== 'FREE_SHOOT_DRAIN') continue
+
+      handlers.push({
+        onBeforeShootValidate: (ctx) => {
+          if (ctx.attackerId !== u.id) return
+          ctx.shootRules.manaCostOverride = 0
+          ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'FREE_SHOOT_DRAIN', text: '透支射擊' })
+        },
+        onAfterShotPlanBuilt: (ctx, plan) => {
+          if (ctx.attackerId !== u.id) return
+          plan.cost = 0
+          // Mark drain via abilityUses so executeShotPlan can record it
+          const key = `${u.id}:FREE_SHOOT_DRAIN`
+          const next = plan.abilityUses ? [...plan.abilityUses] : []
+          next.push({ key })
+          plan.abilityUses = next
+        },
+      })
+    }
+
     for (const ab of card.abilities) {
       if (ab.type !== 'FREE_SHOOT') continue
 
@@ -548,6 +570,75 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'ARMY_RALLY', text: '軍援' })
         },
       })
+    }
+  }
+
+  // BLOOD_SACRIFICE: inject temporary shot effect stored in turnFlags
+  const bsEffect = _state.turnFlags.bloodSacrificeActiveShotEffect
+  if (bsEffect) {
+    const bsUnit = _state.units[bsEffect.unitId]
+    if (bsUnit) {
+      const eff = bsEffect.effect
+      const effType = String(eff.type ?? '')
+
+      if (effType === 'IGNORE_BLOCKING') {
+        handlers.push({
+          onBeforeShootValidate: (ctx) => {
+            if (ctx.attackerId !== bsUnit.id) return
+            const mode = String(eff.mode ?? '')
+            if (mode === 'all') {
+              ctx.shootRules.ignoreBlockingAll = true
+            } else {
+              const cnt = Number(eff.count ?? 0)
+              if (cnt > 0) ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, cnt)
+            }
+          },
+        })
+      } else if (effType === 'CHAIN') {
+        handlers.push({
+          onAfterShotPlanBuilt: (ctx, plan) => {
+            if (ctx.attackerId !== bsUnit.id) return
+            const extraId = ctx.extraTargetUnitId
+            if (!extraId || extraId === ctx.targetUnitId) return
+            const mainTarget = ctx.state.units[ctx.targetUnitId]
+            const extraTarget = ctx.state.units[extraId]
+            const attacker = ctx.state.units[ctx.attackerId]
+            if (!mainTarget || !extraTarget || !attacker) return
+            if (extraTarget.side === attacker.side) return
+            const radius = Number(eff.radius ?? 0)
+            if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
+            plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
+          },
+        })
+      } else if (effType === 'PIERCE') {
+        handlers.push({
+          onAfterShotPlanBuilt: (ctx, plan) => {
+            if (ctx.attackerId !== bsUnit.id) return
+            const attacker = ctx.state.units[ctx.attackerId]
+            const target = ctx.state.units[ctx.targetUnitId]
+            if (!attacker || !target) return
+            if (String(eff.mode ?? '') !== 'LINE_ENEMIES') return
+            const cnt = Number(eff.count ?? 0)
+            if (!(Number.isFinite(cnt) && cnt > 1)) return
+            const dx = Math.sign(target.pos.x - attacker.pos.x)
+            const dy = Math.sign(target.pos.y - attacker.pos.y)
+            if (!((dx === 0 && dy !== 0) || (dy === 0 && dx !== 0))) return
+            const enemies: string[] = []
+            for (let step = 1; step < 20; step++) {
+              const pos = { x: attacker.pos.x + dx * step, y: attacker.pos.y + dy * step }
+              if (pos.x < 0 || pos.x > 8 || pos.y < 0 || pos.y > 9) break
+              const hit = Object.values(ctx.state.units).find((uu) => uu.pos.x === pos.x && uu.pos.y === pos.y)
+              if (!hit) continue
+              if (hit.side === attacker.side) break
+              enemies.push(hit.id)
+              if (enemies.length >= cnt) break
+            }
+            for (let i = 1; i < enemies.length; i++) {
+              plan.instances.push({ kind: 'pierce', sourceUnitId: attacker.id, targetUnitId: enemies[i]! })
+            }
+          },
+        })
+      }
     }
   }
 

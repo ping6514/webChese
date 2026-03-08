@@ -1,8 +1,9 @@
 import type { Event } from './events'
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
+import { getDefValueInState } from './stats'
 
-export function killUnit(s: GameState, unitId: string, events: Event[]): GameState {
+export function killUnit(s: GameState, unitId: string, events: Event[], killerId?: string): GameState {
   const u = s.units[unitId]
   if (!u) return s
 
@@ -26,6 +27,29 @@ export function killUnit(s: GameState, unitId: string, events: Event[]): GameSta
 
   delete s.units[u.id]
   events.push({ type: 'UNIT_KILLED', unitId: u.id })
+
+  // DEATH_COUNTER: counter-attack the killer using the dying unit's own ATK
+  if (deadSoulId && killerId) {
+    const card = getSoulCard(deadSoulId)
+    const hasCounter = card?.abilities.some((a) => String((a as any).type ?? '') === 'DEATH_COUNTER')
+    if (hasCounter) {
+      const killer = s.units[killerId]
+      if (killer && killer.side !== deadSide) {
+        // u.atk is still accessible even though u was removed from s.units
+        const counterAtkKey = u.atk.key
+        const counterAtkValue = u.atk.value
+        const defValue = getDefValueInState(s, killer, counterAtkKey)
+        const raw = Math.max(1, 1 + counterAtkValue - defValue)
+        const killerNextHp = killer.hpCurrent - raw
+        s.units[killerId] = { ...killer, hpCurrent: killerNextHp }
+        events.push({ type: 'ABILITY_TRIGGERED', unitId: deadId, text: '最後一搏' })
+        events.push({ type: 'DAMAGE_DEALT', attackerId: deadId, targetUnitId: killerId, amount: raw })
+        if (killerNextHp <= 0) {
+          s = killUnit(s, killerId, events)
+        }
+      }
+    }
+  }
 
   // On-death abilities (e.g. Eternal Night: 冥土歸還)
   if (deadSoulId) {

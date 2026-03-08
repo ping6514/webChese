@@ -87,6 +87,26 @@ export default defineComponent({
       default: true,
     },
 
+    shootGoldForDamage: {
+      type: Object as PropType<{ goldCost: number; damageBonus: number } | null>,
+      default: null,
+    },
+
+    shootSpendGoldForDamage: {
+      type: Boolean,
+      default: false,
+    },
+
+    shootBloodSacrifice: {
+      type: Object as PropType<{ label: string } | null>,
+      default: null,
+    },
+
+    shootSacrificeHp: {
+      type: Boolean,
+      default: false,
+    },
+
     sacrificeActionPosKey: {
       type: String as PropType<string | null>,
       default: null,
@@ -156,6 +176,8 @@ export default defineComponent({
     'enchant-drop': (_payload: { unitId: string; soulId: string }) => true,
     'shoot-confirm': () => true,
     'shoot-cancel': () => true,
+    'update:shootSpendGoldForDamage': (_v: boolean) => true,
+    'update:shootSacrificeHp': (_v: boolean) => true,
     'shoot-details': () => true,
     'sacrifice-confirm': () => true,
     'sacrifice-cancel': () => true,
@@ -494,8 +516,14 @@ export default defineComponent({
         :style-obj="shootOverlayStyle"
         :confirm-disabled="shootConfirmDisabled"
         :confirm-title="shootConfirmTitle"
+        :gold-for-damage="shootGoldForDamage"
+        :spend-gold-for-damage="shootSpendGoldForDamage"
+        :blood-sacrifice="shootBloodSacrifice"
+        :sacrifice-hp="shootSacrificeHp"
         :offset="overlayOffset"
         @update:offset="setOverlayOffset"
+        @update:spend-gold-for-damage="(v) => $emit('update:shootSpendGoldForDamage', v)"
+        @update:sacrifice-hp="(v) => $emit('update:shootSacrificeHp', v)"
         @confirm="onShootConfirm"
         @cancel="onShootCancel"
         @details="onShootDetails"
@@ -565,7 +593,7 @@ export default defineComponent({
         :cell-class="cellClass((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
         :title-text="cellTitle((i - 1) % BOARD_WIDTH, Math.floor((i - 1) / BOARD_WIDTH))"
         :unit="unitByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ?? null"
-        :corpse-count="corpseCountByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ?? null"
+        :corpse-count="corpseCountByPos.get(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ?? 0"
         :float-texts="floatTextsByPos[`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`] ?? []"
         :pierce-mark="previewPierceMarks[`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`] ?? null"
         :splash-mark="previewSplashPosKeys.includes(`${(i - 1) % BOARD_WIDTH},${Math.floor((i - 1) / BOARD_WIDTH)}`) ? '濺' : null"

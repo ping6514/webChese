@@ -18,7 +18,7 @@ export default defineComponent({
     phase: { type: String as () => GameState['turn']['phase'], required: true },
     cards: { type: Array as () => SoulCard[], required: true },
     selectedSoulId: { type: String, required: true },
-    selectedUnit: { type: Object as () => UnitLite | null, required: true },
+    selectedUnit: { type: Object as () => UnitLite | null, default: null },
     enchantGuard: { type: Object as () => GuardResult, required: true },
     returnGuards: { type: Object as () => Partial<Record<string, GuardResult>>, required: true },
     dragMime: { type: String, required: false, default: 'application/x-soul-id' },
@@ -49,7 +49,7 @@ export default defineComponent({
         :draggable="phase === 'necro'"
         @dragstart="phase === 'necro' && $emit('dragstart', $event, c.id)"
         @dragend="$emit('dragend', $event, c.id)"
-        @click="$emit('select', c.id)"
+        @click="$emit('show-detail', c.id)"
       >
         <!-- Top meta chips -->
         <div class="metaRow">
@@ -64,13 +64,17 @@ export default defineComponent({
         <!-- Name -->
         <div class="cardName">{{ c.name }}</div>
 
-        <!-- Actions row (always shown) -->
-        <div class="actions" @click.stop>
+        <!-- Actions row -->
+        <div v-if="phase === 'necro' || phase === 'buy'" class="actions" @click.stop>
+          <!-- Necro phase: enchant button -->
           <button
+            v-if="phase === 'necro'"
             type="button"
-            class="detailBtn"
-            @click="$emit('show-detail', c.id)"
-          >詳情</button>
+            class="enchantBtn"
+            :class="{ active: selectedSoulId === c.id }"
+            @click="$emit('select', c.id)"
+          >{{ selectedSoulId === c.id ? '✓ 已選取' : '⚗ 附魔' }}</button>
+          <!-- Buy phase: return button -->
           <button
             v-if="phase === 'buy'"
             type="button"
@@ -197,21 +201,29 @@ export default defineComponent({
   justify-content: flex-end;
 }
 
-.detailBtn {
+.enchantBtn {
+  flex: 1;
   font-size: 0.6875rem;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 8px;
   border-radius: 7px;
-  border: 1px solid rgba(145, 202, 255, 0.25);
-  background: rgba(145, 202, 255, 0.07);
-  color: rgba(145, 202, 255, 0.7);
+  border: 1px solid rgba(180, 130, 255, 0.35);
+  background: rgba(180, 130, 255, 0.09);
+  color: rgba(180, 130, 255, 0.8);
   cursor: pointer;
-  transition: background 0.12s;
+  transition: background 0.12s, box-shadow 0.12s;
 }
-.detailBtn:hover {
-  background: rgba(145, 202, 255, 0.15);
-  color: rgba(145, 202, 255, 0.95);
+.enchantBtn:hover {
+  background: rgba(180, 130, 255, 0.2);
+  color: rgba(200, 160, 255, 1);
 }
+.enchantBtn.active {
+  background: rgba(180, 130, 255, 0.22);
+  border-color: rgba(180, 130, 255, 0.75);
+  color: #c9a3ff;
+  box-shadow: 0 0 8px rgba(180, 130, 255, 0.3);
+}
+
 
 .returnBtn {
   font-size: 0.6875rem;

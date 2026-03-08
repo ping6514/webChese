@@ -99,6 +99,18 @@ export type SoulBoughtEvent = {
   source: 'deck' | 'display' | 'graveyard'
 }
 
+export type IncomeReportItem = {
+  label: string
+  amount: number
+  kind: 'gold' | 'mana'
+}
+
+export type IncomeReportEvent = {
+  type: 'INCOME_REPORT'
+  side: Side
+  items: IncomeReportItem[]
+}
+
 export type Event =
   | UnitMovedEvent
   | PhaseChangedEvent
@@ -113,3 +125,4 @@ export type Event =
   | AbilityTriggeredEvent
   | ItemUsedEvent
   | SoulBoughtEvent
+  | IncomeReportEvent

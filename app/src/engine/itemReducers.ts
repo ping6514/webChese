@@ -13,14 +13,14 @@ type ItemReduceResult =
 export function reduceUseItem(state: GameState, action: UseItemFromHandAction): ItemReduceResult {
   const side = state.turn.side
   const hand = state.hands[side].items
-  if (!hand.includes(action.itemId)) return { ok: false, error: 'Item not in hand' }
+  if (!hand.includes(action.itemId)) return { ok: false, error: '道具卡不在手牌中' }
   const item = getItemCard(action.itemId)
-  if (!item) return { ok: false, error: 'Item not found' }
+  if (!item) return { ok: false, error: '找不到道具卡' }
 
   const timing = item.timing
-  if (timing === 'buy' && state.turn.phase !== 'buy') return { ok: false, error: 'Must be in buy phase' }
-  if (timing === 'necro' && state.turn.phase !== 'necro') return { ok: false, error: 'Must be in necro phase' }
-  if (timing === 'combat' && state.turn.phase !== 'combat') return { ok: false, error: 'Must be in combat phase' }
+  if (timing === 'buy' && state.turn.phase !== 'buy') return { ok: false, error: '此道具只能在購買階段使用' }
+  if (timing === 'necro' && state.turn.phase !== 'necro') return { ok: false, error: '此道具只能在死靈術階段使用' }
+  if (timing === 'combat' && state.turn.phase !== 'combat') return { ok: false, error: '此道具只能在戰鬥階段使用' }
 
   const removeIdx = hand.indexOf(action.itemId)
   const nextHand = [...hand.slice(0, removeIdx), ...hand.slice(removeIdx + 1)]
@@ -39,7 +39,7 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
     case 'item_lingxue_holy_grail': {
       if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
       const unit = nextState.units[action.targetUnitId]
-      if (!unit) return { ok: false, error: 'Unit not found' }
+      if (!unit) return { ok: false, error: '找不到單位' }
       if (unit.side !== side) return { ok: false, error: '只能選擇己方單位' }
       const baseStats = BASE_STATS[unit.base]
       const hpMax = unit.enchant ? (getSoulCard(unit.enchant.soulId)?.stats.hp ?? baseStats.hp) : baseStats.hp
@@ -88,7 +88,7 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
     case 'item_dead_return_path': {
       if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
       const unit = nextState.units[action.targetUnitId]
-      if (!unit) return { ok: false, error: 'Unit not found' }
+      if (!unit) return { ok: false, error: '找不到單位' }
       if (unit.side !== side) return { ok: false, error: '只能選擇己方單位' }
       if (!unit.enchant) return { ok: false, error: '該單位未附魔' }
       const strippedSoulId = unit.enchant.soulId
@@ -206,7 +206,7 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
     case 'item_nether_seal': {
       if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
       const target = nextState.units[action.targetUnitId]
-      if (!target) return { ok: false, error: 'Unit not found' }
+      if (!target) return { ok: false, error: '找不到單位' }
       if (target.side === side) return { ok: false, error: '只能封印敵方單位' }
       nextState = {
         ...nextState,
@@ -240,7 +240,7 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
     case 'item_soul_detach_needle': {
       if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
       const target = nextState.units[action.targetUnitId]
-      if (!target) return { ok: false, error: 'Unit not found' }
+      if (!target) return { ok: false, error: '找不到單位' }
       if (target.side === side) return { ok: false, error: '只能選擇敵方單位' }
       if (!target.enchant) return { ok: false, error: '該單位未附魔' }
       const enemySide = target.side

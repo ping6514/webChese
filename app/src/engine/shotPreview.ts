@@ -187,8 +187,8 @@ function findDamageSharer(s: GameState, targetSide: 'red' | 'black'): { unitId: 
 export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): ShotPreview {
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
-  if (!attacker) return { ok: false, error: 'Attacker not found' }
-  if (!target) return { ok: false, error: 'Target not found' }
+  if (!attacker) return { ok: false, error: '找不到攻擊者' }
+  if (!target) return { ok: false, error: '找不到目標' }
 
   const effects: ShotPreviewEffect[] = []
 

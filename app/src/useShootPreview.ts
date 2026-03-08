@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { buildShotPreview, canDispatch, getSoulCard, type GuardResult, type GameState, type PieceBase } from './engine'
 import { useUiStore } from './stores/ui'
@@ -18,6 +18,10 @@ type UnitPreview = {
 export function useShootPreview(opts: { getState: () => GameState }) {
   const ui = useUiStore()
   const { shootPreview } = storeToRefs(ui)
+
+  const spendGoldForDamage = ref(false)
+  const sacrificeHp = ref(false)
+  watch(shootPreview, () => { spendGoldForDamage.value = false; sacrificeHp.value = false })
 
   function translateGuardReason(reason: string): string {
     const r = String(reason ?? '')
@@ -92,6 +96,43 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     }
   })
 
+  const bloodSacrificeInfo = computed<{ onActivateType: string; label: string } | null>(() => {
+    const s = opts.getState()
+    if (!shootPreview.value) return null
+    const u = s.units[shootPreview.value.attackerId]
+    if (!u?.enchant?.soulId) return null
+    const card = getSoulCard(u.enchant.soulId)
+    if (!card) return null
+    const ab = card.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
+    if (!ab) return null
+    const king = Object.values(s.units).find((unit) => unit.side === s.turn.side && unit.base === 'king')
+    if (!king || king.hpCurrent <= 1) return null
+    const onActivate = (ab as any).onActivate as Record<string, unknown> | undefined
+    if (!onActivate) return null
+    const typeMap: Record<string, string> = {
+      PIERCE: '貫穿', CHAIN: '連鎖', IGNORE_BLOCKING: '無視阻擋',
+      DAMAGE_BONUS: `傷害+${(onActivate as any).amount ?? '?'}`,
+      MOVE_THEN_SHOOT: '移動後射',
+    }
+    const label = typeMap[String(onActivate.type ?? '')] ?? String(onActivate.type ?? '')
+    return { onActivateType: String(onActivate.type ?? ''), label }
+  })
+
+  const goldForDamageInfo = computed<{ goldCost: number; damageBonus: number } | null>(() => {
+    const s = opts.getState()
+    if (!shootPreview.value) return null
+    const u = s.units[shootPreview.value.attackerId]
+    if (!u?.enchant?.soulId) return null
+    const card = getSoulCard(u.enchant.soulId)
+    if (!card) return null
+    const ab = card.abilities.find((a) => a.type === 'GOLD_FOR_DAMAGE')
+    if (!ab) return null
+    const goldCost = Number((ab as any).goldCost ?? 0)
+    const damageBonus = Number((ab as any).damageBonus ?? 0)
+    if (s.resources[u.side].gold < goldCost) return null
+    return { goldCost, damageBonus }
+  })
+
   const guard = computed<GuardResult>(() => {
     const s = opts.getState()
     if (!shootPreview.value) return { ok: false as const, reason: '未選擇目標' }
@@ -116,12 +157,14 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     return res.ok ? res : null
   })
 
-  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null }) => void) {
+  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null; spendGoldForDamage?: boolean; sacrificeHp?: boolean }) => void) {
     if (!shootPreview.value) return
     if (!guard.value.ok) return
     const a = shootPreview.value
+    const gold = spendGoldForDamage.value && goldForDamageInfo.value ? true : undefined
+    const sacHp = sacrificeHp.value && bloodSacrificeInfo.value ? true : undefined
     ui.clearShootPreview()
-    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null })
+    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null, spendGoldForDamage: gold, sacrificeHp: sacHp })
   }
 
   return {
@@ -133,5 +176,9 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     guard,
     info,
     confirm,
+    goldForDamageInfo,
+    spendGoldForDamage,
+    bloodSacrificeInfo,
+    sacrificeHp,
   }
 }

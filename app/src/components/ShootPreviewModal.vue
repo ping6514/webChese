@@ -29,8 +29,8 @@ export default defineComponent({
   name: 'ShootPreviewModal',
   props: {
     open: { type: Boolean, required: true },
-    attacker: { type: Object as () => UnitPreview | null, required: true },
-    target: { type: Object as () => UnitPreview | null, required: true },
+    attacker: { type: Object as () => UnitPreview | null, default: null },
+    target: { type: Object as () => UnitPreview | null, default: null },
     guard: { type: Object as () => GuardResult, required: true },
     rawDamage: { type: Number as () => number | null, required: false, default: null },
     damageToTarget: { type: Number as () => number | null, required: false, default: null },
@@ -117,7 +117,7 @@ export default defineComponent({
               </div>
             </div>
           </div>
-          <div v-else class="muted">(none)</div>
+          <div v-else class="muted">（無）</div>
         </div>
 
         <div class="col">
@@ -134,7 +134,7 @@ export default defineComponent({
               </div>
             </div>
           </div>
-          <div v-else class="muted">(none)</div>
+          <div v-else class="muted">（無）</div>
         </div>
       </div>
 

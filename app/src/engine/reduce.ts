@@ -98,22 +98,55 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
   const goldFromStorage = r.storageMana * state.rules.storageToGoldRate
   const gold = clamp(r.gold + goldFromStorage, 0, state.limits.goldMax)
   const mana = clamp(r.mana + state.rules.incomeMana, 0, state.limits.manaMax)
-  const goldAfterIncome = clamp(gold + state.rules.incomeGold, 0, state.limits.goldMax)
+
+  // INCOME_BONUS: passive gold income from allied enchanted units
+  let incomeBonus = 0
+  for (const u of Object.values(state.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+    for (const ab of card.abilities) {
+      if (ab.type !== 'INCOME_BONUS') continue
+      const amount = Number((ab as any).amount ?? 0)
+      if (Number.isFinite(amount) && amount > 0) incomeBonus += amount
+    }
+  }
+
+  const goldAfterIncome = clamp(gold + state.rules.incomeGold + incomeBonus, 0, state.limits.goldMax)
+
+  // FREE_SHOOT_DRAIN: apply pending mana drain accumulated from last turn's transparent shots
+  const pendingDrain = (state.pendingManaDrainBySide?.[side] ?? 0)
+  const manaAfterDrain = Math.max(0, mana - pendingDrain)
 
   const next: GameState = {
     ...state,
+    pendingManaDrainBySide: {
+      ...state.pendingManaDrainBySide,
+      [side]: 0,
+    },
     resources: {
       ...state.resources,
       [side]: {
         ...r,
         gold: goldAfterIncome,
-        mana,
+        mana: manaAfterDrain,
         storageMana: 0,
       },
     },
   }
 
   pushResourcesEvent(events, next, side)
+
+  // INCOME_REPORT: breakdown for UI toast
+  const reportItems: import('./events').IncomeReportItem[] = []
+  reportItems.push({ label: '基本收入', amount: state.rules.incomeGold, kind: 'gold' })
+  if (goldFromStorage > 0) reportItems.push({ label: '儲存轉換', amount: goldFromStorage, kind: 'gold' })
+  if (incomeBonus > 0) reportItems.push({ label: '附魔加成', amount: incomeBonus, kind: 'gold' })
+  reportItems.push({ label: '魔力', amount: state.rules.incomeMana, kind: 'mana' })
+  events.push({ type: 'INCOME_REPORT', side, items: reportItems })
+
   return next
 }
 
@@ -213,9 +246,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
   switch (action.type) {
     case 'MOVE': {
       const unit = state.units[action.unitId]
-      if (!unit) return { ok: false, error: 'Unit not found' }
-      if (unit.side !== state.turn.side) return { ok: false, error: 'Not your turn' }
-      if (state.turn.phase !== 'combat') return { ok: false, error: 'Not in combat phase' }
+      if (!unit) return { ok: false, error: '找不到單位' }
+      if (unit.side !== state.turn.side) return { ok: false, error: '不是你的回合' }
+      if (state.turn.phase !== 'combat') return { ok: false, error: '需要在戰鬥階段' }
 
       const r = state.resources[state.turn.side]
       const cost = state.rules.moveManaCost
@@ -224,13 +257,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       const fcHelper = unit.base === 'soldier' ? findFormationCommandHelper(state, unit.id) : null
       const effectiveCost = fcHelper ? 0 : cost
 
-      if (r.mana < effectiveCost) return { ok: false, error: 'Not enough mana' }
-      if (!isOnBoard(action.to)) return { ok: false, error: 'Target position out of board' }
+      if (r.mana < effectiveCost) return { ok: false, error: '魔力不足' }
+      if (!isOnBoard(action.to)) return { ok: false, error: '目標位置超出棋盤' }
 
       const occupied = getUnitAt(state, action.to)
-      if (occupied) return { ok: false, error: 'Target position occupied' }
+      if (occupied) return { ok: false, error: '目標位置已有單位' }
 
-      if (!isLegalMove(state, unit.id, action.to)) return { ok: false, error: 'Illegal move' }
+      if (!isLegalMove(state, unit.id, action.to)) return { ok: false, error: '不合法的移動' }
 
       const nextResources = {
         ...state.resources,
@@ -288,13 +321,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
 
     case 'BLOOD_RITUAL': {
-      if (state.turn.phase !== 'necro') return { ok: false, error: 'Not in necro phase' }
-      if (state.turnFlags.bloodRitualUsed) return { ok: false, error: 'Blood ritual already used this turn' }
+      if (state.turn.phase !== 'necro') return { ok: false, error: '需要在死靈術階段' }
+      if (state.turnFlags.bloodRitualUsed) return { ok: false, error: '本回合已使用過血液祭儀' }
 
       const side = state.turn.side
       const king = Object.values(state.units).find((u) => u.side === side && u.base === 'king')
-      if (!king) return { ok: false, error: 'King not found' }
-      if (king.hpCurrent <= 3) return { ok: false, error: 'King HP too low' }
+      if (!king) return { ok: false, error: '找不到帥/將' }
+      if (king.hpCurrent <= 3) return { ok: false, error: '帥/將血量過低（最少需要 4 HP）' }
 
       const nextKing = { ...king, hpCurrent: king.hpCurrent - 3 }
 
@@ -315,20 +348,20 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
 
     case 'BUY_ITEM_FROM_DISPLAY': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
       const side = state.turn.side
-      if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return { ok: false, error: 'No item buy actions left this turn' }
-      if (state.hands[side].items.length >= state.limits.itemHandMax) return { ok: false, error: `Item hand full (${state.limits.itemHandMax})` }
-      if (!Number.isInteger(action.slot) || action.slot < 0 || action.slot >= 3) return { ok: false, error: 'Invalid item slot' }
+      if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return { ok: false, error: '本回合購買道具次數已用完' }
+      if (state.hands[side].items.length >= state.limits.itemHandMax) return { ok: false, error: `道具手牌已滿（${state.limits.itemHandMax}張）` }
+      if (!Number.isInteger(action.slot) || action.slot < 0 || action.slot >= 3) return { ok: false, error: '無效的道具欄位' }
 
       const itemId = state.itemDisplay[action.slot]
-      if (!itemId) return { ok: false, error: 'No item in display' }
+      if (!itemId) return { ok: false, error: '展示區無道具' }
 
       const item = getItemCard(itemId)
-      if (!item) return { ok: false, error: 'Item not found' }
+      if (!item) return { ok: false, error: '找不到道具卡' }
 
       const r = state.resources[side]
-      if (r.gold < item.costGold) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < item.costGold) return { ok: false, error: '財力不足' }
 
       let nextState: GameState = {
         ...state,
@@ -371,11 +404,11 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
 
     case 'DISCARD_ITEM_FROM_HAND': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
-      if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return { ok: false, error: 'No item buy actions left this turn' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
+      if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return { ok: false, error: '本回合購買道具次數已用完' }
       const side = state.turn.side
       const hand = state.hands[side].items
-      if (!hand.includes(action.itemId)) return { ok: false, error: 'Item not in hand' }
+      if (!hand.includes(action.itemId)) return { ok: false, error: '道具不在手牌中' }
 
       const nextHand = hand.filter((id) => id !== action.itemId)
       const nextState: GameState = {
@@ -398,8 +431,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
     case 'SHOOT': {
       const hasFreeShoot = (state.turnFlags.freeShootBonus ?? 0) > 0
+      const prePlanEvents: Event[] = []
       // 魂能超載：暫時提升魔力以確保免費射擊能通過消耗檢查
-      const stateForShot = hasFreeShoot ? {
+      let stateForShot = hasFreeShoot ? {
         ...state,
         resources: {
           ...state.resources,
@@ -410,8 +444,44 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       } : state
 
+      // BLOOD_SACRIFICE: deduct king HP and inject temporary shot effect
+      if (action.sacrificeHp) {
+        const attacker = stateForShot.units[action.attackerId]
+        const attackerCard = attacker?.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
+        const bsAb = attackerCard?.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
+        if (bsAb && (bsAb as any).onActivate) {
+          const king = Object.values(stateForShot.units).find((u) => u.side === stateForShot.turn.side && u.base === 'king')
+          if (king && king.hpCurrent > 1) {
+            stateForShot = { ...stateForShot, units: { ...stateForShot.units, [king.id]: { ...king, hpCurrent: king.hpCurrent - 1 } } }
+            const onActivate = (bsAb as any).onActivate as Record<string, unknown>
+            if (onActivate.type === 'MOVE_THEN_SHOOT') {
+              const cur = stateForShot.turnFlags.bloodSacrificeMoveThenShoot ?? {}
+              stateForShot = { ...stateForShot, turnFlags: { ...stateForShot.turnFlags, bloodSacrificeMoveThenShoot: { ...cur, [action.attackerId]: true } } }
+            } else {
+              stateForShot = { ...stateForShot, turnFlags: { ...stateForShot.turnFlags, bloodSacrificeActiveShotEffect: { unitId: action.attackerId, effect: onActivate } } }
+            }
+            prePlanEvents.push({ type: 'ABILITY_TRIGGERED', unitId: action.attackerId, abilityType: 'BLOOD_SACRIFICE', text: '血祭 帥-1HP' })
+          }
+        }
+      }
+
       const planRes = buildShotPlan(stateForShot, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
       if (!planRes.ok) return { ok: false, error: (planRes as { ok: false; error: string }).error }
+
+      // GOLD_FOR_DAMAGE: validate and inject gold spend into plan
+      if (action.spendGoldForDamage) {
+        const attacker = stateForShot.units[action.attackerId]
+        const attackerCard = attacker?.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
+        const goldAb = attackerCard?.abilities.find((a) => a.type === 'GOLD_FOR_DAMAGE')
+        if (goldAb) {
+          const goldCost = Number((goldAb as any).goldCost ?? 0)
+          const damageBonus = Number((goldAb as any).damageBonus ?? 0)
+          const availGold = stateForShot.resources[stateForShot.turn.side].gold
+          if (goldCost > 0 && damageBonus > 0 && availGold >= goldCost) {
+            ;(planRes.plan as any).__goldForDamage = { cost: goldCost, bonus: damageBonus }
+          }
+        }
+      }
 
       const execRes = executeShotPlan(stateForShot, planRes.plan)
       if (!execRes.ok) return execRes
@@ -465,15 +535,15 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           }
         }
       }
-      return { ok: true, state: finalState, events: [...buildEvents, ...execRes.events, ...afterEvents] }
+      return { ok: true, state: finalState, events: [...prePlanEvents, ...buildEvents, ...execRes.events, ...afterEvents] }
     }
 
     case 'SACRIFICE': {
-      if (state.turn.phase !== 'combat') return { ok: false, error: 'Not in combat phase' }
+      if (state.turn.phase !== 'combat') return { ok: false, error: '需要在戰鬥階段' }
 
       const src = state.units[action.sourceUnitId]
       const tgt = state.units[action.targetUnitId]
-      if (!src || !tgt) return { ok: false, error: 'Unit not found' }
+      if (!src || !tgt) return { ok: false, error: '找不到單位' }
 
       const g = canSacrifice(state, src.id, tgt.id, action.range)
       if (!g.ok) return { ok: false, error: (g as { ok: false; reason: string }).reason }
@@ -529,7 +599,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         }
       }
 
-      nextState = killUnit(nextState, tgt.id, events)
+      nextState = killUnit(nextState, tgt.id, events, src.id)
       // 死亡連鎖：sacrifice 擊殺也觸發
       if (nextState.turnFlags.deathChainActive ?? false) {
         const sacSide = state.turn.side
@@ -550,16 +620,16 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return { ok: true, state: nextState, events }
     }
     case 'ENCHANT': {
-      if (state.turn.phase !== 'necro') return { ok: false, error: 'Not in necro phase' }
+      if (state.turn.phase !== 'necro') return { ok: false, error: '需要在死靈術階段' }
       const necroMax = state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0) + (state.turnFlags.itemNecroBonus ?? 0)
       if (state.turnFlags.necroActionsUsed >= necroMax) {
-        return { ok: false, error: 'No necro actions left this turn' }
+        return { ok: false, error: '本回合死靈術行動已用完' }
       }
 
       const unit = state.units[action.unitId]
-      if (!unit) return { ok: false, error: 'Unit not found' }
-      if (unit.side !== state.turn.side) return { ok: false, error: 'Not your turn' }
-      if (unit.enchant) return { ok: false, error: 'Unit already enchanted' }
+      if (!unit) return { ok: false, error: '找不到單位' }
+      if (unit.side !== state.turn.side) return { ok: false, error: '不是你的回合' }
+      if (unit.enchant) return { ok: false, error: '單位已有附魔' }
 
       // 死戰契約：契約復活的單位本回合不可附魔
       if ((state.turnFlags.lastStandNoEnchantUnitIds ?? []).includes(action.unitId)) {
@@ -567,17 +637,18 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
 
       const card = getSoulCard(action.soulId)
-      if (!card) return { ok: false, error: 'Soul card not found' }
-      if (card.base !== unit.base) return { ok: false, error: 'Soul base mismatch' }
+      if (!card) return { ok: false, error: '找不到靈魂卡' }
 
       const r = state.resources[state.turn.side]
       // 冥魂灌注：附魔成本折扣
       const discount = state.turnFlags.enchantGoldDiscount ?? 0
       const effectiveCost = Math.max(0, card.costGold - discount)
-      if (r.gold < effectiveCost) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < effectiveCost) return { ok: false, error: '財力不足' }
+
+      if (card.base !== unit.base) return { ok: false, error: '靈魂卡棋種不符' }
 
       const hand = state.hands[state.turn.side].souls
-      if (!hand.includes(action.soulId)) return { ok: false, error: 'Soul not in hand' }
+      if (!hand.includes(action.soulId)) return { ok: false, error: '靈魂卡不在手牌中' }
 
       const nextHand = hand.filter((id) => id !== action.soulId)
 
@@ -634,24 +705,24 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
     }
     case 'REVIVE': {
-      if (state.turn.phase !== 'necro') return { ok: false, error: 'Not in necro phase' }
+      if (state.turn.phase !== 'necro') return { ok: false, error: '需要在死靈術階段' }
 
       const side = state.turn.side
       const r = state.resources[side]
 
       const posKey = `${action.pos.x},${action.pos.y}`
       const stack = state.corpsesByPos[posKey]
-      if (!stack || stack.length === 0) return { ok: false, error: 'No corpses here' }
+      if (!stack || stack.length === 0) return { ok: false, error: '此格無屍骸' }
 
       const occupied = getUnitAt(state, action.pos)
-      if (occupied) return { ok: false, error: 'Target position occupied' }
+      if (occupied) return { ok: false, error: '目標位置已有單位' }
 
       const index = action.corpseIndex ?? stack.length - 1
-      if (index < 0 || index >= stack.length) return { ok: false, error: 'Invalid corpse index' }
+      if (index < 0 || index >= stack.length) return { ok: false, error: '無效的屍骸索引' }
 
       const corpse = stack[index]
-      if (!corpse) return { ok: false, error: 'Invalid corpse index' }
-      if (corpse.ownerSide !== state.turn.side) return { ok: false, error: 'Not your corpse' }
+      if (!corpse) return { ok: false, error: '無效的屍骸索引' }
+      if (corpse.ownerSide !== state.turn.side) return { ok: false, error: '不是己方屍骸' }
 
       // 死戰契約 & 後勤（召侍）：可跳過死靈術次數與財力限制
       const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0
@@ -660,12 +731,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       const necroMax = state.limits.necroActionsPerTurn + (state.turnFlags.necroBonusActions ?? 0) + (state.turnFlags.itemNecroBonus ?? 0)
       if (!usingContract && !usingLogisticsRevive && state.turnFlags.necroActionsUsed >= necroMax) {
-        return { ok: false, error: 'No necro actions left this turn' }
+        return { ok: false, error: '本回合死靈術行動已用完' }
       }
 
       const cost = getReviveGoldCost(corpse.base)
       const effectiveGoldCost = (usingLogisticsRevive || usingContract) ? 0 : cost
-      if (r.gold < effectiveGoldCost) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < effectiveGoldCost) return { ok: false, error: '財力不足' }
 
       // Create a deterministic new unit id without relying on time/random.
       let reviveIdx = 0
@@ -744,20 +815,20 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return { ok: true, state: nextState, events: reviveEvents }
     }
     case 'BUY_SOUL_FROM_DECK': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
       const side = state.turn.side
-      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: 'No soul buy actions left this turn' }
-      if (state.turnFlags.soulBuyUsed) return { ok: false, error: 'Soul buy already used this turn' }
-      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `Soul hand full (${state.limits.soulHandMax})` }
+      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: '本回合購買靈魂次數已用完' }
+      if (state.turnFlags.soulBuyUsed) return { ok: false, error: '本回合已購買過靈魂卡' }
+      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `靈魂手牌已滿（${state.limits.soulHandMax}張）` }
       const r = state.resources[side]
-      if (r.gold < state.rules.buySoulFromDeckGoldCost) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < state.rules.buySoulFromDeckGoldCost) return { ok: false, error: '財力不足' }
 
       const deck = state.soulDeckByBase[action.base]
-      if (!deck || deck.length === 0) return { ok: false, error: 'Deck empty' }
+      if (!deck || deck.length === 0) return { ok: false, error: '牌庫已空' }
 
       const nextDeck = [...deck]
       const soulId = nextDeck.shift()
-      if (!soulId) return { ok: false, error: 'Deck empty' }
+      if (!soulId) return { ok: false, error: '牌庫已空' }
 
       const nextState: GameState = {
         ...state,
@@ -804,15 +875,15 @@ export function reduce(state: GameState, action: Action): ReduceResult {
     }
 
     case 'RETURN_SOUL_TO_DECK_BOTTOM': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
       const side = state.turn.side
-      if (state.turnFlags.soulReturnUsedCount >= state.limits.soulReturnPerTurn) return { ok: false, error: 'Soul return already used this turn' }
+      if (state.turnFlags.soulReturnUsedCount >= state.limits.soulReturnPerTurn) return { ok: false, error: '本回合歸還靈魂次數已用完' }
 
       const hand = state.hands[side].souls
-      if (!hand.includes(action.soulId)) return { ok: false, error: 'Soul not in hand' }
+      if (!hand.includes(action.soulId)) return { ok: false, error: '靈魂卡不在手牌中' }
 
       const card = getSoulCard(action.soulId)
-      if (!card) return { ok: false, error: 'Soul card not found' }
+      if (!card) return { ok: false, error: '找不到靈魂卡' }
 
       const nextHand = hand.filter((id) => id !== action.soulId)
       const deck = state.soulDeckByBase[card.base] ?? []
@@ -840,16 +911,16 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return { ok: true, state: nextState, events: [] }
     }
     case 'BUY_SOUL_FROM_DISPLAY': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
       const side = state.turn.side
-      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: 'No soul buy actions left this turn' }
-      if (state.turnFlags.soulBuyUsed) return { ok: false, error: 'Soul buy already used this turn' }
-      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `Soul hand full (${state.limits.soulHandMax})` }
+      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: '本回合購買靈魂次數已用完' }
+      if (state.turnFlags.soulBuyUsed) return { ok: false, error: '本回合已購買過靈魂卡' }
+      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `靈魂手牌已滿（${state.limits.soulHandMax}張）` }
       const r = state.resources[side]
-      if (r.gold < state.rules.buySoulFromDisplayGoldCost) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < state.rules.buySoulFromDisplayGoldCost) return { ok: false, error: '財力不足' }
 
       const soulId = state.displayByBase[action.base]
-      if (!soulId) return { ok: false, error: 'No display card' }
+      if (!soulId) return { ok: false, error: '展示區無此靈魂卡' }
 
       let nextState: GameState = {
         ...state,
@@ -897,20 +968,20 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
     }
     case 'BUY_SOUL_FROM_ENEMY_GRAVEYARD': {
-      if (state.turn.phase !== 'buy') return { ok: false, error: 'Not in buy phase' }
+      if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
       const side = state.turn.side
-      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: 'No soul buy actions left this turn' }
-      if (state.turnFlags.soulBuyUsed) return { ok: false, error: 'Soul buy already used this turn' }
-      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `Soul hand full (${state.limits.soulHandMax})` }
+      if (state.turnFlags.buySoulActionsUsed >= state.limits.buySoulActionsPerTurn) return { ok: false, error: '本回合購買靈魂次數已用完' }
+      if (state.turnFlags.soulBuyUsed) return { ok: false, error: '本回合已購買過靈魂卡' }
+      if (state.hands[side].souls.length >= state.limits.soulHandMax) return { ok: false, error: `靈魂手牌已滿（${state.limits.soulHandMax}張）` }
       const enemy = side === 'red' ? 'black' : 'red'
       const r = state.resources[side]
-      if (r.gold < state.rules.buySoulFromEnemyGraveyardGoldCost) return { ok: false, error: 'Not enough gold' }
+      if (r.gold < state.rules.buySoulFromEnemyGraveyardGoldCost) return { ok: false, error: '財力不足' }
 
       const gy = state.graveyard[enemy]
-      if (gy.length === 0) return { ok: false, error: 'Enemy graveyard empty' }
+      if (gy.length === 0) return { ok: false, error: '敵方墳場為空' }
 
       const soulId = gy[0]!
-      if (!soulId) return { ok: false, error: 'Enemy graveyard empty' }
+      if (!soulId) return { ok: false, error: '敵方墳場為空' }
       const nextEnemyGy = gy.slice(1)
 
       const nextState: GameState = {
