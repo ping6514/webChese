@@ -31,6 +31,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Invalid secret' })
   }
 
+  // Special-case: SURRENDER can be sent anytime, but can only surrender your own side.
+  if ((action as any)?.type === 'SURRENDER') {
+    const actionSide = (action as any)?.side
+    if (actionSide !== side) {
+      return res.status(400).json({ error: 'Invalid surrender side' })
+    }
+  }
+
   const state = room.state_json
   const guard = canDispatch(state, action as any)
   if (!guard.ok) return res.status(400).json({ error: guard.reason })

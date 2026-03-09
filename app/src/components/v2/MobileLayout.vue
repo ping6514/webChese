@@ -192,12 +192,13 @@ function closeGear() { gearOpen.value = false; surrenderPending.value = false }
 function goHome() { router.push({ name: 'home' }); closeGear() }
 function surrender() {
   if (!surrenderPending.value) { surrenderPending.value = true; return }
-  let losingSide: 'red' | 'black'
-  if (setup.mode === 'online' && conn.side) losingSide = conn.side
-  else if (setup.mode === 'pve') losingSide = setup.resolvedPlayerSide
-  else losingSide = currentSide.value
-  const winner = losingSide === 'red' ? 'black' : 'red'
   closeGear()
+  if (setup.mode === 'online' || setup.mode === 'pve') {
+    const side = (setup.mode === 'online' && conn.side) ? conn.side : currentSide.value
+    ctx.dispatch({ type: 'SURRENDER', side } as any)
+    return
+  }
+  const winner = currentSide.value === 'red' ? 'black' : 'red'
   router.push({ name: 'gameOver', query: { winner } })
 }
 
@@ -213,6 +214,10 @@ const activeTab = ref<TabKey | null>(null)
 function toggleTab(tab: TabKey) {
   activeTab.value = activeTab.value === tab ? null : tab
 }
+
+const PHASE_TABS: Phase[] = ['buy', 'necro', 'combat']
+const HAND_TABS: TabKey[] = ['souls', 'items']
+const UTIL_TABS: TabKey[] = ['panel', 'tools']
 </script>
 
 <template>
@@ -243,7 +248,7 @@ function toggleTab(tab: TabKey) {
       <div class="controlRow">
         <div class="phaseTabs">
           <div
-            v-for="p in (['buy', 'necro', 'combat'] as Phase[])"
+            v-for="p in PHASE_TABS"
             :key="p"
             class="pTab"
             :class="{ active: currentPhase === p, [`pTab--${p}`]: true }"
@@ -321,7 +326,7 @@ function toggleTab(tab: TabKey) {
       <!-- Tab bar (always visible) -->
       <div class="tabBar">
         <button
-          v-for="tab in (['souls', 'items'] as TabKey[])"
+          v-for="tab in HAND_TABS"
           :key="tab"
           :class="['tabBtn', activeTab === tab && 'active']"
           @click="toggleTab(tab)"
@@ -336,7 +341,7 @@ function toggleTab(tab: TabKey) {
         </button>
 
         <button
-          v-for="tab in (['panel', 'tools'] as TabKey[])"
+          v-for="tab in UTIL_TABS"
           :key="tab"
           :class="['tabBtn', activeTab === tab && 'active']"
           @click="toggleTab(tab)"

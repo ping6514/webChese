@@ -83,7 +83,16 @@ function onSoulDragEnd() {
   if (ui.interactionMode.kind === 'enchant_select_unit') ui.clearInteractionMode()
 }
 function returnSoul(soulId: string) {
-  ctx.dispatch({ type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId })
+  const card = getSoulCard(soulId)
+  ui.setPendingConfirm({
+    action: { type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId } as any,
+    title: '確認歸還',
+    detail: [
+      '確認歸還靈魂卡到棋種牌組下方',
+      card ? `卡片：${card.name}` : `soulId: ${soulId}`,
+      card ? `棋種：${String(card.base)}` : '',
+    ].filter(Boolean).join('\n'),
+  })
 }
 
 // ── Item actions ───────────────────────────────────────────────────────────────

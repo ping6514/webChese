@@ -3,7 +3,7 @@ export default { name: 'EffectsModal' }
 </script>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { GameState, Unit } from '../engine/state'
 import { getSoulCard } from '../engine/cards'
 import type { SoulAbility } from '../engine/cards'
@@ -257,11 +257,18 @@ const mySideLabel = computed(() => mySide.value === 'red' ? '紅方（己方）'
 const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵方）' : '黑方（敵方）')
 
 const mobileTab = ref<'my' | 'enemy'>('my')
+
+const modalEl = ref<HTMLElement | null>(null)
+
+watch(mobileTab, () => {
+  // Ensure tab switch always visibly updates by resetting scroll position.
+  modalEl.value?.scrollTo({ top: 0 })
+})
 </script>
 
 <template>
   <div v-if="open" class="modalOverlay" @click.self="$emit('close')">
-    <div class="modal">
+    <div ref="modalEl" class="modal">
       <div class="modalHead">
         <span class="modalTitle">⚡ 場上效果</span>
         <button type="button" class="closeBtn" @click="$emit('close')">✕ 關閉</button>
@@ -354,6 +361,7 @@ const mobileTab = ref<'my' | 'enemy'>('my')
   width: min(1100px, 96vw);
   max-height: min(90vh, 860px);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 16px;
   border: 1px solid var(--border-strong);
   background: var(--bg-modal-strong);

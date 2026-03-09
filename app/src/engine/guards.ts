@@ -103,6 +103,8 @@ function fail(reason: string): GuardResult {
 
 export function canDispatch(state: GameState, action: Action): GuardResult {
   switch (action.type) {
+    case 'SURRENDER':
+      return ok()
     case 'MOVE':
       return canMove(state, action.unitId, action.to)
     case 'SHOOT':

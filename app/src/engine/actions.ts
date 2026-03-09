@@ -11,6 +11,11 @@ export type NextPhaseAction = {
   type: 'NEXT_PHASE'
 }
 
+export type SurrenderAction = {
+  type: 'SURRENDER'
+  side: 'red' | 'black'
+}
+
 export type ShootAction = {
   type: 'SHOOT'
   attackerId: string
@@ -95,3 +100,4 @@ export type Action =
   | DiscardItemFromHandAction
   | UseItemFromHandAction
   | NextPhaseAction
+  | SurrenderAction

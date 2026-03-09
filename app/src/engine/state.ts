@@ -58,6 +58,7 @@ export type GameState = {
     phase: Phase
   }
   status: {
+    winnerSide: Side | null
     kingInvincibleSide: Side | null
     sacrificeBuffByUnitId: Record<
       string,
@@ -280,6 +281,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       phase: 'buy',
     },
     status: {
+      winnerSide: null,
       kingInvincibleSide: null,
       sacrificeBuffByUnitId: {},
     },

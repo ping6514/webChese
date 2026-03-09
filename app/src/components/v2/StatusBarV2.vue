@@ -37,6 +37,8 @@ const PHASE_LABELS: Partial<Record<Phase, string>> = {
   buy: '購買', necro: '死靈術', combat: '戰鬥',
 }
 
+const PHASE_TABS: Phase[] = ['buy', 'necro', 'combat']
+
 const nextPhaseLabel = computed(() => {
   if (props.currentPhase === 'buy')    return '進入死靈術 →'
   if (props.currentPhase === 'necro')  return '進入戰鬥 →'
@@ -77,13 +79,14 @@ function goHome() { router.push({ name: 'home' }); closeGear() }
 
 function surrender() {
   if (!surrenderPending.value) { surrenderPending.value = true; return }
-  // Determine the losing (surrendering) side
-  let losingSide: 'red' | 'black'
-  if (setup.mode === 'online' && conn.side) losingSide = conn.side
-  else if (setup.mode === 'pve') losingSide = setup.resolvedPlayerSide
-  else losingSide = props.currentSide
-  const winner = losingSide === 'red' ? 'black' : 'red'
   closeGear()
+  if (setup.mode === 'online' || setup.mode === 'pve') {
+    const side = (setup.mode === 'online' && conn.side) ? conn.side : props.currentSide
+    gameCtx?.dispatch?.({ type: 'SURRENDER', side })
+    return
+  }
+  // Local fallback (should rarely be used): determine winner by current side.
+  const winner = props.currentSide === 'red' ? 'black' : 'red'
   router.push({ name: 'gameOver', query: { winner } })
 }
 
@@ -113,7 +116,7 @@ onMounted(() => {
     <div class="centerBlock">
       <div class="phaseTabs">
         <div
-          v-for="p in (['buy', 'necro', 'combat'] as Phase[])"
+          v-for="p in PHASE_TABS"
           :key="p"
           class="phaseTab"
           :class="{ active: currentPhase === p, [`tab-${p}`]: true }"

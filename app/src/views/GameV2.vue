@@ -71,7 +71,7 @@ function toggleBoard3D() { board3D.value = !board3D.value }
 const sideSplashVisible = ref(false)
 const sideSplashText = ref('')
 const sideSplashColor = ref<'red' | 'black'>('red')
-const splashActive = ref(false)
+const splashActive = ref(true)
 
 // ── PVE bot ────────────────────────────────────────────────────────────────────
 const npcSide = computed<'red' | 'black' | null>(() => {
@@ -169,6 +169,8 @@ watch(
 
 // ── Win detection ──────────────────────────────────────────────────────────────
 const winnerSide = computed(() => {
+  const statusWinner = state.value.status?.winnerSide ?? null
+  if (statusWinner) return statusWinner
   const hasRedKing   = Object.values(state.value.units).some((u) => u.side === 'red'   && u.base === 'king')
   const hasBlackKing = Object.values(state.value.units).some((u) => u.side === 'black' && u.base === 'king')
   if (!hasRedKing && hasBlackKing) return 'black'
@@ -187,6 +189,7 @@ const isMyTurn = computed(() =>
   setup.mode !== 'online' || conn.side === state.value.turn.side
 )
 const actionLocked = computed(() => {
+  if (splashActive.value) return true
   if (kingDying.value) return true
   if (setup.mode === 'online') return !isMyTurn.value || onlineWaiting.value
   if (setup.mode === 'pve')    return botRunning.value
@@ -263,7 +266,7 @@ watchEffect(() => {
 
 // ── Disable pull-to-refresh when any modal is open ─────────────────────────────
 watchEffect(() => {
-  const anyOpen = ui.shopOpen || ui.allUnitsOpen || effectsOpen.value || eventsOpen.value
+  const anyOpen = ui.shopOpen || ui.allUnitsOpen || effectsOpen.value || eventsOpen.value || splashActive.value
   document.body.style.overscrollBehavior = anyOpen ? 'none' : ''
 })
 
@@ -309,27 +312,30 @@ provideGameV2({
 </script>
 
 <template>
-  <DesktopLayout v-if="isDesktop" />
-  <MobileLayout  v-else />
-  <GameModalsV2 />
+  <div class="gameRoot">
+    <DesktopLayout v-if="isDesktop" />
+    <MobileLayout  v-else />
+    <GameModalsV2 />
 
-  <Transition name="error-toast">
-    <div v-if="errorToastText" class="errorToast">{{ errorToastText }}</div>
-  </Transition>
+    <Transition name="error-toast">
+      <div v-if="errorToastText" class="errorToast">{{ errorToastText }}</div>
+    </Transition>
 
-  <div v-if="kingDying" class="kingDyingOverlay" />
+    <div v-if="kingDying" class="kingDyingOverlay" />
 
-  <Transition name="side-splash">
-    <div
-      v-if="sideSplashVisible"
-      class="sideSplash"
-      :class="sideSplashColor === 'red' ? 'splashRed' : 'splashGreen'"
-    >
-      <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">
-        {{ line }}
+    <div v-if="splashActive" class="splashBlocker" />
+    <Transition name="side-splash">
+      <div
+        v-if="sideSplashVisible"
+        class="sideSplash"
+        :class="sideSplashColor === 'red' ? 'splashRed' : 'splashGreen'"
+      >
+        <div v-for="(line, i) in sideSplashText.split('\n')" :key="i" :class="i === 1 ? 'splashClanLine' : ''">
+          {{ line }}
+        </div>
       </div>
-    </div>
-  </Transition>
+    </Transition>
+  </div>
 </template>
 
 <style scoped>
@@ -346,6 +352,15 @@ provideGameV2({
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(4px);
   text-shadow: 0 0 40px currentColor;
+}
+.splashBlocker {
+  position: fixed;
+  inset: 0;
+  z-index: 9150;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(3px);
+  pointer-events: all;
+  touch-action: none;
 }
 .splashRed   { color: #ffb0b2; }
 .splashGreen { color: #b7eb8f; }

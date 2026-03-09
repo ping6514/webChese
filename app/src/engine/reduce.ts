@@ -1,6 +1,7 @@
 import type { Action } from './actions'
 import type { Event } from './events'
 import { isOnBoard } from './types'
+import type { Side } from './types'
 import type { GameState } from './state'
 import { getUnitAt, BASE_STATS, getReviveGoldCost, refillDisplayByBase } from './state'
 import { FREE_SHOOT_MANA_SENTINEL, DEATH_CHAIN_MAX_KILLS } from './gameConfig'
@@ -244,7 +245,24 @@ function reduceNextPhase(state: GameState): ReduceResult {
 }
 
 export function reduce(state: GameState, action: Action): ReduceResult {
+  if (action.type !== 'SURRENDER' && state.status?.winnerSide) {
+    return { ok: true, state, events: [] }
+  }
+
   switch (action.type) {
+    case 'SURRENDER': {
+      const losingSide = action.side
+      const winnerSide: Side = losingSide === 'red' ? 'black' : 'red'
+      if (state.status?.winnerSide === winnerSide) return { ok: true, state, events: [] }
+      const next: GameState = {
+        ...state,
+        status: {
+          ...state.status,
+          winnerSide,
+        },
+      }
+      return { ok: true, state: next, events: [] }
+    }
     case 'MOVE': {
       const unit = state.units[action.unitId]
       if (!unit) return { ok: false, error: '找不到單位' }

@@ -132,7 +132,8 @@ export function useGameDispatch(opts: {
 
   async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
     if (onlineWaiting.value) return
-    if (conn.side !== state.value.turn.side) {
+    const isSurrender = (action as any)?.type === 'SURRENDER'
+    if (!isSurrender && conn.side !== state.value.turn.side) {
       lastError.value = '現在是對手的回合'
       return
     }

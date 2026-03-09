@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const { data: room, error: fetchErr } = await supabase
     .from('rooms')
-    .select('id, status, red_secret, black_secret')
+    .select('id, status, red_secret, black_secret, version')
     .eq('id', roomId)
     .single()
 
@@ -20,8 +20,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const joinerSide: 'red' | 'black' = room.red_secret ? 'black' : 'red'
   const joinerSecret = genSecret()
   const updateFields = joinerSide === 'red'
-    ? { red_secret: joinerSecret, status: 'playing', version: 1 }
-    : { black_secret: joinerSecret, status: 'playing', version: 1 }
+    ? { red_secret: joinerSecret, status: 'playing', version: (room.version ?? 0) + 1 }
+    : { black_secret: joinerSecret, status: 'playing', version: (room.version ?? 0) + 1 }
 
   const { error } = await supabase
     .from('rooms')
