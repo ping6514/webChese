@@ -4,7 +4,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 export default async function handler(_req: VercelRequest, res: VercelResponse) {
   try {
     // Use require() so the import happens inside try/catch
-    const engine = require('./_engine/engine') as typeof import('../src/engine')
+    const engine = require('./_engine/engine') as any
+    if (typeof engine?.createInitialState !== 'function') {
+      throw new Error('engine.createInitialState is not a function')
+    }
     const state = engine.createInitialState()
     res.json({ ok: true, stateKeys: Object.keys(state).slice(0, 10) })
   } catch (e) {
