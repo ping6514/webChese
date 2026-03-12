@@ -122,7 +122,7 @@
       { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "CHAIN", "radius": 1 } },
       { "type": "BLOOD_RAGE_AURA", "scope": "self", "stages": [{ "threshold": 5, "atkBonus": 3 }] }
     ],
-    "text": "【血祭→連鎖】射擊前可消耗帥 2 HP，本次射擊觸發連鎖（波及鄰近 1 格敵方）。帥 HP ≤ 5 時，此單位 ATK +3。"
+    "text": "【血祭→連鎖】射擊前可消耗帥 2 HP，本次射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成 100% 傷害）。帥 HP ≤ 5 時，此單位 ATK +3。"
   },
   {
     "id": "death_oath_advisor_tieshi",

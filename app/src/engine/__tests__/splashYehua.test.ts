@@ -18,6 +18,7 @@ describe('SPLASH', () => {
       turnFlags: {
         shotUsed: {},
         movedThisTurn: {},
+        enemyKilledThisTurnCount: 0,
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,
@@ -80,10 +81,8 @@ describe('SPLASH', () => {
     const targetHp = execRes.state.units[target0.id]?.hpCurrent ?? 10
     const splashHp = execRes.state.units[splash0.id]?.hpCurrent ?? 10
 
-    const dmgMain = 10 - targetHp
     const dmgSplash = 10 - splashHp
-
-    expect(dmgMain).toBeGreaterThan(0)
-    expect(dmgSplash).toBe(dmgMain)
+    expect(dmgSplash).toBe(2)
+    expect(targetHp).toBeLessThan(10)
   })
 })

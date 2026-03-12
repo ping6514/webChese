@@ -4,6 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useGameSetup, type GameMode, type SideOrRandom, type Difficulty } from '../stores/gameSetup'
 import { useConnection } from '../stores/connection'
 import ClanSelector from '../components/ClanSelector.vue'
+import { createRngState, nextU32 } from '../serverSim'
 
 const router = useRouter()
 const route  = useRoute()
@@ -49,8 +50,9 @@ function toggleClan(id: string) {
 function resolveClans(): string[] {
   if (clanMode.value === 'all') return selectedClans.value
   const pool = [...selectedClans.value]
+  const rng = createRngState(String(setup.matchSeed ?? 'default'))
   for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
+    const j = nextU32(rng) % (i + 1)
     ;[pool[i], pool[j]] = [pool[j]!, pool[i]!]
   }
   const count = Math.min(Math.max(1, randomClanCount.value), pool.length)

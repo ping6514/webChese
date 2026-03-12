@@ -2,7 +2,7 @@
 import { computed, inject, type Ref } from 'vue'
 import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
 import type { GameState, PieceBase, Pos } from '../../engine'
-import { canRevive, canBloodRitual, getSoulCard } from '../../engine'
+import { canRevive, canBloodRitual, getAtkPanelBreakdownInState, getDefPanelBreakdownInState, getHpPanelBreakdownInState, getSoulCard } from '../../engine'
 import { useUiStore } from '../../stores/ui'
 import UnitInfoPanel from '../UnitInfoPanel.vue'
 import CellInfoPanel from '../CellInfoPanel.vue'
@@ -35,9 +35,15 @@ const selectedUnit = computed(() => {
   if (!id) return null
   const u = state.value.units[id]
   if (!u) return null
+  const atkPanel = getAtkPanelBreakdownInState(state.value, id)
+  const defPanel = getDefPanelBreakdownInState(state.value, id)
+  const hpPanel = getHpPanelBreakdownInState(state.value, id)
   return {
     id: u.id, side: u.side, base: u.base, pos: u.pos,
     hpCurrent: u.hpCurrent, atk: u.atk, def: u.def, enchant: u.enchant,
+    __atkPanel: atkPanel,
+    __defPanel: defPanel,
+    __hpPanel: hpPanel,
   }
 })
 

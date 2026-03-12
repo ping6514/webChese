@@ -14,8 +14,8 @@
         { "key": "magic", "value": 1 }
       ]
     },
-    "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 }],
-    "text": "【貫穿】：射擊路徑上包含目標在內的「前 2 個敵方單位」均受到同等傷害。"
+    "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2, "requiresManaGte": 2, "manaCost": 1 }],
+    "text": "【貫穿】：射擊時，若己方魔力 ≥ 2，可發動貫穿：對射擊路徑上「包含主要目標在內」的前 2 個敵方單位造成同等傷害；發動時本次射擊額外消耗 1 點魔力。"
   },
   {
     "id": "styx_rook_feiyan",
@@ -26,14 +26,14 @@
     "costGold": 6,
     "stats": {
       "hp": 10,
-      "atk": { "key": "magic", "value": 3 },
+      "atk": { "key": "magic", "value": 2 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1 }],
-    "text": "【連鎖】：射擊時，可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害（每回合限 1 次）。"
+    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1, "manaCost": 1 }],
+    "text": "【連鎖】：射擊時，可額外選擇主要目標相鄰 1 格的另一敵方，造成 100% 傷害（每回合限 1 次）；若選擇第二目標，本次射擊額外消耗 1 點魔力。"
   },
   {
     "id": "styx_knight_yanling",
@@ -50,8 +50,8 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1 }],
-    "text": "【連鎖】：射擊時，可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害（每回合限 1 次）。"
+    "abilities": [{ "type": "CHAIN", "radius": 1, "perTurn": 1, "manaCost": 1 }],
+    "text": "【連鎖】：射擊時，可額外選擇主要目標相鄰 1 格的另一敵方，造成 100% 傷害（每回合限 1 次）；若選擇第二目標，本次射擊額外消耗 1 點魔力。"
   },
   {
     "id": "styx_knight_xueyan",
@@ -68,8 +68,8 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 4 }],
-    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 4 點 HP（不可超過最大上限）。"
+    "abilities": [{ "type": "KILL_MANA_GAIN", "amount": 1 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即回復己方 1 點魔力（不超過上限）。"
   },
   {
     "id": "styx_cannon_mingleipao",
@@ -77,17 +77,17 @@
     "base": "cannon",
     "name": "冥雷砲",
     "image": "/assets/cards/styx/styx_cannon_minglei.jpg",
-    "costGold": 8,
+    "costGold": 7,
     "stats": {
       "hp": 11,
-      "atk": { "key": "magic", "value": 4 },
+      "atk": { "key": "magic", "value": 2 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 1 }
       ]
     },
-    "abilities": [{ "type": "MINGLEI", "magicDefMinus": 1, "bonusDamageIfTargetCrossRiver": 1 }],
-    "text": "【冥雷】：射擊時目標魔防 -1（最低為 0）；且對處於「越境」狀態的敵方額外 +1 傷害。"
+    "abilities": [{ "type": "KILL_MANA_GAIN", "amount": 1 }],
+    "text": "【冥河回補】：此單位擊殺敵方後，立即回復己方 1 點魔力（不超過上限）。"
   },
   {
     "id": "styx_cannon_baoyan",
@@ -98,14 +98,14 @@
     "costGold": 8,
     "stats": {
       "hp": 10,
-      "atk": { "key": "magic", "value": 1 },
+      "atk": { "key": "magic", "value": 3 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 1 }
       ]
     },
-    "abilities": [{ "type": "PIERCE", "mode": "CANNON_SCREEN_AND_TARGET" }],
-    "text": "【貫穿】：隔子射擊時，作為砲架（阻擋者）的敵方與目標敵方均受到同等傷害。"
+    "abilities": [{ "type": "PIERCE", "mode": "CANNON_SCREEN_AND_TARGET", "manaCost": 1 }],
+    "text": "【貫穿】：隔子射擊時，作為砲架（阻擋者）的敵方與目標敵方均受到同等傷害；發動時本次射擊額外消耗 1 點魔力。"
   },
   {
     "id": "styx_elephant_mingleixiang",
@@ -122,8 +122,13 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "MINGLEI", "magicDefMinus": 2, "bonusDamageIfTargetCrossRiver": 2 }],
-    "text": "【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
+    "abilities": [
+      { "type": "RESONANCE", "need": 3, "clan": "styx" },
+      { "type": "AURA_GRANT_FREE_SHOOT", "amount": 1, "perTurn": 1, "when": { "type": "RESONANCE_ACTIVE" } },
+      { "type": "TARGET_DEF_MINUS", "key": "magic", "amount": 2, "onlyIfAtkKey": "magic", "minDef": 0 },
+      { "type": "DAMAGE_BONUS", "amount": 2, "targetWhen": { "type": "TARGET_CROSS_RIVER" } }
+    ],
+    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，本回合獲得 1 次免費射擊。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
   },
   {
     "id": "styx_elephant_mingyanxiang",
@@ -140,8 +145,13 @@
         { "key": "magic", "value": 2 }
       ]
     },
-    "abilities": [{ "type": "HEAL_KING_ON_KILL", "amount": 4 }],
-    "text": "【冥河回補】：此單位擊殺敵方後，立即為己方「帥」回復 4 點 HP（不可超過最大上限）。"
+    "abilities": [
+      { "type": "RESONANCE", "need": 3, "clan": "styx" },
+      { "type": "AURA_GRANT_FREE_MOVE", "amount": 1, "perTurn": 1, "when": { "type": "RESONANCE_ACTIVE" } },
+      { "type": "TARGET_DEF_MINUS", "key": "magic", "amount": 2, "onlyIfAtkKey": "magic", "minDef": 0 },
+      { "type": "DAMAGE_BONUS", "amount": 2, "targetWhen": { "type": "TARGET_CROSS_RIVER" } }
+    ],
+    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，本回合獲得 1 次免費移動。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
   },
   {
     "id": "styx_advisor_minghu",
@@ -154,14 +164,14 @@
       "hp": 8,
       "atk": { "key": "magic", "value": 2 },
       "def": [
-        { "key": "phys", "value": 0 },
-        { "key": "magic", "value": 3 }
+        { "key": "phys", "value": 2 },
+        { "key": "magic", "value": 1 }
       ]
     },
     "abilities": [
       {
         "type": "AURA_DEF_BONUS",
-        "amount": 1,
+        "amount": 2,
         "key": "phys",
         "when": { "type": "SOURCE_IN_PALACE" },
         "for": "ALLIES_IN_PALACE"

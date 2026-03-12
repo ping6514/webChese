@@ -5,29 +5,20 @@
     "base": "rook",
     "name": "蘭華",
     "image": "/assets/cards/dark_moon/dark_moon_rook_lanhua.jpg",
-    "costGold": 6,
+    "costGold": 7,
     "stats": {
-      "hp": 12,
-      "atk": { "key": "phys", "value": 3 },
+      "hp": 11,
+      "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
         { "key": "magic", "value": 1 }
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1 },
-      {
-        "type": "IGNORE_BLOCKING",
-        "mode": "all",
-        "when": {
-          "type": "ENEMIES_WITHIN_RANGE_GTE",
-          "range": 2,
-          "count": 2
-        }
-      }
+      { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1, "when": { "type": "AFTER_CROSS_RIVER" } },
+      { "type": "DAMAGE_BONUS", "amount": 2, "when": { "type": "AFTER_CROSS_RIVER" } }
     ],
-    "text": "【越境】：射擊忽略 1 個阻擋；若自身附近 2 格內敵方 ≥ 2，則忽略所有阻擋。"
+    "text": "【越境】：射擊忽略 1 個阻擋；射擊傷害 +2。"
   },
   {
     "id": "dark_moon_rook_yinghua",
@@ -41,14 +32,14 @@
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
-        { "key": "magic", "value": 0 }
+        { "key": "magic", "value": 2 }
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "IGNORE_BLOCKING", "mode": "all" }
+      { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE", "count": 1, "when": { "type": "AFTER_CROSS_RIVER" } },
+      { "type": "ATK_BONUS", "amount": 1, "when": { "type": "ENEMY_KILLED_THIS_TURN_GTE", "count": 1 } }
     ],
-    "text": "【越境】：射擊忽略所有阻擋。"
+    "text": "【越境】：過河後，移動時可穿透最多 1 個單位。\n【連擊】：這回合有一位敵人被擊殺時，本回合攻擊力+1(不能堆疊)。"
   },
   {
     "id": "dark_moon_knight_yingzi",
@@ -66,10 +57,10 @@
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "MOVE_THEN_SHOOT", "perTurn": 1 }
+      { "type": "EXTRA_SHOT", "perTurn": 1, "when": { "type": "AFTER_CROSS_RIVER" } },
+      { "type": "ATK_BONUS", "amount": 1, "when": { "type": "ENEMY_KILLED_THIS_TURN_GTE", "count": 1 } }
     ],
-    "text": "【越境】：執行「移動」後，可額外執行一次「射擊」（本回合限 1 次）。"
+    "text": "【越境】：可額外執行一次「射擊」（本回合限 1 次）。\n【連擊】：這回合有一位敵人被擊殺時，本回合攻擊力+1(不能堆疊)。"
   },
   {
     "id": "dark_moon_knight_wuying",
@@ -87,10 +78,10 @@
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE" }
+      { "type": "IGNORE_PATH_BLOCKING", "for": "MOVE" },
+      { "type": "ATK_BONUS", "amount": 1, "when": { "type": "MOVED_THIS_TURN" } }
     ],
-    "text": "執行「移動」時忽略所有路徑阻擋（永遠不會「拐馬腳」）。"
+    "text": "執行「移動」時忽略所有路徑阻擋（永遠不會「拐馬腳」）。\n若本回合已移動，本回合攻擊力+1。"
   },
   {
     "id": "dark_moon_cannon_yehua",
@@ -108,10 +99,9 @@
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "SPLASH", "radius": 1, "perTurn": 1 }
+      { "type": "SPLASH", "radius": 1, "perTurn": 1, "fixedDamage": 2, "when": { "type": "AFTER_CROSS_RIVER" } }
     ],
-    "text": "【越境】：射擊產生「濺射」，目標格相鄰 1 格的敵方受到同等傷害（本回合限 1 次）。"
+    "text": "【越境】：射擊產生「濺射」，目標格相鄰 1 格的敵方受到 2 點固定傷害（本回合限 1 次）。"
   },
   {
     "id": "dark_moon_cannon_fenghua",
@@ -129,10 +119,10 @@
       ]
     },
     "abilities": [
-      { "type": "CROSS_RIVER" },
-      { "type": "DAMAGE_BONUS", "amount": 2 }
+      { "type": "DAMAGE_BONUS", "amount": 2, "when": { "type": "AFTER_CROSS_RIVER" } },
+      { "type": "ATK_BONUS", "amount": 1, "when": { "type": "ENEMY_KILLED_THIS_TURN_GTE", "count": 1 } }
     ],
-    "text": "【越境】：射擊傷害 +2。"
+    "text": "【越境】：射擊傷害 +2。\n【連擊】：這回合有一位敵人被擊殺時，本回合攻擊力+1(不能堆疊)。"
   },
   {
     "id": "dark_moon_advisor_yeji",
@@ -143,14 +133,13 @@
     "costGold": 4,
     "stats": {
       "hp": 14,
-      "atk": { "key": "phys", "value": 1 },
+      "atk": { "key": "phys", "value": 2 },
       "def": [
-        { "key": "phys", "value": 1 },
-        { "key": "magic", "value": 1 }
+        { "key": "phys", "value": 2 },
+        { "key": "magic", "value": 0 }
       ]
     },
     "abilities": [
-      { "type": "PALACE_ONLY" },
       {
         "type": "AURA_IGNORE_BLOCKING",
         "count": 1,
@@ -163,7 +152,7 @@
         "when": { "type": "ALLIES_IN_PALACE_GTE", "count": 3 }
       }
     ],
-    "text": "【宮內】：在宮內的己方單位射擊時忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 3，可替受攻擊友軍分擔 3 點傷害。"
+    "text": "【宮內】：己方單位在宮內射擊時忽略 1 個阻擋（本回合限 1 次）；若宮內己方單位 ≥ 3，且可完整分攤 3 點傷害並保證分攤者不會因此死亡時，才會替受攻擊友軍分攤 3 點傷害。"
   },
   {
     "id": "dark_moon_advisor_yingji",
@@ -173,7 +162,7 @@
     "image": "/assets/cards/dark_moon/dark_moon_advisor_yingji.jpg",
     "costGold": 4,
     "stats": {
-      "hp": 8,
+      "hp": 10,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -181,9 +170,17 @@
       ]
     },
     "abilities": [
-      { "type": "COUNTER_ON_KING_DAMAGED", "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 }, "perTurn": 1 }
+      {
+        "type": "COUNTER",
+        "targets": [
+          { "type": "SELF" },
+          { "type": "ALLY_BASE", "base": "king" }
+        ],
+        "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 },
+        "perTurn": 1
+      }
     ],
-    "text": "【反擊】：若「帥」受到傷害，影姬立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。"
+    "text": "【反擊】：若「帥」或自身受到傷害，立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。"
   },
   {
     "id": "dark_moon_elephant_yueji",
@@ -193,7 +190,7 @@
     "image": "/assets/cards/dark_moon/dark_moon_elephant_yueji.jpg",
     "costGold": 4,
     "stats": {
-      "hp": 8,
+      "hp": 10,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -201,15 +198,16 @@
       ]
     },
     "abilities": [
-      { "type": "RESONANCE", "need": 3 },
-      { "type": "AURA_DAMAGE_BONUS", "amount": 2, "when": { "type": "RESONANCE_ACTIVE" }, "for": "CROSS_RIVER_UNITS" },
+      { "type": "RESONANCE", "need": 3, "clan": "dark_moon" },
       {
-        "type": "AURA_HP_REGEN_ON_KILL",
+        "type": "AURA_DAMAGE_BONUS",
         "amount": 3,
-        "when": { "type": "CORPSES_GTE", "count": 3 }
+        "when": { "type": "RESONANCE_ACTIVE" },
+        "for": ["CLAN", "CROSS_RIVER_UNITS"],
+        "clan": "dark_moon"
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位傷害 +2。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「暗月」「越境」單位傷害 +3。"
   },
   {
     "id": "dark_moon_elephant_youji",
@@ -217,9 +215,9 @@
     "base": "elephant",
     "name": "幽姬",
     "image": "/assets/cards/dark_moon/dark_moon_elephant_youji.jpg",
-    "costGold": 5,
+    "costGold": 4,
     "stats": {
-      "hp": 9,
+      "hp": 10,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -227,19 +225,15 @@
       ]
     },
     "abilities": [
-      { "type": "RESONANCE", "need": 3 },
+      { "type": "RESONANCE", "need": 3, "clan": "dark_moon" },
       {
         "type": "AURA_IGNORE_BLOCKING",
         "count": 1,
         "perTurn": 1,
-        "when": { "type": "RESONANCE_ACTIVE" }
-      },
-      {
-        "type": "AURA_HP_REGEN_ON_KILL",
-        "amount": 3,
-        "when": { "type": "CORPSES_GTE", "count": 3 }
+        "when": { "type": "RESONANCE_ACTIVE" },
+        "for": "CROSS_RIVER_UNITS"
       }
     ],
-    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。\n【屍氣回補】：屍氣 ≥3 時，每次擊殺敵方後，我方「帥」回復 3 點 HP。"
+    "text": "【共鳴】：場上己方「暗月」單位 ≥ 3，所有己方「越境」單位射擊忽略 1 個阻擋（本回合限 1 次）。"
   }
 ]

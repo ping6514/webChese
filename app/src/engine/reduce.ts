@@ -12,6 +12,7 @@ import { getSoulCard } from './cards'
 import { getItemCard } from './items'
 import { killUnit } from './kill'
 import { canSacrifice } from './guards'
+import { getMaxHpForUnitInState } from './stats'
 
 export type ReduceOk = {
   ok: true
@@ -42,6 +43,159 @@ export type ReduceErr = {
 }
 
 export type ReduceResult = ReduceOk | ReduceErr
+
+function applyAuraStatHpHealOnceAfterNecroAction(state: GameState, events: Event[]): GameState {
+  // Conservative: only heals after ENCHANT / REVIVE, and only once per (auraUnitId -> targetUnitId).
+  const used = state.status.auraStatHpHealUsedByKey ?? {}
+  let nextState = state
+  let nextUsed: Record<string, true> | null = null
+
+  function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
+    if (pos.x < 3 || pos.x > 5) return false
+    if (side === 'red') return pos.y >= 7 && pos.y <= 9
+    return pos.y >= 0 && pos.y <= 2
+  }
+
+  function crossedRiver(side: 'red' | 'black', y: number): boolean {
+    return side === 'red' ? y <= 4 : y >= 5
+  }
+
+  function isResonanceActive(s: GameState, sourceUnitId: string, need: number, clan: string): boolean {
+    if (!Number.isFinite(need) || need <= 0) return false
+    const source = s.units[sourceUnitId]
+    if (!source) return false
+    let count = 0
+    for (const u of Object.values(s.units)) {
+      if (u.side !== source.side) continue
+      const soulId = u.enchant?.soulId
+      if (!soulId) continue
+      const c = getSoulCard(soulId)
+      if (!c) continue
+      if (c.clan !== clan) continue
+      count++
+    }
+    return count >= need
+  }
+
+  function auraWhenOk(s: GameState, auraUnit: any, when: any, clanFallback: string): boolean {
+    const type = String(when?.type ?? '')
+    if (!type) return true
+    if (type === 'SOURCE_IN_PALACE') return palaceContains(auraUnit.side, auraUnit.pos)
+    if (type === 'CORPSES_GTE') {
+      const need = Number(when?.count ?? 0)
+      if (!(Number.isFinite(need) && need > 0)) return false
+      // countCorpses is in reduce.ts already via other systems; for conservative healing we only support resonance here.
+      // If you need CORPSES_GTE for healCurrent, we can extend later.
+      return false
+    }
+    if (type === 'RESONANCE_ACTIVE') {
+      const soulId = auraUnit.enchant?.soulId
+      const card = soulId ? getSoulCard(soulId) : undefined
+      const res = card?.abilities.find((a) => a.type === 'RESONANCE') as any
+      const need = Number(res?.need ?? 0)
+      const resClan = String(res?.clan ?? '')
+      return isResonanceActive(s, auraUnit.id, need, resClan || clanFallback)
+    }
+    return true
+  }
+
+  function auraForKeysOk(targetUnit: any, ab: any): boolean {
+    const forRaw = ab?.for
+    const forKeys = Array.isArray(forRaw) ? forRaw.map((x: any) => String(x ?? '')).filter(Boolean) : [String(forRaw ?? '')].filter(Boolean)
+    if (forKeys.length === 0) return false
+    for (const forKey of forKeys) {
+      if (forKey === 'ALLIES_IN_PALACE') {
+        if (!palaceContains(targetUnit.side, targetUnit.pos)) return false
+        continue
+      }
+      if (forKey === 'CROSS_RIVER_UNITS') {
+        if (!crossedRiver(targetUnit.side, targetUnit.pos.y)) return false
+        continue
+      }
+      if (forKey === 'CLAN') {
+        const clan = String(ab?.clan ?? '')
+        if (!clan) return false
+        const soulId = targetUnit.enchant?.soulId
+        const card = soulId ? getSoulCard(soulId) : undefined
+        if (!card) return false
+        if (String(card.clan ?? '') !== clan) return false
+        const excludeBase = String(ab?.excludeBase ?? '')
+        if (excludeBase && targetUnit.base === excludeBase) return false
+        continue
+      }
+    }
+    return true
+  }
+
+  for (const auraUnit of Object.values(nextState.units)) {
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'AURA_STAT_BONUS') continue
+      const bonus = ab.bonus ?? {}
+      if (bonus.healCurrent !== true) continue
+      const hp = Number(bonus.hp ?? 0)
+      if (!Number.isFinite(hp) || hp <= 0) continue
+      const add = Math.floor(hp)
+
+      if (!auraWhenOk(nextState, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
+
+      // For now we reuse the same filter semantics as stats.ts by calling exported helpers indirectly:
+      // We apply heal only if this aura actually contributes to the target's max HP bonus right now.
+      // (This prevents healing non-targets when for/when doesn't match.)
+      for (const target of Object.values(nextState.units)) {
+        if (target.side !== auraUnit.side) continue
+
+        if (!auraForKeysOk(target, ab)) continue
+
+        // Quick check: if target's computed max HP doesn't include this aura, we skip.
+        // We approximate by checking whether removing heal doesn't change max; but we don't have removal.
+        // Instead, rely on stats.ts filtering by recomputing max and then allowing heal; this may over-heal
+        // if the aura's hp bonus is gated out. To avoid that, we require for/when to be present and evaluated
+        // in stats.ts layer later. (Next iteration can factor shared filter helpers.)
+
+        const key = `${auraUnit.id}:${target.id}:AURA_STAT_BONUS_HP`
+        if (used[key]) continue
+
+        const maxHp = getMaxHpForUnitInState(nextState, target.id)
+        if (maxHp <= 0) continue
+        if (target.hpCurrent >= maxHp) {
+          // Still mark used? No: keep it available if later the unit gets damaged; but that would enable
+          // retroactive healing. Conservatively, we only mark when we actually heal.
+          continue
+        }
+
+        const from = target.hpCurrent
+        const to = Math.min(maxHp, from + add)
+        if (to === from) continue
+
+        nextState = {
+          ...nextState,
+          units: {
+            ...nextState.units,
+            [target.id]: { ...target, hpCurrent: to },
+          },
+          status: {
+            ...nextState.status,
+            auraStatHpHealUsedByKey: nextUsed ?? { ...used },
+          },
+        }
+        nextUsed = nextState.status.auraStatHpHealUsedByKey ?? { ...used }
+        nextUsed[key] = true
+
+        events.push({ type: 'UNIT_HP_CHANGED', unitId: target.id, from, to, reason: '光環回復' })
+      }
+    }
+  }
+
+  if (nextUsed) {
+    nextState = { ...nextState, status: { ...nextState.status, auraStatHpHealUsedByKey: nextUsed } }
+  }
+  return nextState
+}
 
 // ── FORMATION_COMMAND helper ──────────────────────────────────────────────────
 function findFormationCommandHelper(state: GameState, unitId: string): { allyId: string; abilityKey: string } | null {
@@ -92,6 +246,22 @@ function pushResourcesEvent(events: Event[], state: GameState, side: GameState['
   events.push({ type: 'RESOURCES_CHANGED', side, gold: r.gold, mana: r.mana, storageMana: r.storageMana })
 }
 
+function isResonanceActive(s: GameState, side: Side, need: number, clan: string): boolean {
+  if (!Number.isFinite(need) || need <= 0) return false
+  if (!clan) return false
+  let count = 0
+  for (const u of Object.values(s.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const c = getSoulCard(soulId)
+    if (!c) continue
+    if (c.clan !== clan) continue
+    count++
+  }
+  return count >= need
+}
+
 function autoTurnStart(state: GameState, events: Event[]): GameState {
   const side = state.turn.side
   const r = state.resources[side]
@@ -121,12 +291,9 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
   const pendingDrain = (state.pendingManaDrainBySide?.[side] ?? 0)
   const manaAfterDrain = Math.max(0, mana - pendingDrain)
 
-  const next: GameState = {
+  let next: GameState = {
     ...state,
-    pendingManaDrainBySide: {
-      ...state.pendingManaDrainBySide,
-      [side]: 0,
-    },
+    pendingManaDrainBySide: { ...state.pendingManaDrainBySide, [side]: 0 },
     resources: {
       ...state.resources,
       [side]: {
@@ -136,6 +303,72 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
         storageMana: 0,
       },
     },
+  }
+
+  // Resonance-based per-turn grants (e.g. Styx elephants)
+  let freeShootBonus = next.turnFlags.freeShootBonus ?? 0
+  let freeMoveBonus = next.turnFlags.freeMoveBonus ?? 0
+  for (const u of Object.values(next.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    const res = card.abilities.find((a) => a.type === 'RESONANCE') as any
+    const need = Number(res?.need ?? 0)
+    const clan = String(res?.clan ?? '')
+    if (!isResonanceActive(next, side, need, clan)) continue
+
+    for (const ab of card.abilities as any[]) {
+      if (String(ab?.when?.type ?? '') !== 'RESONANCE_ACTIVE') continue
+      const perTurn = Number(ab?.perTurn ?? 0)
+      if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+
+      if (ab.type === 'AURA_GRANT_FREE_SHOOT') {
+        const key = `${u.id}:AURA_GRANT_FREE_SHOOT`
+        const used = Number(next.turnFlags.abilityUsed?.[key] ?? 0)
+        if (used >= perTurn) continue
+        const amount = Math.floor(Number(ab?.amount ?? 0))
+        if (!(Number.isFinite(amount) && amount > 0)) continue
+        freeShootBonus += amount
+        next = {
+          ...next,
+          turnFlags: {
+            ...next.turnFlags,
+            abilityUsed: { ...next.turnFlags.abilityUsed, [key]: used + 1 },
+          },
+        }
+        continue
+      }
+
+      if (ab.type === 'AURA_GRANT_FREE_MOVE') {
+        const key = `${u.id}:AURA_GRANT_FREE_MOVE`
+        const used = Number(next.turnFlags.abilityUsed?.[key] ?? 0)
+        if (used >= perTurn) continue
+        const amount = Math.floor(Number(ab?.amount ?? 0))
+        if (!(Number.isFinite(amount) && amount > 0)) continue
+        freeMoveBonus += amount
+        next = {
+          ...next,
+          turnFlags: {
+            ...next.turnFlags,
+            abilityUsed: { ...next.turnFlags.abilityUsed, [key]: used + 1 },
+          },
+        }
+      }
+    }
+  }
+
+  if (freeShootBonus !== (next.turnFlags.freeShootBonus ?? 0) || freeMoveBonus !== (next.turnFlags.freeMoveBonus ?? 0)) {
+    next = {
+      ...next,
+      turnFlags: {
+        ...next.turnFlags,
+        freeShootBonus,
+        freeMoveBonus,
+      },
+    }
   }
 
   pushResourcesEvent(events, next, side)
@@ -211,11 +444,13 @@ function reduceNextPhase(state: GameState): ReduceResult {
       status: {
         ...nextState.status,
         kingInvincibleSide: nextState.status.kingInvincibleSide === nextSide ? null : nextState.status.kingInvincibleSide,
+        sacrificeBuffByUnitId: {},
       },
       turnFlags: {
         ...nextState.turnFlags,
         shotUsed: {},
         movedThisTurn: {},
+        enemyKilledThisTurnCount: 0,
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,
@@ -225,10 +460,12 @@ function reduceNextPhase(state: GameState): ReduceResult {
         bloodRitualUsed: false,
         necroBonusActions: 0,
         freeShootBonus: 0,
+        freeMoveBonus: 0,
         enchantGoldDiscount: 0,
         itemNecroBonus: 0,
         lastStandContractBonus: 0,
         lastStandNoEnchantUnitIds: [],
+        darkMoonScopeActive: false,
         deathChainActive: false,
         deathChainKillCount: 0,
         sealedUnitIds: [],
@@ -274,7 +511,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       // 整編：周圍有 FORMATION_COMMAND 的卒免費移動（不消耗魔力）
       const fcHelper = unit.base === 'soldier' ? findFormationCommandHelper(state, unit.id) : null
-      const effectiveCost = fcHelper ? 0 : cost
+      const canUseFreeMove = !fcHelper && (state.turnFlags.freeMoveBonus ?? 0) > 0 && !state.turnFlags.movedThisTurn?.[unit.id]
+      const effectiveCost = (fcHelper || canUseFreeMove) ? 0 : cost
 
       if (r.mana < effectiveCost) return { ok: false, error: '魔力不足' }
       if (!isOnBoard(action.to)) return { ok: false, error: '目標位置超出棋盤' }
@@ -292,6 +530,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
+      const freeMoveBonus = state.turnFlags.freeMoveBonus ?? 0
+      const nextFreeMoveBonus = canUseFreeMove ? Math.max(0, freeMoveBonus - 1) : freeMoveBonus
+
       const prevAbilityUsed = state.turnFlags.abilityUsed ?? {}
       const nextAbilityUsed = fcHelper
         ? { ...prevAbilityUsed, [fcHelper.abilityKey]: (prevAbilityUsed[fcHelper.abilityKey] ?? 0) + 1 }
@@ -306,6 +547,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
             ...state.turnFlags.movedThisTurn,
             [unit.id]: true,
           },
+          freeMoveBonus: nextFreeMoveBonus,
           abilityUsed: nextAbilityUsed,
         },
         units: {
@@ -449,7 +691,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       return { ok: true, state: nextState, events: [] }
     }
     case 'SHOOT': {
-      const hasFreeShoot = (state.turnFlags.freeShootBonus ?? 0) > 0
+      const hasFreeShoot = (state.turnFlags.freeShootBonus ?? 0) > 0 && !state.turnFlags.shotUsed?.[action.attackerId]
       const prePlanEvents: Event[] = []
       // 魂能超載：暫時提升魔力以確保免費射擊能通過消耗檢查
       let stateForShot = hasFreeShoot ? {
@@ -542,16 +784,30 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         const killedCount = execRes.events.filter((e) => e.type === 'UNIT_KILLED').length
         if (killedCount > 0) {
           const usedSoFar = finalState.turnFlags.deathChainKillCount ?? 0
-          const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
-          if (allowed > 0) {
+          const cfg = finalState.turnFlags.onKillGainResource
+          const cap = Math.max(0, Math.floor(Number(cfg?.perTurnCap ?? DEATH_CHAIN_MAX_KILLS)))
+          const perKillAmt = Math.max(0, Math.floor(Number(cfg?.amount ?? 1)))
+          const resKey = String(cfg?.resource ?? 'mana')
+
+          const allowedKills = Math.min(killedCount, cap - usedSoFar)
+          const totalGain = allowedKills > 0 ? allowedKills * perKillAmt : 0
+          if (totalGain > 0) {
             const r = finalState.resources[shootSide]
-            const newMana = Math.min(r.mana + allowed, finalState.limits.manaMax)
+            const nextR = resKey === 'gold'
+              ? { ...r, gold: Math.min(r.gold + totalGain, finalState.limits.goldMax) }
+              : { ...r, mana: Math.min(r.mana + totalGain, finalState.limits.manaMax) }
             finalState = {
               ...finalState,
-              resources: { ...finalState.resources, [shootSide]: { ...r, mana: newMana } },
+              resources: { ...finalState.resources, [shootSide]: nextR },
               turnFlags: { ...finalState.turnFlags, deathChainKillCount: usedSoFar + killedCount },
             }
-            afterEvents.push({ type: 'RESOURCES_CHANGED', side: shootSide, gold: finalState.resources[shootSide].gold, mana: newMana, storageMana: finalState.resources[shootSide].storageMana })
+            afterEvents.push({
+              type: 'RESOURCES_CHANGED',
+              side: shootSide,
+              gold: finalState.resources[shootSide].gold,
+              mana: finalState.resources[shootSide].mana,
+              storageMana: finalState.resources[shootSide].storageMana,
+            })
           }
         }
       }
@@ -601,6 +857,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           const nextBuff = {
             ignoreBlockingAll: (buff as any).ignoreBlockingAll ? (true as const) : undefined,
             chainRadius: Number.isFinite((buff as any).chainRadius as any) ? Math.max(0, Math.floor(Number((buff as any).chainRadius))) : undefined,
+            chainFixedDamage: Number.isFinite((buff as any).chainFixedDamage as any)
+              ? Math.max(0, Math.floor(Number((buff as any).chainFixedDamage)))
+              : undefined,
+            chainDamageMultiplier: Number.isFinite((buff as any).chainDamageMultiplier as any)
+              ? Math.max(0, Number((buff as any).chainDamageMultiplier))
+              : undefined,
             damageBonusPerCorpsesCap: Number.isFinite((buff as any).damageBonusPerCorpsesCap as any)
               ? Math.max(0, Math.floor(Number((buff as any).damageBonusPerCorpsesCap)))
               : undefined,
@@ -625,16 +887,30 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         const sacSide = state.turn.side
         const killedCount = events.filter((e) => e.type === 'UNIT_KILLED').length
         const usedSoFar = nextState.turnFlags.deathChainKillCount ?? 0
-        const allowed = Math.min(killedCount, DEATH_CHAIN_MAX_KILLS - usedSoFar)
-        if (allowed > 0) {
+        const cfg = nextState.turnFlags.onKillGainResource
+        const cap = Math.max(0, Math.floor(Number(cfg?.perTurnCap ?? DEATH_CHAIN_MAX_KILLS)))
+        const perKillAmt = Math.max(0, Math.floor(Number(cfg?.amount ?? 1)))
+        const resKey = String(cfg?.resource ?? 'mana')
+
+        const allowedKills = Math.min(killedCount, cap - usedSoFar)
+        const totalGain = allowedKills > 0 ? allowedKills * perKillAmt : 0
+        if (totalGain > 0) {
           const r = nextState.resources[sacSide]
-          const newMana = Math.min(r.mana + allowed, nextState.limits.manaMax)
+          const nextR = resKey === 'gold'
+            ? { ...r, gold: Math.min(r.gold + totalGain, nextState.limits.goldMax) }
+            : { ...r, mana: Math.min(r.mana + totalGain, nextState.limits.manaMax) }
           nextState = {
             ...nextState,
-            resources: { ...nextState.resources, [sacSide]: { ...r, mana: newMana } },
+            resources: { ...nextState.resources, [sacSide]: nextR },
             turnFlags: { ...nextState.turnFlags, deathChainKillCount: usedSoFar + killedCount },
           }
-          events.push({ type: 'RESOURCES_CHANGED', side: sacSide, gold: nextState.resources[sacSide].gold, mana: newMana, storageMana: nextState.resources[sacSide].storageMana })
+          events.push({
+            type: 'RESOURCES_CHANGED',
+            side: sacSide,
+            gold: nextState.resources[sacSide].gold,
+            mana: nextState.resources[sacSide].mana,
+            storageMana: nextState.resources[sacSide].storageMana,
+          })
         }
       }
       return { ok: true, state: nextState, events }
@@ -709,20 +985,18 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
-      return {
-        ok: true,
-        state: nextState,
-        events: [
-          { type: 'ENCHANTED', unitId: unit.id, soulId: card.id },
-          {
-            type: 'RESOURCES_CHANGED',
-            side: state.turn.side,
-            gold: nextState.resources[state.turn.side].gold,
-            mana: nextState.resources[state.turn.side].mana,
-            storageMana: nextState.resources[state.turn.side].storageMana,
-          },
-        ],
-      }
+      const events: Event[] = [
+        { type: 'ENCHANTED', unitId: unit.id, soulId: card.id },
+        {
+          type: 'RESOURCES_CHANGED',
+          side: state.turn.side,
+          gold: nextState.resources[state.turn.side].gold,
+          mana: nextState.resources[state.turn.side].mana,
+          storageMana: nextState.resources[state.turn.side].storageMana,
+        },
+      ]
+      const nextState2 = applyAuraStatHpHealOnceAfterNecroAction(nextState, events)
+      return { ok: true, state: nextState2, events: [...events] }
     }
     case 'REVIVE': {
       if (state.turn.phase !== 'necro') return { ok: false, error: '需要在死靈術階段' }
@@ -832,7 +1106,8 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         reviveEvents.push({ type: 'ABILITY_TRIGGERED', unitId: lrHelper.allyId, abilityType: 'LOGISTICS_REVIVE', text: '後勤' })
       }
 
-      return { ok: true, state: nextState, events: reviveEvents }
+      const nextState2 = applyAuraStatHpHealOnceAfterNecroAction(nextState, reviveEvents)
+      return { ok: true, state: nextState2, events: reviveEvents }
     }
     case 'BUY_SOUL_FROM_DECK': {
       if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }

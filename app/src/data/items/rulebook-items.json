@@ -6,7 +6,8 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_lingxue_holy_grail.jpg",
     "text": "【購買】修復：選擇 1 個己方單位（含帥），恢復 4 點 HP（不超過上限）。",
-    "copies": 4
+    "copies": 6,
+    "abilities": [{ "type": "HEAL_UNIT", "amount": 4, "target": { "type": "ALLY_UNIT" }, "capToMaxHp": true }]
   },
   {
     "id": "item_soul_overload",
@@ -15,7 +16,8 @@
     "timing": "combat",
     "image": "/assets/cards/item/item_soul_overload.jpg",
     "text": "【戰鬥】動作：本回合獲得 1 次免費「射擊」。該動作不可由本回合已執行射擊的單位使用。",
-    "copies": 3
+    "copies": 2,
+    "abilities": [{ "type": "GRANT_FREE_SHOOT", "amount": 1, "restrict": { "type": "UNIT_NOT_SHOT_THIS_TURN" } }]
   },
   {
     "id": "item_bone_refine",
@@ -24,7 +26,11 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_bone_refine.jpg",
     "text": "【購買】轉化：移除場上 1 個己方屍骸，選擇獲得 9 點財力或 2 點魔力。",
-    "copies": 3,
+    "copies": 2,
+    "abilities": [
+      { "type": "REMOVE_CORPSE", "target": { "type": "ALLY_CORPSE_AT_POS" } },
+      { "type": "CHOICE_GAIN_RESOURCE", "options": [{ "resource": "gold", "amount": 9 }, { "resource": "mana", "amount": 2 }] }
+    ],
     "effect": { "goldAmount": 9, "manaAmount": 2 }
   },
   {
@@ -34,7 +40,8 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_dark_moon_scope.jpg",
     "text": "【購買】刷新：將道具展示欄所有卡片移至棄牌堆，並重新翻開新的道具卡。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "REFRESH_ITEM_DISPLAY" }]
   },
   {
     "id": "item_last_stand_contract",
@@ -43,7 +50,8 @@
     "timing": "necro",
     "image": "/assets/cards/item/item_last_stand_contract.jpg",
     "text": "【死靈】鋪場：立即執行 1 次不計入上限的「復活」，但該單位本回合不可附魔。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "GRANT_REVIVE_BONUS", "amount": 1, "revive": { "free": true, "ignoreNecroActionLimit": true }, "apply": { "type": "LAST_STAND_NO_ENCHANT_THIS_TURN" } }]
   },
   {
     "id": "item_soul_infusion",
@@ -52,7 +60,11 @@
     "timing": "necro",
     "image": "/assets/cards/item/item_soul_infusion.jpg",
     "text": "【死靈】爆發：立即獲得 +1 次「死靈術」動作，且本次執行「附魔」時成本 -1 財力。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [
+      { "type": "GAIN_NECRO_ACTION", "amount": 1 },
+      { "type": "ENCHANT_GOLD_DISCOUNT", "amount": 1, "scope": "NEXT_ENCHANT" }
+    ]
   },
   {
     "id": "item_death_chain",
@@ -61,7 +73,8 @@
     "timing": "combat",
     "image": "/assets/cards/item/item_death_chain.jpg",
     "text": "【戰鬥】殺戮：本回合每擊殺一個單位立即回復 1 點魔力。本效果單回合最多觸發 3 次。",
-    "copies": 1
+    "copies": 1,
+    "abilities": [{ "type": "ON_KILL_GAIN_RESOURCE", "resource": "mana", "amount": 1, "perTurnCap": 3 }]
   },
   {
     "id": "item_nether_seal",
@@ -70,7 +83,8 @@
     "timing": "combat",
     "image": "/assets/cards/item/item_nether_seal.jpg",
     "text": "【戰鬥】控制：選擇 1 個敵方單位，使其本回合無法執行移動與射擊動作。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "DISABLE_UNIT_ACTIONS", "target": { "type": "ENEMY_UNIT" }, "until": "TURN_END", "disable": { "move": true, "shoot": true } }]
   },
   {
     "id": "item_cage_plunder",
@@ -79,7 +93,8 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_cage_plunder.jpg",
     "text": "【購買】干擾：隨機奪取敵方牢籠 1 張靈魂卡納入己方牢籠。己方牢籠已有 5 張時無法發動。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "PLUNDER_CAGE_SOUL", "amount": 1, "random": true }]
   },
   {
     "id": "item_soul_detach_needle",
@@ -88,7 +103,8 @@
     "timing": "necro",
     "image": "/assets/cards/item/item_soul_detach_needle.jpg",
     "text": "【死靈】弱化：選 1 敵方附魔單位，將其靈魂卡收回敵方牢籠；該單位回復至滿 HP 狀態回歸初始狀態。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "DETACH_SOUL", "target": { "type": "ENEMY_ENCHANTED_UNIT" }, "returnTo": { "type": "ENEMY_CAGE" }, "resetUnit": { "toBaseStats": true, "healToFull": true } }]
   },
   {
     "id": "item_dead_return_path",
@@ -97,7 +113,8 @@
     "timing": "necro",
     "image": "/assets/cards/item/item_dead_return_path.jpg",
     "text": "【死靈】保護：選擇 1 個己方附魔單位，將靈魂卡收回牢籠。該單位回復至滿 HP 狀態回歸初始狀態。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "DETACH_SOUL", "target": { "type": "ALLY_ENCHANTED_UNIT" }, "returnTo": { "type": "ALLY_CAGE" }, "resetUnit": { "toBaseStats": true, "healToFull": true } }]
   },
   {
     "id": "item_wizard_greed",
@@ -106,6 +123,7 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_wizard_greed.jpg",
     "text": "【購買】洗牌：將展示區「所有」靈魂展示位卡片置於各牌堆底部，並全部翻開新卡。",
-    "copies": 2
+    "copies": 2,
+    "abilities": [{ "type": "REFRESH_SOUL_DISPLAY_ALL" }]
   }
 ]

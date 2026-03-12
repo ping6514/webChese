@@ -72,6 +72,11 @@ export default defineComponent({
       default: null,
     },
 
+    shootManaCost: {
+      type: Number as PropType<number | null>,
+      default: null,
+    },
+
     shootConfirmDisabled: {
       type: Boolean,
       default: false,
@@ -458,18 +463,14 @@ export default defineComponent({
       if (!(Number.isFinite(x) && Number.isFinite(y))) {
         return { left: '50%', top: '6%', transform: `translate(-50%, 0) translate(${dx}px, ${dy}px)` }
       }
-
-      // Position one grid cell above the source unit (same logic as shoot overlay)
       const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
-      const topPct  = ((y - 1 + 0.5) / BOARD_HEIGHT) * 100   // one cell up
-
+      const targetY = y <= 5 ? Math.min(BOARD_HEIGHT - 1, y + 2) : Math.max(0, y - 2)
+      const topPct = ((targetY + 0.5) / BOARD_HEIGHT) * 100
       const anchorX = x <= 1 ? '0%' : x >= BOARD_WIDTH - 2 ? '-100%' : '-50%'
-      const anchorY = y <= 1 ? '10%' : '-110%'
-
       return {
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        transform: `translate(${anchorX}, ${anchorY}) translate(${dx}px, ${dy}px)`,
+        transform: `translate(${anchorX}, -50%) translate(${dx}px, ${dy}px)`,
       }
     })
 
@@ -519,6 +520,7 @@ export default defineComponent({
       <ShootActionOverlay
         :show="!!shootActionPosKey && shootActionsVisible"
         :style-obj="shootOverlayStyle"
+        :mana-cost="shootManaCost"
         :confirm-disabled="shootConfirmDisabled"
         :confirm-title="shootConfirmTitle"
         :gold-for-damage="shootGoldForDamage"

@@ -86,7 +86,7 @@
       { "type": "CHAIN", "radius": 1, "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
       { "type": "DAMAGE_BONUS", "amount": 1, "when": { "type": "SOLDIERS_GTE", "count": 5 } }
     ],
-    "text": "【軍勢】：卒 ≥ 3 時獲得【連鎖】（彈跳 1 次）；≥ 5 時，射擊傷害額外 +1。"
+    "text": "【軍勢】：卒 ≥ 3 時，射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成 100% 傷害）；每回合限 1 次。≥ 5 時，射擊傷害額外 +1。"
   },
   {
     "id": "iron_guard_cannon_baobingpao",

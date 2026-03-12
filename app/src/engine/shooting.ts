@@ -151,6 +151,8 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
   const target = state.units[targetUnitId]
   if (!target) return { ok: false, error: '找不到目標' }
 
+  const crossedRiver = (side: 'red' | 'black', y: number): boolean => (side === 'red' ? y <= 4 : y >= 5)
+
   if (state.turn.phase !== 'combat') return { ok: false, error: '需要在戰鬥階段' }
   if (attacker.side !== state.turn.side) return { ok: false, error: '不是你的回合' }
   if (target.side === attacker.side) return { ok: false, error: '不能攻擊己方單位' }
@@ -162,7 +164,24 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
   if (state.turnFlags.shotUsed[attackerId]) {
     const soulId = attacker.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
-    const ab = card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
+    const mts = card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
+    const extra = card?.abilities.find((a) => a.type === 'EXTRA_SHOT')
+
+    // New: EXTRA_SHOT (independent of move)
+    if (extra) {
+      const whenType = String((extra as any)?.when?.type ?? '')
+      if (whenType === 'AFTER_CROSS_RIVER' && !crossedRiver(attacker.side, attacker.pos.y)) {
+        // not active
+      } else {
+        const perTurn = Number((extra as any)?.perTurn ?? 0)
+        const key = `${attackerId}:EXTRA_SHOT`
+        const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
+        const canExtra = Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
+        if (canExtra) return { ok: true }
+      }
+    }
+
+    const ab = mts
     const when = (ab as any)?.when
     if (when && String(when.type ?? '') === 'CORPSES_GTE') {
       const need = Number(when.count ?? 0)

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { canMove, createInitialState, reduce, type GameState } from '..'
+import { canMove, createInitialState, type GameState } from '..'
 import { buildShotPlan, executeShotPlan } from '../shotPlan'
 import { buildShotPreview } from '../shotPreview'
 
@@ -41,43 +41,35 @@ describe('dark moon missing abilities', () => {
     expect(canMove(withEnchant, knightId, to).ok).toBe(true)
   })
 
-  test('MOVE_THEN_SHOOT allows one extra shot after moving (perTurn=1)', () => {
+  test('EXTRA_SHOT allows one extra shot per turn after crossing river (perTurn=1)', () => {
     const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
+    s.resources.red.mana = 999
 
     const redKnightId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'knight')!.id
     const blackSoldierId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'soldier')!.id
 
     enchantUnit(s, redKnightId, 'dark_moon_knight_yingzi')
 
+    // Cross river for red: y <= 4
     setUnitPos(s, redKnightId, 4, 4)
-    setUnitPos(s, blackSoldierId, 7, 7)
+    // Place enemy at a legal knight shot target from (4,4) -> (5,6)
+    setUnitPos(s, blackSoldierId, 5, 6)
 
-    // Ensure the move destination is empty
+    // Ensure the shoot leg is not blocked (from (4,4) to (5,6) leg is (4,5))
     for (const u of Object.values(s.units)) {
       if (u.id === redKnightId || u.id === blackSoldierId) continue
-      if (u.pos.x === 6 && u.pos.y === 5) setUnitPos(s, u.id, 0, 0)
+      if (u.pos.x === 4 && u.pos.y === 5) setUnitPos(s, u.id, 0, 0)
     }
-
-    // Ensure the shoot leg is not blocked (from (6,5) to (7,7) leg is (6,6))
-    for (const u of Object.values(s.units)) {
-      if (u.id === redKnightId || u.id === blackSoldierId) continue
-      if (u.pos.x === 6 && u.pos.y === 6) setUnitPos(s, u.id, 0, 0)
-    }
-
-    // Move somewhere legal to activate movedThisTurn
-    const moveRes = reduce(s, { type: 'MOVE', unitId: redKnightId, to: { x: 6, y: 5 } })
-    expect(moveRes.ok).toBe(true)
-    const afterMove = moveRes.ok ? moveRes.state : s
 
     // First shot
-    const p1 = buildShotPlan(afterMove, redKnightId, blackSoldierId)
+    const p1 = buildShotPlan(s, redKnightId, blackSoldierId)
     expect(p1.ok).toBe(true)
-    const e1 = executeShotPlan(afterMove, (p1 as any).plan)
+    const e1 = executeShotPlan(s, (p1 as any).plan)
     expect(e1.ok).toBe(true)
 
-    // Second shot should still be allowed due to MOVE_THEN_SHOOT
+    // Second shot should still be allowed due to EXTRA_SHOT
     const after1 = (e1 as any).state as GameState
     const p2 = buildShotPlan(after1, redKnightId, blackSoldierId)
     expect(p2.ok).toBe(true)
@@ -120,6 +112,39 @@ describe('dark moon missing abilities', () => {
     expect(plan.ok).toBe(true)
     const res = executeShotPlan(s, (plan as any).plan)
     expect(res.ok).toBe(true)
+
+    const after = (res as any).state as GameState
+    const attackerHp1 = after.units[redRookId]?.hpCurrent ?? 0
+    expect(attackerHp1).toBeLessThan(attackerHp0)
+  })
+
+  test('COUNTER damages attacker when yingji itself takes damage (targets include SELF)', () => {
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    s.turn.phase = 'combat'
+    s.turn.side = 'red'
+
+    const redRookId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'rook')!.id
+    const blackAdvisorId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'advisor')!.id
+
+    // Put attacker and yingji in range
+    setUnitPos(s, redRookId, 4, 4)
+    setUnitPos(s, blackAdvisorId, 4, 1)
+
+    // Ensure path clear
+    for (const u of Object.values(s.units)) {
+      if (u.id === redRookId || u.id === blackAdvisorId) continue
+      if (u.pos.x === 4 && u.pos.y > 1 && u.pos.y < 4) setUnitPos(s, u.id, 0, 0)
+    }
+
+    enchantUnit(s, blackAdvisorId, 'dark_moon_advisor_yingji')
+
+    const attackerHp0 = s.units[redRookId]!.hpCurrent
+    const plan = buildShotPlan(s, redRookId, blackAdvisorId)
+    expect(plan.ok).toBe(true)
+    if (!plan.ok) return
+    const res = executeShotPlan(s, (plan as any).plan)
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
 
     const after = (res as any).state as GameState
     const attackerHp1 = after.units[redRookId]?.hpCurrent ?? 0

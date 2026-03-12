@@ -62,7 +62,7 @@ export const DEFAULT_RULES: GameRules = {
   reviveGoldCost: 3,
   buySoulFromDeckGoldCost: 1,
   buySoulFromDisplayGoldCost: 2,
-  buySoulFromEnemyGraveyardGoldCost: 3,
+  buySoulFromEnemyGraveyardGoldCost: 2,
   moveManaCost: 1,
   shootManaCost: 1,
   diceFixed: 3,

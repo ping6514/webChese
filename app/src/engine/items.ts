@@ -6,6 +6,7 @@ export type ItemCard = {
   image?: string | null
   text?: string
   copies?: number
+  abilities?: unknown[]
   effect?: {
     goldAmount?: number
     manaAmount?: number

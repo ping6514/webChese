@@ -42,6 +42,7 @@ describe('shooting ignore blocking', () => {
       turnFlags: {
         shotUsed: {},
         movedThisTurn: {},
+        enemyKilledThisTurnCount: 0,
         soulReturnUsedCount: 0,
         abilityUsed: {},
         soulBuyUsed: false,
@@ -67,6 +68,15 @@ describe('shooting ignore blocking', () => {
           mana: 999,
         },
       },
+    }
+
+    // Ensure there is exactly one blocker between attacker and target.
+    // (initial board may have extra pieces on the same file)
+    for (const u of Object.values(baseState.units)) {
+      if (u.id === attackerId || u.id === blocker0.id || u.id === targetId) continue
+      if (u.pos.x === 0 && u.pos.y >= 1 && u.pos.y <= 3) {
+        baseState.units[u.id] = { ...u, pos: { x: 8, y: 9 } }
+      }
     }
 
     const blocked = buildShotPlan(baseState, attackerId, targetId)

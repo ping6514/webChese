@@ -17,6 +17,12 @@ type UnitLite = {
   atk: { key: string; value: number }
   def: { key: string; value: number }[]
   enchant?: { soulId: string }
+  __atkPanel?: { key: string; base: number; total: number; parts: Array<{ label: string; amount: number }> }
+  __defPanel?: {
+    phys: { base: number; total: number; parts: Array<{ label: string; amount: number }> }
+    magic: { base: number; total: number; parts: Array<{ label: string; amount: number }> }
+  }
+  __hpPanel?: { current: number; maxBase: number; maxTotal: number; parts: Array<{ label: string; amount: number }> }
 }
 
 const BASE_LABEL: Record<string, string> = {
@@ -38,6 +44,27 @@ export default defineComponent({
   methods: {
     baseLabel(b: string) { return BASE_LABEL[b] ?? b },
     atkLabel(k: string) { return ATK_LABEL[k] ?? k },
+    atkSuffix(unit: UnitLite) {
+      const p = unit.__atkPanel
+      if (!p) return ''
+      const parts = (p.parts ?? []).filter((x) => Number(x.amount ?? 0) > 0)
+      if (parts.length === 0) return ''
+      return parts.map((x) => `(+${x.amount} ${x.label})`).join('')
+    },
+    defSuffix(unit: UnitLite, key: 'phys' | 'magic') {
+      const p = unit.__defPanel?.[key]
+      if (!p) return ''
+      const parts = (p.parts ?? []).filter((x) => Number(x.amount ?? 0) > 0)
+      if (parts.length === 0) return ''
+      return parts.map((x) => `(+${x.amount} ${x.label})`).join('')
+    },
+    hpSuffix(unit: UnitLite) {
+      const p = unit.__hpPanel
+      if (!p) return ''
+      const parts = (p.parts ?? []).filter((x) => Number(x.amount ?? 0) > 0)
+      if (parts.length === 0) return ''
+      return parts.map((x) => `(+${x.amount} ${x.label})`).join('')
+    },
   },
 })
 </script>
@@ -53,7 +80,7 @@ export default defineComponent({
           class="soulImg"
           :src="enchantSoul.image"
           alt=""
-          @click="$emit('show-soul-detail', enchantSoul!.id)"
+          @click="$emit('show-soul-detail', enchantSoul.id)"
         />
         <img
           v-else-if="baseImage"
@@ -73,8 +100,12 @@ export default defineComponent({
       <div class="cardRight">
         <div class="hpRow">
           <span class="hpIcon">❤️</span>
-          <span class="hpNum" :class="unit.side === 'red' ? 'red' : 'green'">{{ unit.hpCurrent }}</span>
+          <span class="hpNum" :class="unit.side === 'red' ? 'red' : 'green'">
+            {{ unit.__hpPanel?.current ?? unit.hpCurrent }}
+          </span>
           <span class="hpLabel">HP</span>
+          <span v-if="unit.__hpPanel" class="hpMax">/ {{ unit.__hpPanel.maxTotal }}</span>
+          <span v-if="hpSuffix(unit)" class="bonusSuffix">{{ hpSuffix(unit) }}</span>
         </div>
         <div class="statRow">
           <span class="statLabel">陣營</span>
@@ -88,11 +119,20 @@ export default defineComponent({
         </div>
         <div class="statRow">
           <span class="statLabel">⚔️ 攻</span>
-          <span class="statVal">{{ atkLabel(unit.atk.key) }} {{ unit.atk.value }}</span>
+          <span class="statVal">
+            {{ atkLabel(unit.__atkPanel?.key || unit.atk.key) }} {{ unit.__atkPanel?.total ?? unit.atk.value }}
+            <span v-if="atkSuffix(unit)" class="bonusSuffix">{{ atkSuffix(unit) }}</span>
+          </span>
         </div>
         <div class="statRow">
           <span class="statLabel">🛡️ 防</span>
-          <span class="statVal">{{ unit.def.map(d => `${atkLabel(d.key)} ${d.value}`).join(' / ') }}</span>
+          <span class="statVal">
+            {{ atkLabel('phys') }} {{ unit.__defPanel?.phys.total ?? (unit.def.find(d => d.key === 'phys')?.value ?? 0) }}
+            <span v-if="defSuffix(unit, 'phys')" class="bonusSuffix">{{ defSuffix(unit, 'phys') }}</span>
+            /
+            {{ atkLabel('magic') }} {{ unit.__defPanel?.magic.total ?? (unit.def.find(d => d.key === 'magic')?.value ?? 0) }}
+            <span v-if="defSuffix(unit, 'magic')" class="bonusSuffix">{{ defSuffix(unit, 'magic') }}</span>
+          </span>
         </div>
         <div class="statRow">
           <span class="statLabel">📍 位置</span>
@@ -197,6 +237,11 @@ export default defineComponent({
 .hpNum.green { color: #95de64; }
 .hpLabel { font-size: 0.8125rem; opacity: 0.65; font-weight: 600; }
 
+.hpMax {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
 .statRow {
   display: flex;
   align-items: baseline;
@@ -218,7 +263,11 @@ export default defineComponent({
 
 .empty { font-size: 0.8125rem; opacity: 0.45; padding: 8px 0; }
 
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+.statVal.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+.bonusSuffix {
+  margin-left: 6px;
+  color: #f5c542;
+  font-weight: 600;
 }
 </style>

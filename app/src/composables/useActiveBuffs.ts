@@ -72,7 +72,9 @@ export function useActiveBuffs(state: Ref<GameState>) {
 
     // TurnFlags 額外狀態
     if ((s.turnFlags.freeShootBonus ?? 0) > 0)
-      buffs.push({ label: `魂能超載：下次射擊免費 ×${s.turnFlags.freeShootBonus}`, kind: 'free' })
+      buffs.push({ label: `本回合：免費射擊 ×${s.turnFlags.freeShootBonus}`, kind: 'free' })
+    if ((s.turnFlags.freeMoveBonus ?? 0) > 0)
+      buffs.push({ label: `本回合：免費移動 ×${s.turnFlags.freeMoveBonus}`, kind: 'free' })
     if ((s.turnFlags.enchantGoldDiscount ?? 0) > 0)
       buffs.push({ label: `冥魂灌注：附魔 -${s.turnFlags.enchantGoldDiscount}G`, kind: 'buff' })
     if ((s.turnFlags.itemNecroBonus ?? 0) > 0)
@@ -81,8 +83,17 @@ export function useActiveBuffs(state: Ref<GameState>) {
       buffs.push({ label: `血液祭儀：死靈術 +${s.turnFlags.necroBonusActions}`, kind: 'buff' })
     if ((s.turnFlags.lastStandContractBonus ?? 0) > 0)
       buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
-    if (s.turnFlags.deathChainActive && (s.turnFlags.deathChainKillCount ?? 0) < DEATH_CHAIN_MAX_KILLS)
-      buffs.push({ label: `死亡連鎖：擊殺 +1 魔力（剩 ${DEATH_CHAIN_MAX_KILLS - (s.turnFlags.deathChainKillCount ?? 0)} 次）`, kind: 'aura' })
+    if (s.turnFlags.deathChainActive) {
+      const used = s.turnFlags.deathChainKillCount ?? 0
+      const cfg = (s.turnFlags as any).onKillGainResource as { resource: string; amount: number; perTurnCap: number } | undefined
+      const cap = Math.max(0, Math.floor(Number(cfg?.perTurnCap ?? DEATH_CHAIN_MAX_KILLS)))
+      const amt = Math.max(0, Math.floor(Number(cfg?.amount ?? 1)))
+      const resKey = String(cfg?.resource ?? 'mana')
+      if (used < cap) {
+        const resLabel = resKey === 'gold' ? '財力' : '魔力'
+        buffs.push({ label: `死亡連鎖：擊殺 +${amt} ${resLabel}（剩 ${cap - used} 次）`, kind: 'aura' })
+      }
+    }
 
     return buffs
   })

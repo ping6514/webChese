@@ -60,11 +60,14 @@ export type GameState = {
   status: {
     winnerSide: Side | null
     kingInvincibleSide: Side | null
+    auraStatHpHealUsedByKey?: Record<string, true>
     sacrificeBuffByUnitId: Record<
       string,
       {
         ignoreBlockingAll?: true
         chainRadius?: number
+        chainFixedDamage?: number
+        chainDamageMultiplier?: number
         damageBonusPerCorpsesCap?: number
       }
     >
@@ -72,6 +75,7 @@ export type GameState = {
   turnFlags: {
     shotUsed: Record<string, true>
     movedThisTurn: Record<string, true>
+    enemyKilledThisTurnCount: number
     soulReturnUsedCount: number
     abilityUsed: Record<string, number>
     soulBuyUsed: boolean
@@ -81,12 +85,15 @@ export type GameState = {
     bloodRitualUsed: boolean
     necroBonusActions: number
     freeShootBonus: number
+    freeMoveBonus: number
     enchantGoldDiscount: number
     itemNecroBonus: number
     lastStandContractBonus: number
     lastStandNoEnchantUnitIds: string[]
+    darkMoonScopeActive: boolean
     deathChainActive: boolean
     deathChainKillCount: number
+    onKillGainResource?: { resource: string; amount: number; perTurnCap: number }
     sealedUnitIds: string[]
     bloodSacrificeActiveShotEffect?: { unitId: string; effect: Record<string, unknown> }
     bloodSacrificeMoveThenShoot?: Record<string, boolean>
@@ -109,12 +116,12 @@ export type GameState = {
 }
 
 export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: number; def: KeyValueStat[] }> = {
-  king: { hp: 15, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }] },
-  advisor: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
-  elephant: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
-  rook: { hp: 10, atkKey: 'phys', atk: 2, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }] },
-  knight: { hp: 10, atkKey: 'phys', atk: 2, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }] },
-  cannon: { hp: 10, atkKey: 'phys', atk: 2, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 1 }] },
+  king: { hp: 15, atkKey: 'magic', atk: 2, def: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }] },
+  advisor: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
+  elephant: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
+  rook: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 1 }] },
+  knight: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }] },
+  cannon: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
   soldier: { hp: 8, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
 }
 
@@ -283,11 +290,13 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
     status: {
       winnerSide: null,
       kingInvincibleSide: null,
+      auraStatHpHealUsedByKey: {},
       sacrificeBuffByUnitId: {},
     },
     turnFlags: {
       shotUsed: {},
       movedThisTurn: {},
+      enemyKilledThisTurnCount: 0,
       soulReturnUsedCount: 0,
       abilityUsed: {},
       soulBuyUsed: false,
@@ -297,13 +306,15 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       bloodRitualUsed: false,
       necroBonusActions: 0,
       freeShootBonus: 0,
+      freeMoveBonus: 0,
       enchantGoldDiscount: 0,
       itemNecroBonus: 0,
       lastStandContractBonus: 0,
       lastStandNoEnchantUnitIds: [],
-
+      darkMoonScopeActive: false,
       deathChainActive: false,
       deathChainKillCount: 0,
+      onKillGainResource: undefined,
       sealedUnitIds: [],
     },
     pendingManaDrainBySide: { red: 0, black: 0 },

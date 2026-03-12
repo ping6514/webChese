@@ -24,10 +24,10 @@
       {
         "type": "DAMAGE_BONUS",
         "amount": 1,
-        "when": { "type": "CORPSES_GTE", "count": 5 }
+        "when": { "type": "CORPSES_GTE", "count": 3 }
       }
     ],
-    "text": "【屍氣】（依我方屍骸數）：≥4 時，射擊貫穿，對直線上的前 2 名敵方造成傷害。≥5 時，射擊傷害額外 +1。"
+    "text": "【屍氣】（依我方屍骸數）：≥4 時，射擊貫穿，對直線上的前 2 名敵方造成傷害。≥3 時，射擊傷害額外 +1。"
   },
   {
     "id": "eternal_night_rook_minggouche",
@@ -50,10 +50,10 @@
         "range": 1,
         "target": "ally",
         "requiresMovedThisTurn": false,
-        "buff": { "ignoreBlockingAll": true, "damageBonusPerCorpsesCap": 4 }
+        "buff": { "ignoreBlockingAll": true, "damageBonusPerCorpsesCap": 3 }
       }
     ],
-    "text": "【獻祭】（射擊前）：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合未射擊時才能使用）。你的下一次射擊獲得【無視阻擋（全部）】，且傷害依我方屍骸數 +1（上限 +4）；射擊後此加成消失。"
+    "text": "【獻祭】：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合未射擊時才能使用）。本回合你的下一次射擊獲得【無視阻擋（全部）】，且傷害依我方屍骸數 +1（上限 +3）；若本回合未射擊則回合結束失效。"
   },
   {
     "id": "eternal_night_knight_hunling",
@@ -75,11 +75,11 @@
         "type": "SACRIFICE_SHOT_BUFF",
         "range": 1,
         "target": "ally",
-        "requiresMovedThisTurn": true,
-        "buff": { "chainRadius": 1, "chainDamageMultiplier": 0.5 }
+        "requiresMovedThisTurn": false,
+        "buff": { "chainRadius": 1, "chainDamageMultiplier": 1 }
       }
     ],
-    "text": "【獻祭】（移動後）：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合需已移動且未射擊時才能使用）。你的下一次射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成 50% 傷害）；射擊後此加成消失。"
+    "text": "【獻祭】：摧毀 1 格內 1 名友軍（不可獻祭自己、不可獻祭帥；本回合未射擊時才能使用）。本回合你的下一次射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成 100% 傷害）；若本回合未射擊則回合結束失效。"
   },
   {
     "id": "eternal_night_knight_xuegu",
@@ -98,14 +98,9 @@
     },
     "abilities": [
       {
-        "type": "MOVE_THEN_SHOOT",
-        "perTurn": 1,
-        "when": { "type": "CORPSES_GTE", "count": 3 }
-      },
-      {
         "type": "ATK_BONUS",
         "amount": 2,
-        "when": { "type": "CORPSES_GTE", "count": 4 }
+        "when": { "type": "CORPSES_GTE", "count": 3 }
       },
       {
         "type": "ON_DEATH_FIXED_DAMAGE",
@@ -115,7 +110,7 @@
         "ignoreDef": true
       }
     ],
-    "text": "【屍氣】（依我方屍骸數）：≥3 時，本回合可【移動後射擊】（限 1 次）。≥4 時，攻擊力 +2。\n【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
+    "text": "【屍氣】（依我方屍骸數）：≥3 時，攻擊力 +2。\n【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
   },
   {
     "id": "eternal_night_cannon_suigu",
@@ -147,7 +142,7 @@
         "ignoreDef": true
       }
     ],
-    "text": "【屍氣】（依我方屍骸數）：≥3 時，射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成同等傷害）；每回合限 1 次。\n【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
+    "text": "【屍氣】（依我方屍骸數）：≥3 時，射擊獲得【連鎖】（可額外選擇目標格相鄰 1 格的另一敵方，造成 100% 傷害）；每回合限 1 次。\n【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。"
   },
   {
     "id": "eternal_night_cannon_minggupao",
@@ -256,22 +251,22 @@
       {
         "type": "IGNORE_BLOCKING",
         "count": 1,
-        "when": { "type": "CORPSES_GTE", "count": 1 }
+        "when": { "type": "CORPSES_GTE", "count": 2 }
       },
       {
         "type": "FREE_SHOOT",
         "perTurn": 1,
-        "when": { "type": "CORPSES_GTE", "count": 3 }
+        "when": { "type": "CORPSES_GTE", "count": 2 }
       },
       {
         "type": "AURA_DAMAGE_BONUS",
         "amount": 2,
-        "when": { "type": "CORPSES_GTE", "count": 4 },
+        "when": { "type": "CORPSES_GTE", "count": 3 },
         "for": "CLAN",
         "clan": "eternal_night"
       }
     ],
-    "text": "【屍氣】（依我方屍骸數）：≥1 時射擊獲得【無視阻擋】1 個。≥3 時，你的射擊變為【免費】（每回合限 1 次）。≥4 時，我方所有永夜單位傷害 +2。"
+    "text": "【屍氣】（依我方屍骸數）：≥2 時，射擊獲得【無視阻擋】1 個，且你的射擊變為【免費】（每回合限 1 次）。≥3 時，我方所有永夜單位傷害 +2。"
   },
   {
     "id": "eternal_night_elephant_mingguxiang",
@@ -305,6 +300,6 @@
         "amountPer": 2
       }
     ],
-    "text": "【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。\n【永夜血脈（攻）】：每 2 具我方屍骸，使我方所有永夜單位（不含帥）造成的傷害 +2（不限物理/魔法）。"
+    "text": "【冥土歸還】：此單位死亡時觸發。對死亡格周圍 1 格內所有敵方造成固定 3 點物理傷害（無視防禦）；可造成連鎖死亡。\n【永夜血脈（攻）】：我方永夜單位（不含帥）每有 2 具屍骸，傷害 +2。"
   }
 ]

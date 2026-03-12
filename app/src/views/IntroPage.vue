@@ -116,7 +116,7 @@ function selectItem(c: ItemCard) {
                 <ul>
                   <li><strong>購買靈魂卡</strong>：每次花費 2~1 財力，從對應棋子類型的展示卡中購入手牌（上限 5 張）。每回合限 1 次。</li>
                   <li><strong>購買道具卡</strong>：花費道具標示費用，加入手牌（上限 3 張）。每回合限 1 次。</li>
-                  <li><strong>盜取</strong>：消耗 3 財力，從敵方墓場頂部盜取一張靈魂卡。</li>
+                  <li><strong>盜取</strong>：消耗 2 財力，從敵方墓場頂部盜取一張靈魂卡。</li>
                   <li><strong>使用「購買」道具</strong>：使用手牌中時機為「購買」的道具卡。</li>
                 </ul>
               </div>

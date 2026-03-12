@@ -44,7 +44,18 @@ export function getLegalMoves(state: GameState, unitId: string): Pos[] {
 
   const soulId = unit.enchant?.soulId
   const card = soulId ? getSoulCard(soulId) : undefined
-  const ignorePathBlockingMove = !!card?.abilities.find((a) => a.type === 'IGNORE_PATH_BLOCKING' && (a as any).for === 'MOVE')
+  const movePathAb = card?.abilities.find((a) => a.type === 'IGNORE_PATH_BLOCKING' && (a as any).for === 'MOVE') as any
+  const movePathWhenType = String(movePathAb?.when?.type ?? '')
+  const movePathCrossed = crossedRiver(unit.side, unit.pos.y)
+  const movePathActive = !movePathAb
+    ? false
+    : (movePathWhenType === 'AFTER_CROSS_RIVER')
+      ? movePathCrossed
+      : true
+  const ignorePathBlockingMove = !!movePathAb && movePathActive
+  const passThroughCount = ignorePathBlockingMove
+    ? Math.max(0, Math.floor(Number(movePathAb?.count ?? 0)))
+    : 0
 
   const out: Pos[] = []
   const { x, y } = unit.pos
@@ -62,8 +73,18 @@ export function getLegalMoves(state: GameState, unitId: string): Pos[] {
       ] as const) {
         let cx = x + dx
         let cy = y + dy
+        let passed = 0
         while (isOnBoard({ x: cx, y: cy })) {
-          if (!isEmpty(state, { x: cx, y: cy })) break
+          const occupied = !isEmpty(state, { x: cx, y: cy })
+          if (occupied) {
+            if (unit.base === 'rook' && passThroughCount > 0 && passed < passThroughCount) {
+              passed++
+              cx += dx
+              cy += dy
+              continue
+            }
+            break
+          }
           out.push({ x: cx, y: cy })
           cx += dx
           cy += dy

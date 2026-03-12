@@ -32,6 +32,7 @@ export default defineComponent({
     attacker: { type: Object as () => UnitPreview | null, default: null },
     target: { type: Object as () => UnitPreview | null, default: null },
     guard: { type: Object as () => GuardResult, required: true },
+    cost: { type: Number as () => number | null, required: false, default: null },
     rawDamage: { type: Number as () => number | null, required: false, default: null },
     damageToTarget: { type: Number as () => number | null, required: false, default: null },
     shared: {
@@ -97,7 +98,10 @@ export default defineComponent({
       @pointercancel="onDragUp"
     >
       <div class="modalHead">
-        <div class="modalTitle">射擊預覽 <span class="dragHint">⠿</span></div>
+        <div class="modalTitle">
+          射擊預覽 <span class="dragHint">⠿</span>
+          <span v-if="cost != null" class="mono costBadge">耗魔 {{ cost }}</span>
+        </div>
         <button type="button" class="closeBtn" @click="$emit('cancel')">關閉</button>
       </div>
 

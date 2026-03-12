@@ -70,20 +70,23 @@ export type DamageFormulaItem = {
   isBonus: boolean
 }
 
-export type ShotPreview = {
-  ok: true
-  attackerId: string
-  targetUnitId: string
-  rawDamage: number
-  damageToTarget: number
-  shared: { toUnitId: string; amount: number } | null
-  effects: ShotPreviewEffect[]
-  damageFormula: {
-    items: DamageFormulaItem[]
-    resultMin: number
-    resultMax: number
-  }
-} | { ok: false; error: string }
+export type ShotPreview =
+  | { ok: false; error: string }
+  | {
+      ok: true
+      attackerId: string
+      targetUnitId: string
+      rawDamage: number
+      damageToTarget: number
+      shared: { toUnitId: string; amount: number } | null
+      effects: ShotPreviewEffect[]
+      damageFormula: {
+        items: DamageFormulaItem[]
+        resultMin: number
+        resultMax: number
+      }
+      cost?: number
+    }
 
 function crossedRiver(side: 'red' | 'black', y: number): boolean {
   return side === 'red' ? y <= 4 : y >= 5
@@ -141,7 +144,8 @@ function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId:
     const card = soulId ? getSoulCard(soulId) : undefined
     const res = card?.abilities.find((a) => a.type === 'RESONANCE')
     const need = Number((res as any)?.need ?? 0)
-    return isResonanceActive(state, auraUnit.id, need, clan)
+    const resClan = String((res as any)?.clan ?? '')
+    return isResonanceActive(state, auraUnit.id, need, resClan || clan)
   }
 
   return true
@@ -192,6 +196,12 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
 
   const effects: ShotPreviewEffect[] = []
 
+  let cost = state.rules.shootManaCost
+  const bsShotEffect =
+    state.turnFlags.bloodSacrificeActiveShotEffect?.unitId === attacker.id
+      ? state.turnFlags.bloodSacrificeActiveShotEffect.effect
+      : null
+
   const sacrificeBuff = state.status.sacrificeBuffByUnitId?.[attacker.id] ?? null
 
   let damageBonus = 0
@@ -216,23 +226,35 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       }
 
       const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
+      const crossed = crossedRiver(attacker.side, attacker.pos.y)
 
-      if (crossedOk) {
-        for (const ab of card.abilities) {
-          if (ab.type !== 'DAMAGE_BONUS') continue
-          const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
-            if (Number.isFinite(need) && need > 0) {
-              const corpses = countCorpses(state, attacker.side)
-              if (corpses < need) continue
-            }
+      for (const ab of card.abilities) {
+        if (ab.type !== 'DAMAGE_BONUS') continue
+        const when = (ab as any).when
+        const whenType = String(when?.type ?? '')
+        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
+        if (!whenType && hasCrossRiver && !crossed) continue
+
+        if (whenType === 'CORPSES_GTE') {
+          const need = Number(when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            const corpses = countCorpses(state, attacker.side)
+            if (corpses < need) continue
           }
-          const amount = Number((ab as any).amount ?? 0)
-          if (!Number.isFinite(amount) || amount <= 0) continue
-          damageBonus += amount
         }
+        if (whenType === 'MOVED_THIS_TURN') {
+          if (!state.turnFlags.movedThisTurn?.[attacker.id]) continue
+        }
+        if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
+          const need = Number(when?.count ?? 0)
+          const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
+          if (!(Number.isFinite(need) && need > 0)) continue
+          if (cur < need) continue
+        }
+
+        const amount = Number((ab as any).amount ?? 0)
+        if (!Number.isFinite(amount) || amount <= 0) continue
+        damageBonus += amount
       }
 
       // NOTE: we already pushed individual DAMAGE_BONUS effects above; here we keep the existing
@@ -241,6 +263,19 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       if (attackerSourced && damageBonus > 0) {
         effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount: damageBonus })
       }
+    }
+  }
+
+  if (String((bsShotEffect as any)?.type ?? '') === 'DAMAGE_BONUS') {
+    const bsAb = bsShotEffect as any
+    const targetWhen = bsAb.targetWhen
+    const targetOk =
+      !targetWhen
+      || (String(targetWhen.type ?? '') === 'TARGET_IN_PALACE' && palaceContains(target.side, target.pos))
+      || (String(targetWhen.type ?? '') === 'TARGET_CROSS_RIVER' && crossedRiver(target.side, target.pos.y))
+    const amount = Number(bsAb.amount ?? 0)
+    if (targetOk && Number.isFinite(amount) && amount > 0) {
+      effects.push({ kind: 'DAMAGE_BONUS', byUnitId: attacker.id, amount })
     }
   }
 
@@ -253,22 +288,42 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     if (!card) continue
 
     for (const ab of card.abilities) {
-      if (ab.type !== 'AURA_DAMAGE_BONUS') continue
+      if (ab.type !== 'AURA_DAMAGE_BONUS' && ab.type !== 'AURA_DAMAGE_MODIFIER') continue
       if (!auraAppliesToAttacker(state, u.id, attacker.id, (ab as any).when, card.clan)) continue
 
-      const forKey = String((ab as any).for ?? '')
-      if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
+      const forRaw = (ab as any).for
+      const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
+      let ok = true
+      for (const forKey of forKeys) {
+        if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) {
+          ok = false
+          break
+        }
 
-      if (forKey === 'CLAN') {
-        const clan = String((ab as any).clan ?? '')
-        if (!clan) continue
-        const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
-        if (!attackerCard) continue
-        if (String(attackerCard.clan ?? '') !== clan) continue
+        if (forKey === 'CLAN') {
+          const clan = String((ab as any).clan ?? '')
+          if (!clan) {
+            ok = false
+            break
+          }
+          const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
+          if (!attackerCard) {
+            ok = false
+            break
+          }
+          if (String(attackerCard.clan ?? '') !== clan) {
+            ok = false
+            break
+          }
 
-        const excludeBase = String((ab as any).excludeBase ?? '')
-        if (excludeBase && attacker.base === excludeBase) continue
+          const excludeBase = String((ab as any).excludeBase ?? '')
+          if (excludeBase && attacker.base === excludeBase) {
+            ok = false
+            break
+          }
+        }
       }
+      if (!ok) continue
 
       const per = (ab as any).per
       if (per && String(per.type ?? '') === 'CORPSES_PER') {
@@ -323,6 +378,30 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
         const corpses = countCorpses(state, attacker.side)
         const amount = Math.floor(corpses / perCount) * amountPer
         if (amount > 0) {
+          effects.push({ kind: 'TARGET_DEF_MINUS', byUnitId: attacker.id, key: key as 'magic' | 'phys', amount })
+        }
+      }
+    }
+  }
+  if (String((bsShotEffect as any)?.type ?? '') === 'TARGET_DEF_MINUS') {
+    const bsAb = bsShotEffect as any
+    const onlyIfAtkKey = String(bsAb.onlyIfAtkKey ?? '')
+    if (!onlyIfAtkKey || onlyIfAtkKey === attacker.atk.key) {
+      const key = String(bsAb.key ?? '')
+      if (key === 'phys' || key === 'magic') {
+        let amount = 0
+        const per = bsAb.per
+        if (per && String(per.type ?? '') === 'CORPSES_PER') {
+          const perCount = Number(per.count ?? 0)
+          const amountPer = Number(bsAb.amountPer ?? 0)
+          if (Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0) {
+            const corpses = countCorpses(state, attacker.side)
+            amount = Math.floor(corpses / perCount) * amountPer
+          }
+        } else {
+          amount = Number(bsAb.amount ?? 0)
+        }
+        if (Number.isFinite(amount) && amount > 0) {
           effects.push({ kind: 'TARGET_DEF_MINUS', byUnitId: attacker.id, key: key as 'magic' | 'phys', amount })
         }
       }
@@ -440,27 +519,34 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
-      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
-      if (crossedOk) {
-        const splashAb = card.abilities.find((a) => a.type === 'SPLASH')
-        const radius = Number((splashAb as any)?.radius ?? 0)
-        if (Number.isFinite(radius) && radius > 0) {
-          const splashTargets = Object.values(state.units)
-            .filter((u) => u.side !== attacker.side)
-            .filter((u) => u.id !== target.id)
-            .filter((u) => chebyshev(u.pos, target.pos) <= radius)
-            .map((u) => u.id)
-            .sort((a, b) => a.localeCompare(b))
+      const splashAb = card.abilities.find((a) => a.type === 'SPLASH') as any
+      if (splashAb) {
+        const whenType = String(splashAb.when?.type ?? '')
+        const crossed = crossedRiver(attacker.side, attacker.pos.y)
+        // Data-driven gate
+        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) {
+          // not active
+        } else {
+          const radius = Number(splashAb?.radius ?? 0)
+          if (Number.isFinite(radius) && radius > 0) {
+            const fixedDamage = Number(splashAb?.fixedDamage ?? 0)
+            const hasFixed = Number.isFinite(fixedDamage) && fixedDamage > 0
+            const splashTargets = Object.values(state.units)
+              .filter((u) => u.side !== attacker.side)
+              .filter((u) => u.id !== target.id)
+              .filter((u) => chebyshev(u.pos, target.pos) <= radius)
+              .map((u) => u.id)
+              .sort((a, b) => a.localeCompare(b))
 
-          if (splashTargets.length > 0) {
-            effects.push({
-              kind: 'SPLASH',
-              byUnitId: attacker.id,
-              radius,
-              targetUnitIds: splashTargets,
-              fixedDamage: rawDamage,
-            })
+            if (splashTargets.length > 0) {
+              effects.push({
+                kind: 'SPLASH',
+                byUnitId: attacker.id,
+                radius,
+                targetUnitIds: splashTargets,
+                fixedDamage: hasFixed ? Math.floor(fixedDamage) : rawDamage,
+              })
+            }
           }
         }
       }
@@ -468,7 +554,7 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   }
 
   // CHAIN: optionally add a single extra target chosen by UI, within radius of the main target.
-  if (attackerSoulId) {
+  if (attackerSoulId && extraTargetUnitId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
       const chainAb = card.abilities.find((a) => a.type === 'CHAIN')
@@ -491,6 +577,35 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       if (chainActive && extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
         const extra = state.units[extraId]
         if (extra && extra.side !== attacker.side && chebyshev(extra.pos, target.pos) <= radius) {
+          const manaCost = Number((chainAb as any).manaCost ?? 0)
+          if (Number.isFinite(manaCost) && manaCost > 0) {
+            cost += Math.floor(manaCost)
+          }
+          const sbFixed = Number((sacrificeBuff as any)?.chainFixedDamage ?? 0)
+          const sbMult = Number((sacrificeBuff as any)?.chainDamageMultiplier ?? 0)
+          const dmg = (Number.isFinite(sbFixed) && sbFixed > 0)
+            ? Math.floor(sbFixed)
+            : (Number.isFinite(sbMult) && sbMult > 0)
+              ? Math.max(0, Math.floor(rawDamage * sbMult))
+              : rawDamage
+          effects.push({ kind: 'CHAIN', byUnitId: attacker.id, targetUnitId: extra.id, fixedDamage: dmg })
+        }
+      }
+    }
+  }
+  if (String((bsShotEffect as any)?.type ?? '') === 'CHAIN' && extraTargetUnitId) {
+    const ab = bsShotEffect as any
+    const requiresManaGte = Number(ab.requiresManaGte ?? 0)
+    if (!(Number.isFinite(requiresManaGte) && requiresManaGte > 0) || state.resources[attacker.side].mana >= requiresManaGte) {
+      const extraId = extraTargetUnitId ?? null
+      const radius = Number(ab.radius ?? 0)
+      if (extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
+        const extra = state.units[extraId]
+        if (extra && extra.side !== attacker.side && chebyshev(extra.pos, target.pos) <= radius) {
+          const manaCost = Number(ab.manaCost ?? 0)
+          if (Number.isFinite(manaCost) && manaCost > 0) {
+            cost += Math.floor(manaCost)
+          }
           effects.push({ kind: 'CHAIN', byUnitId: attacker.id, targetUnitId: extra.id, fixedDamage: rawDamage })
         }
       }
@@ -501,30 +616,78 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
-      const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-      if (!hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)) {
-        let ignoreAll = false
-        let ignoreCount = 0
-        for (const ab of card.abilities) {
-          if (ab.type !== 'IGNORE_BLOCKING') continue
-          const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
-            if (Number.isFinite(need) && need > 0) {
-              const corpses = countCorpses(state, attacker.side)
-              if (corpses < need) continue
-            }
-          }
-          const mode = String((ab as any).mode ?? '')
-          if (mode === 'all') {
-            ignoreAll = true
-          } else {
-            const count = Number((ab as any).count ?? 0)
-            if (Number.isFinite(count) && count > ignoreCount) ignoreCount = count
+      let ignoreAll = false
+      let ignoreCount = 0
+      for (const ab of card.abilities as any[]) {
+        if (ab.type !== 'IGNORE_BLOCKING') continue
+
+        const whenType = String(ab.when?.type ?? '')
+        const crossed = crossedRiver(attacker.side, attacker.pos.y)
+        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
+
+        if (whenType === 'CORPSES_GTE') {
+          const need = Number(ab.when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            const corpses = countCorpses(state, attacker.side)
+            if (corpses < need) continue
           }
         }
-        if (ignoreAll) effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
-        if (ignoreCount > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count: ignoreCount })
+        const mode = String(ab.mode ?? '')
+        if (mode === 'all') {
+          ignoreAll = true
+        } else {
+          const count = Number(ab.count ?? 0)
+          if (Number.isFinite(count) && count > ignoreCount) ignoreCount = count
+        }
+      }
+      if (ignoreAll) effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
+      if (ignoreCount > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count: ignoreCount })
+    }
+  }
+
+  if (String((bsShotEffect as any)?.type ?? '') === 'PIERCE') {
+    const ab = bsShotEffect as any
+    const requiresManaGte = Number(ab.requiresManaGte ?? 0)
+    if (!(Number.isFinite(requiresManaGte) && requiresManaGte > 0) || state.resources[attacker.side].mana >= requiresManaGte) {
+      const manaCost = Number(ab.manaCost ?? 0)
+      if (Number.isFinite(manaCost) && manaCost > 0) cost += Math.floor(manaCost)
+      const mode = String(ab.mode ?? '')
+      if (mode === 'LINE_ENEMIES') {
+        const count = Number(ab.count ?? 0)
+        if (Number.isFinite(count) && count > 1) {
+          const dx = Math.sign(target.pos.x - attacker.pos.x)
+          const dy = Math.sign(target.pos.y - attacker.pos.y)
+          if ((dx === 0 && dy !== 0) || (dy === 0 && dx !== 0)) {
+            const enemies: string[] = []
+            for (let step = 1; step < 20; step++) {
+              const pos = { x: attacker.pos.x + dx * step, y: attacker.pos.y + dy * step }
+              if (pos.x < 0 || pos.x > 8 || pos.y < 0 || pos.y > 9) break
+              const hit = getUnitAt(state, pos)
+              if (!hit) continue
+              if (hit.side === attacker.side) continue
+              enemies.push(hit.id)
+              if (enemies.length >= count) break
+            }
+            if (enemies.includes(target.id)) {
+              effects.push({ kind: 'PIERCE', byUnitId: attacker.id, mode: 'LINE_ENEMIES', targetUnitIds: enemies, fixedDamage: rawDamage })
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (String((bsShotEffect as any)?.type ?? '') === 'IGNORE_BLOCKING') {
+    const ab = bsShotEffect as any
+    const requiresManaGte = Number(ab.requiresManaGte ?? 0)
+    if (!(Number.isFinite(requiresManaGte) && requiresManaGte > 0) || state.resources[attacker.side].mana >= requiresManaGte) {
+      const manaCost = Number(ab.manaCost ?? 0)
+      if (Number.isFinite(manaCost) && manaCost > 0) cost += Math.floor(manaCost)
+      const mode = String(ab.mode ?? '')
+      if (mode === 'all') effects.push({ kind: 'IGNORE_BLOCKING_ALL', byUnitId: attacker.id })
+      else {
+        const count = Number(ab.count ?? 0)
+        if (Number.isFinite(count) && count > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count })
       }
     }
   }
@@ -532,10 +695,13 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   let shared: { toUnitId: string; amount: number } | null = null
   const sharer = findDamageSharer(state, target.side)
   if (sharer && sharer.unitId !== target.id) {
-    const sharedAmount = Math.max(0, Math.min(sharer.amount, rawDamage - 1))
-    if (sharedAmount > 0) {
-      shared = { toUnitId: sharer.unitId, amount: sharedAmount }
-      effects.push({ kind: 'DAMAGE_SHARE', byUnitId: sharer.unitId, amount: sharedAmount })
+    const shareUnit = state.units[sharer.unitId]
+    const want = Math.floor(Number(sharer.amount ?? 0))
+    const canFromDamage = Number.isFinite(want) && want > 0 && rawDamage - 1 >= want
+    const canFromHp = !!shareUnit && shareUnit.hpCurrent - want >= 1
+    if (canFromDamage && canFromHp) {
+      shared = { toUnitId: sharer.unitId, amount: want }
+      effects.push({ kind: 'DAMAGE_SHARE', byUnitId: sharer.unitId, amount: want })
     }
   }
 
@@ -567,5 +733,6 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     shared,
     effects,
     damageFormula: { items: formulaItems, resultMin, resultMax },
+    cost,
   }
 }

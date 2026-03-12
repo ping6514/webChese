@@ -44,32 +44,47 @@ function computeDamageCore(
   let defValue = getDefValueInState(state, target, attacker.atk.key)
 
   const attackerSoulId0 = attacker.enchant?.soulId
+  const bsShotEffect =
+    state.turnFlags.bloodSacrificeActiveShotEffect?.unitId === attackerId
+      ? state.turnFlags.bloodSacrificeActiveShotEffect.effect
+      : null
+
+  const targetDefMinusAbilities: Array<Record<string, unknown>> = []
   if (attackerSoulId0) {
     const attackerCard0 = getSoulCard(attackerSoulId0)
     if (attackerCard0) {
       for (const ab of attackerCard0.abilities) {
-        if (String((ab as any).type ?? '') !== 'TARGET_DEF_MINUS') continue
-
-        const onlyIfAtkKey = String((ab as any).onlyIfAtkKey ?? '')
-        if (onlyIfAtkKey && onlyIfAtkKey !== attacker.atk.key) continue
-
-        const key = String((ab as any).key ?? '')
-        if (!key || key !== attacker.atk.key) continue
-
-        const per = (ab as any).per
-        if (!(per && String(per.type ?? '') === 'CORPSES_PER')) continue
-        const perCount = Number(per.count ?? 0)
-        const amountPer = Number((ab as any).amountPer ?? 0)
-        if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
-
-        const corpses = countCorpses(state, attacker.side)
-        const minus = Math.floor(corpses / perCount) * amountPer
-        if (!(Number.isFinite(minus) && minus > 0)) continue
-
-        const minDef = Number((ab as any).minDef ?? 0)
-        defValue = Math.max(Number.isFinite(minDef) ? Math.floor(minDef) : 0, defValue - minus)
+        if (String((ab as any).type ?? '') === 'TARGET_DEF_MINUS') {
+          targetDefMinusAbilities.push(ab as any)
+        }
       }
     }
+  }
+  if (String((bsShotEffect as any)?.type ?? '') === 'TARGET_DEF_MINUS') {
+    targetDefMinusAbilities.push(bsShotEffect as Record<string, unknown>)
+  }
+  for (const ab of targetDefMinusAbilities) {
+    const onlyIfAtkKey = String((ab as any).onlyIfAtkKey ?? '')
+    if (onlyIfAtkKey && onlyIfAtkKey !== attacker.atk.key) continue
+
+    const key = String((ab as any).key ?? '')
+    if (!key || key !== attacker.atk.key) continue
+
+    let minus = 0
+    const per = (ab as any).per
+    if (per && String(per.type ?? '') === 'CORPSES_PER') {
+      const perCount = Number(per.count ?? 0)
+      const amountPer = Number((ab as any).amountPer ?? 0)
+      if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
+      const corpses = countCorpses(state, attacker.side)
+      minus = Math.floor(corpses / perCount) * amountPer
+    } else {
+      minus = Number((ab as any).amount ?? 0)
+    }
+    if (!(Number.isFinite(minus) && minus > 0)) continue
+
+    const minDef = Number((ab as any).minDef ?? 0)
+    defValue = Math.max(Number.isFinite(minDef) ? Math.floor(minDef) : 0, defValue - minus)
   }
 
   let bonus = 0
@@ -90,35 +105,79 @@ function computeDamageCore(
       }
 
       const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
-      if (crossedOk) {
-        for (const ab of card.abilities) {
-          if (ab.type !== 'DAMAGE_BONUS') continue
-          const when = (ab as any).when
-          if (when) {
-            const whenType = String(when.type ?? '')
-            if (whenType === 'CORPSES_GTE') {
-              const need = Number(when.count ?? 0)
-              if (Number.isFinite(need) && need > 0) {
-                if (countCorpses(state, attacker.side) < need) continue
-              }
-            }
-            if (whenType === 'SOLDIERS_GTE') {
-              const need = Number(when.count ?? 0)
-              if (Number.isFinite(need) && need > 0) {
-                if (countSoldiers(state, attacker.side) < need) continue
-              }
+      const crossed = crossedRiver(attacker.side, attacker.pos.y)
+      for (const ab of card.abilities) {
+        if (ab.type !== 'DAMAGE_BONUS' && ab.type !== 'DAMAGE_MODIFIER') continue
+        const when = (ab as any).when
+        const whenType = String(when?.type ?? '')
+        // Data-driven gate
+        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
+        // Legacy gate (only if ability has no when)
+        if (!whenType && hasCrossRiver && !crossed) continue
+
+        if (whenType === 'CORPSES_GTE') {
+          const need = Number(when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            if (countCorpses(state, attacker.side) < need) continue
+          }
+        }
+        if (whenType === 'MOVED_THIS_TURN') {
+          if (!state.turnFlags.movedThisTurn?.[attackerId]) continue
+        }
+        if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
+          const need = Number(when?.count ?? 0)
+          const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
+          if (!(Number.isFinite(need) && need > 0)) continue
+          if (cur < need) continue
+        }
+        if (whenType === 'SOLDIERS_GTE') {
+          const need = Number(when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            if (countSoldiers(state, attacker.side) < need) continue
+          }
+        }
+
+        const targetWhen = (ab as any).targetWhen
+        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
+          const tgt = state.units[targetUnitId]
+          if (!tgt || !palaceContains(tgt.side, tgt.pos)) continue
+        }
+        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_CROSS_RIVER') {
+          const tgt = state.units[targetUnitId]
+          if (!tgt || !crossedRiver(tgt.side, tgt.pos.y)) continue
+        }
+
+        const amount = Number((ab as any).amount ?? 0)
+        if (Number.isFinite(amount) && amount > 0) {
+          bonus += amount
+          breakdown.push({ label: card.name, amount })
+        }
+      }
+
+      if (String((bsShotEffect as any)?.type ?? '') === 'DAMAGE_BONUS') {
+        const bsAb = bsShotEffect as any
+        const targetWhen = bsAb.targetWhen
+        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
+          if (palaceContains(target.side, target.pos)) {
+            const amount = Number(bsAb.amount ?? 0)
+            if (Number.isFinite(amount) && amount > 0) {
+              bonus += amount
+              breakdown.push({ label: '血祭', amount })
             }
           }
-          const targetWhen = (ab as any).targetWhen
-          if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
-            const tgt = state.units[targetUnitId]
-            if (!tgt || !palaceContains(tgt.side, tgt.pos)) continue
+        } else if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_CROSS_RIVER') {
+          if (crossedRiver(target.side, target.pos.y)) {
+            const amount = Number(bsAb.amount ?? 0)
+            if (Number.isFinite(amount) && amount > 0) {
+              bonus += amount
+              breakdown.push({ label: '血祭', amount })
+            }
           }
-          const amount = Number((ab as any).amount ?? 0)
+        } else if (!targetWhen) {
+          const amount = Number(bsAb.amount ?? 0)
           if (Number.isFinite(amount) && amount > 0) {
             bonus += amount
-            breakdown.push({ label: card.name, amount })
+            breakdown.push({ label: '血祭', amount })
           }
         }
       }
@@ -130,27 +189,40 @@ function computeDamageCore(
     const card = getSoulCard(attackerSoulId)
     if (card) {
       const hasCrossRiver = card.abilities.some((a) => a.type === 'CROSS_RIVER')
-      const crossedOk = !hasCrossRiver || crossedRiver(attacker.side, attacker.pos.y)
-      if (crossedOk) {
-        for (const ab of card.abilities) {
-          if (ab.type !== 'ATK_BONUS') continue
-          const when = (ab as any).when
-          if (when) {
-            const whenType = String(when.type ?? '')
-            if (whenType === 'CORPSES_GTE') {
-              const need = Number(when.count ?? 0)
-              if (Number.isFinite(need) && need > 0 && countCorpses(state, attacker.side) < need) continue
-            }
-            if (whenType === 'SOLDIERS_GTE') {
-              const need = Number(when.count ?? 0)
-              if (Number.isFinite(need) && need > 0 && countSoldiers(state, attacker.side) < need) continue
-            }
+      const crossed = crossedRiver(attacker.side, attacker.pos.y)
+      for (const ab of card.abilities) {
+        if (ab.type !== 'ATK_BONUS') continue
+        const when = (ab as any).when
+        const whenType = String(when?.type ?? '')
+        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
+        if (!whenType && hasCrossRiver && !crossed) continue
+
+        if (whenType === 'CORPSES_GTE') {
+          const need = Number(when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            if (countCorpses(state, attacker.side) < need) continue
           }
-          const amount = Number((ab as any).amount ?? 0)
-          if (Number.isFinite(amount) && amount > 0) {
-            bonus += amount
-            breakdown.push({ label: card.name + ' 攻擊+', amount })
+        }
+        if (whenType === 'MOVED_THIS_TURN') {
+          if (!state.turnFlags.movedThisTurn?.[attackerId]) continue
+        }
+        if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
+          const need = Number(when?.count ?? 0)
+          const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
+          if (!(Number.isFinite(need) && need > 0)) continue
+          if (cur < need) continue
+        }
+        if (whenType === 'SOLDIERS_GTE') {
+          const need = Number(when?.count ?? 0)
+          if (Number.isFinite(need) && need > 0) {
+            if (countSoldiers(state, attacker.side) < need) continue
           }
+        }
+
+        const amount = Number((ab as any).amount ?? 0)
+        if (Number.isFinite(amount) && amount > 0) {
+          bonus += amount
+          breakdown.push({ label: card.name + ' 攻擊+', amount })
         }
       }
     }
@@ -386,7 +458,7 @@ function computeDamageCore(
     if (!auraCard) continue
 
     for (const ab of auraCard.abilities) {
-      if (ab.type !== 'AURA_DAMAGE_BONUS') continue
+      if (ab.type !== 'AURA_DAMAGE_BONUS' && ab.type !== 'AURA_DAMAGE_MODIFIER') continue
 
       const when = (ab as any).when
       const type = String(when?.type ?? '')
@@ -412,19 +484,34 @@ function computeDamageCore(
         if (count < need) continue
       }
 
-      const forKey = String((ab as any).for ?? '')
-      if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
+      const forRaw = (ab as any).for
+      const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
+      for (const forKey of forKeys) {
+        if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) {
+          continue
+        }
 
-      if (forKey === 'CLAN') {
-        const clan = String((ab as any).clan ?? '')
-        if (!clan) continue
-        const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
-        if (!attackerCard) continue
-        if (String(attackerCard.clan ?? '') !== clan) continue
+        if (forKey === 'CLAN') {
+          const clan = String((ab as any).clan ?? '')
+          if (!clan) {
+            continue
+          }
+          const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
+          if (!attackerCard) {
+            continue
+          }
+          if (String(attackerCard.clan ?? '') !== clan) {
+            continue
+          }
 
-        const excludeBase = String((ab as any).excludeBase ?? '')
-        if (excludeBase && attacker.base === excludeBase) continue
+          const excludeBase = String((ab as any).excludeBase ?? '')
+          if (excludeBase && attacker.base === excludeBase) {
+            continue
+          }
+        }
       }
+
+      // If any forKey check failed, it would've continued the outer loop above.
 
       const per = (ab as any).per
       if (per && String(per.type ?? '') === 'CORPSES_PER') {
@@ -465,25 +552,6 @@ function computeDamageCore(
         bonus += amount
         breakdown.push({ label: auraCard.name + ' 光環', amount })
         break
-      }
-    }
-  }
-
-  // MINGLEI
-  if (attackerSoulId) {
-    const card = getSoulCard(attackerSoulId)
-    const minglei = card?.abilities.find((a) => a.type === 'MINGLEI')
-    if (minglei) {
-      const magicDefMinus = Number((minglei as any).magicDefMinus ?? 0)
-      if (attacker.atk.key === 'magic' && Number.isFinite(magicDefMinus) && magicDefMinus > 0) {
-        defValue = Math.max(0, defValue - magicDefMinus)
-      }
-      const bonusDamageIfTargetCrossRiver = Number((minglei as any).bonusDamageIfTargetCrossRiver ?? 0)
-      if (Number.isFinite(bonusDamageIfTargetCrossRiver) && bonusDamageIfTargetCrossRiver > 0) {
-        if (crossedRiver(target.side, target.pos.y)) {
-          bonus += bonusDamageIfTargetCrossRiver
-          breakdown.push({ label: '冥雷 過河', amount: bonusDamageIfTargetCrossRiver })
-        }
       }
     }
   }

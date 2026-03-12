@@ -15,6 +15,7 @@ import { useInteractionMode } from '../../composables/useInteractionMode'
 import { useUiStore } from '../../stores/ui'
 import { getItemCard } from '../../engine'
 import { useDraggable } from '../../composables/useDraggable'
+import type { ShotPreviewEffect } from '../../engine/shotPreview'
 
 const props = defineProps<{ mobile?: boolean }>()
 
@@ -46,6 +47,42 @@ const {
 
 const shootExtraTargetUnitId = computed(() => shootPreview.value?.extraTargetUnitId ?? null)
 const shootDetailsOpen = ref(false)
+
+const shootConfirmTitle = computed(() => {
+  const g = shootPreviewGuard.value
+  if (g.ok) return ''
+  return String((g as any).reason ?? '')
+})
+
+const shootManaCost = computed<number | null>(() => {
+  const info = shootPreviewInfo.value
+  if (!info?.ok) return null
+  const cost = Number((info as any).cost ?? NaN)
+  return Number.isFinite(cost) ? cost : state.value.rules.shootManaCost
+})
+
+const shootPreviewPierceMarks = computed<Record<string, number>>(() => {
+  if (!shootPreview.value) return {}
+  const info = shootPreviewInfo.value
+  if (!info?.ok) return {}
+
+  const unitIds: string[] = []
+  for (const e of (info.effects ?? []) as ShotPreviewEffect[]) {
+    if (e.kind !== 'PIERCE') continue
+    const ids = Array.isArray((e as any).targetUnitIds) ? ((e as any).targetUnitIds as string[]) : []
+    for (const id of ids) unitIds.push(id)
+  }
+
+  const marks: Record<string, number> = {}
+  let idx = 0
+  for (const id of unitIds) {
+    const u = state.value.units[id]
+    if (!u) continue
+    idx++
+    marks[`${u.pos.x},${u.pos.y}`] = idx
+  }
+  return marks
+})
 
 function cancelShootPreview() {
   shootDetailsOpen.value = false
@@ -389,14 +426,15 @@ defineExpose({ onUseItem })
           []
         "
         :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
-        :preview-pierce-marks="{}"
+        :preview-pierce-marks="shootPreviewPierceMarks"
         :preview-splash-pos-keys="[]"
         :preview-chain-eligible-pos-keys="shootPreviewChainEligiblePosKeys"
         :preview-chain-selected-pos-key="shootPreviewChainSelectedPosKey"
         :shoot-action-pos-key="shootTargetPosKey"
+        :shoot-mana-cost="shootManaCost"
         :shoot-actions-visible="!shootDetailsOpen"
         :shoot-confirm-disabled="!shootPreviewGuard.ok"
-        :shoot-confirm-title="shootPreviewGuard.ok ? '' : (shootPreviewGuard as any).reason ?? ''"
+        :shoot-confirm-title="shootConfirmTitle"
         :shoot-gold-for-damage="shootGoldForDamageInfo"
         :shoot-spend-gold-for-damage="shootSpendGoldForDamage"
         :shoot-blood-sacrifice="shootBloodSacrificeInfo"
@@ -445,6 +483,7 @@ defineExpose({ onUseItem })
       :attacker="shootPreviewAttacker"
       :target="shootPreviewTarget"
       :guard="shootPreviewGuard"
+      :cost="shootManaCost"
       :raw-damage="shootPreviewInfo?.rawDamage ?? null"
       :damage-to-target="shootPreviewInfo?.damageToTarget ?? null"
       :shared="shootPreviewInfo?.shared ?? null"

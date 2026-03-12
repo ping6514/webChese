@@ -7,6 +7,7 @@ export default defineComponent({
     show: { type: Boolean, required: false, default: false },
     title: { type: String as PropType<string>, required: false, default: '射擊選單' },
     styleObj: { type: Object as PropType<Record<string, string>>, required: false, default: () => ({}) },
+    manaCost: { type: Number as PropType<number | null>, required: false, default: null },
     confirmDisabled: { type: Boolean, required: false, default: false },
     confirmTitle: { type: String as PropType<string>, required: false, default: '' },
     confirmLabel: { type: String as PropType<string>, required: false, default: '射擊 (Enter)' },
@@ -107,6 +108,7 @@ export default defineComponent({
     @click.stop
   >
     <div class="shootActionsTitle"><span>{{ title }}</span> <button type="button" @click="onCancel">Ｘ</button></div>
+    <div v-if="manaCost != null" class="costRow mono">耗魔 {{ manaCost }}</div>
     <div v-if="bloodSacrifice" class="goldToggleRow">
       <button
         type="button"
@@ -141,6 +143,12 @@ export default defineComponent({
 .shootActionsTitle {
   display: flex;
   justify-content: space-between;
+}
+
+.costRow {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.8;
 }
 .shootActionsButtons {
   display: flex;

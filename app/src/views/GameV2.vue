@@ -34,7 +34,14 @@ const router = useRouter()
 const state = ref<GameState>(
   setup.mode === 'online' && conn.gameState
     ? conn.gameState
-    : createInitialState({ rules: { firstSide: setup.resolvedFirstPlayer, enabledClans: setup.enabledClans } as any })
+    : createInitialState({
+      rules: {
+        firstSide: setup.resolvedFirstPlayer,
+        enabledClans: setup.enabledClans,
+        rngMode: 'seeded',
+        matchSeed: String(setup.matchSeed ?? 'default'),
+      } as any,
+    })
 )
 
 // Online: sync state from connection

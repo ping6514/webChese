@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { buildShotPlan, executeShotPlan } from '../shotPlan'
 import { buildShotPreview } from '../shotPreview'
-import { createInitialState, type GameState } from '..'
+import { createInitialState, reduce, type GameState } from '..'
 import { getSoulCard } from '../cards'
 
 function cloneState(s: GameState): GameState {
@@ -38,7 +38,7 @@ function moveUnitAwayFromLine(s: GameState, x: number, yMin: number, yMax: numbe
 }
 
 describe('styx abilities', () => {
-  test('MINGLEI: magicDefMinus and target-cross-river bonus damage are applied in preview', () => {
+  test('TARGET_DEF_MINUS + DAMAGE_BONUS(target cross river) are applied in preview', () => {
     const s = createInitialState({ rules: { diceFixed: 3 } as any })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
@@ -56,7 +56,7 @@ describe('styx abilities', () => {
       if (u.pos.x === 5 && u.pos.y === 5) setUnitPos(s, u.id, 0, 0)
     }
 
-    // Enchant attacker with minglei
+    // Enchant attacker with Styx elephant using target def reduction + target-cross-river damage bonus
     enchantUnit(s, attackerId, 'styx_elephant_mingleixiang')
 
     // Put target in crossed-river state (black crossed when y>=5)
@@ -66,21 +66,43 @@ describe('styx abilities', () => {
     expect(preview.ok).toBe(true)
     if (!preview.ok) return
 
-    // minglei: target magic def -2 (min 0) and +2 damage if target crossed river
+    // target magic def -2 (min 0) and +2 damage if target crossed river
     // base: dice(3) + atk(3) - def(target.magic=0) = 6
     // with magicDefMinus(2): def stays 0 (already 0, min 0)
     // with crossed bonus +2 => 8
     expect(preview.rawDamage).toBe(8)
   })
 
-  test('HEAL_KING_ON_KILL heals allied king by 1 and does not exceed max HP', () => {
+  test('RESONANCE(styx>=3) grants free shoot and free move at turn start (via Styx elephants)', () => {
+    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+
+    // Trigger turn start for black by ending red's turn.
+    s.turn.phase = 'turnEnd'
+    s.turn.side = 'red'
+
+    // Enchant 3 black units with Styx souls, including both elephants.
+    enchantUnit(s, 'black:elephant:0', 'styx_elephant_mingleixiang')
+    enchantUnit(s, 'black:elephant:1', 'styx_elephant_mingyanxiang')
+    enchantUnit(s, 'black:rook:0', 'styx_rook_mingyanche')
+
+    const res = reduce(s, { type: 'NEXT_PHASE' })
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+
+    expect(res.state.turn.side).toBe('black')
+    expect(res.state.turn.phase).toBe('buy')
+
+    expect(res.state.turnFlags.freeShootBonus).toBe(1)
+    expect(res.state.turnFlags.freeMoveBonus).toBe(1)
+  })
+
+  test('KILL_MANA_GAIN grants mana on kill and does not exceed max mana', () => {
     const s = createInitialState({ rules: { diceFixed: 6 } as any })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
     const attackerId = 'red:knight:0'
     const targetId = 'black:soldier:0'
-    const kingId = 'red:king:0'
 
     enchantUnit(s, attackerId, 'styx_knight_xueyan')
 
@@ -90,16 +112,13 @@ describe('styx abilities', () => {
 
     // Ensure knight shoot leg is not blocked (from (4,4) to (5,6) leg is (4,5))
     for (const u of Object.values(s.units)) {
-      if (u.id === attackerId || u.id === targetId || u.id === kingId) continue
+      if (u.id === attackerId || u.id === targetId) continue
       if (u.pos.x === 4 && u.pos.y === 5) setUnitPos(s, u.id, 0, 0)
     }
 
-    // Damage should kill the soldier
-    const kingHp0 = s.units[kingId]!.hpCurrent
-
-    // Artificially reduce king hp to ensure healing is visible
-    s.units[kingId] = { ...s.units[kingId]!, hpCurrent: Math.max(1, kingHp0 - 6) }
-    const kingHpStart = s.units[kingId]!.hpCurrent
+    // Ensure we can observe mana gain (need enough mana to shoot)
+    s.resources = { ...s.resources, red: { ...s.resources.red, mana: 1 } }
+    const manaStart = s.resources.red.mana
 
     const planRes = buildShotPlan(s, attackerId, targetId)
     expect(planRes.ok).toBe(true)
@@ -115,16 +134,16 @@ describe('styx abilities', () => {
     const after = exec.state
     expect(after.units[targetId]).toBeUndefined()
 
-    const kingHp1 = after.units[kingId]!.hpCurrent
-    expect(kingHp1).toBe(kingHpStart + 4)
+    // shoot cost is deducted first, then KILL_MANA_GAIN is applied
+    const expectedMana = Math.min(after.limits.manaMax, Math.max(0, manaStart - planRes.plan.cost) + 1)
+    expect(after.resources.red.mana).toBe(expectedMana)
+    const abEvents = exec.events.filter((e) => e.type === 'ABILITY_TRIGGERED') as any[]
+    expect(abEvents.some((e) => e.abilityType === 'KILL_MANA_GAIN')).toBe(true)
 
-    const hpEvents = exec.events.filter((e) => e.type === 'UNIT_HP_CHANGED') as any[]
-    expect(hpEvents.some((e) => e.unitId === kingId && e.reason === 'HEAL_KING_ON_KILL' && e.from === kingHpStart && e.to === kingHpStart + 4)).toBe(true)
-
-    // cap check: set king to max, then perform another kill and assert HP doesn't exceed max.
-    const maxHp = 15
+    // cap check: set mana to max, then perform another kill and assert mana doesn't exceed max.
+    const maxMana = after.limits.manaMax
     const s3 = cloneState(after)
-    s3.units[kingId] = { ...s3.units[kingId]!, hpCurrent: maxHp }
+    s3.resources = { ...s3.resources, red: { ...s3.resources.red, mana: maxMana } }
 
     // Simulate a fresh turn so we can shoot again.
     s3.turnFlags = {
@@ -152,7 +171,7 @@ describe('styx abilities', () => {
     expect(exec2.ok).toBe(true)
     if (!exec2.ok) return
 
-    expect(exec2.state.units[kingId]!.hpCurrent).toBe(maxHp)
+    expect(exec2.state.resources.red.mana).toBe(maxMana)
   })
 
   test('PIERCE(LINE_ENEMIES,count=2) hits the first 2 enemies on the line (including target)', () => {
@@ -173,9 +192,21 @@ describe('styx abilities', () => {
     // Clear other blockers on file 4
     moveUnitAwayFromLine(s, 4, 3, 8, [attackerId, enemy1, enemy2])
 
+    // New: PIERCE requiresManaGte=2
+    s.resources = { ...s.resources, red: { ...s.resources.red, mana: 1 } }
+    const failPlan = buildShotPlan(s, attackerId, enemy1)
+    expect(failPlan.ok).toBe(false)
+    if (!failPlan.ok) expect(failPlan.error).toBe('魔力不足')
+
+    // Enough mana for gate and for cost
+    s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
+
     const planRes = buildShotPlan(s, attackerId, enemy1)
     expect(planRes.ok).toBe(true)
     if (!planRes.ok) return
+
+    // New: PIERCE manaCost=1 → total shoot cost becomes 2
+    expect(planRes.plan.cost).toBe(2)
 
     // Should contain one extra pierce instance for enemy2
     const instances = planRes.plan.instances
@@ -184,12 +215,16 @@ describe('styx abilities', () => {
 
     // Make both enemies 1 hp; both should die after execute
     const s2 = cloneState(s)
+    s2.resources = { ...s2.resources, red: { ...s2.resources.red, mana: 2 } }
     s2.units[enemy1] = { ...s2.units[enemy1]!, hpCurrent: 1 }
     s2.units[enemy2] = { ...s2.units[enemy2]!, hpCurrent: 1 }
 
     const exec = executeShotPlan(s2, planRes.plan)
     expect(exec.ok).toBe(true)
     if (!exec.ok) return
+
+    // Mana should be deducted by plan.cost
+    expect(exec.state.resources.red.mana).toBe(0)
 
     expect(exec.state.units[enemy1]).toBeUndefined()
     expect(exec.state.units[enemy2]).toBeUndefined()
@@ -213,12 +248,22 @@ describe('styx abilities', () => {
     // Clear other blockers on the file
     moveUnitAwayFromLine(s, 4, 1, 8, [attackerId, targetId, screenId])
 
+    // New: PIERCE manaCost=1 when screen condition is met
+    s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
+
     const planRes = buildShotPlan(s, attackerId, targetId)
     expect(planRes.ok).toBe(true)
     if (!planRes.ok) return
 
+    expect(planRes.plan.cost).toBe(2)
+
     const pierceTargets = planRes.plan.instances.filter((i) => (i as any).kind === 'pierce').map((i) => i.targetUnitId)
     expect(pierceTargets).toEqual([screenId])
+
+    const exec = executeShotPlan(s, planRes.plan)
+    expect(exec.ok).toBe(true)
+    if (!exec.ok) return
+    expect(exec.state.resources.red.mana).toBe(0)
   })
 
   test('CHAIN: extraTargetUnitId adds a chain instance with equal damage', () => {

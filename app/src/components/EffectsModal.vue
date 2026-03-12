@@ -42,6 +42,41 @@ function highestTier(tiers: { count: number; amount: number }[], n: number): { c
 
 const DEF_KEY_LABEL: Record<string, string> = { phys: '物理', magic: '魔法' }
 
+function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
+  if (pos.x < 3 || pos.x > 5) return false
+  if (side === 'red') return pos.y >= 7 && pos.y <= 9
+  return pos.y >= 0 && pos.y <= 2
+}
+
+function crossedRiver(side: 'red' | 'black', y: number): boolean {
+  return side === 'red' ? y <= 4 : y >= 5
+}
+
+function alliesInPalaceCount(state: GameState, side: 'red' | 'black'): number {
+  let n = 0
+  for (const u of Object.values(state.units)) {
+    if (u.side !== side) continue
+    if (palaceContains(side, u.pos)) n++
+  }
+  return n
+}
+
+function isResonanceActive(state: GameState, side: 'red' | 'black', clan: string, need: number): boolean {
+  if (!clan) return false
+  if (!Number.isFinite(need) || need <= 0) return false
+  let count = 0
+  for (const u of Object.values(state.units)) {
+    if (u.side !== side) continue
+    const sid = u.enchant?.soulId
+    if (!sid) continue
+    const c = getSoulCard(sid)
+    if (!c) continue
+    if (c.clan !== clan) continue
+    count++
+  }
+  return count >= need
+}
+
 function getAbilityLabel(ab: SoulAbility): string {
   const perT = Number((ab as any).perTurn ?? 0)
   const perS = perT > 0 ? `（每回合 ${perT} 次）` : ''
@@ -62,7 +97,9 @@ function getAbilityLabel(ab: SoulAbility): string {
     case 'FREE_SHOOT': return `免費射擊${perS}${condLabel(ab)}`
     case 'CHAIN': return `連鎖（範圍 ${(ab as any).radius ?? 1}）${perS}${condLabel(ab)}`
     case 'MOVE_THEN_SHOOT': return `移動後射擊${perS}${condLabel(ab)}`
-    case 'DAMAGE_BONUS': return `傷害 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
+    case 'DAMAGE_BONUS':
+    case 'DAMAGE_MODIFIER':
+      return `傷害 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
     case 'ARMY_RALLY': return '軍援：射擊聯動相鄰卒追加攻擊'
     case 'FORMATION_COMMAND': return `整編：相鄰 ${(ab as any).radius ?? 1} 格的卒可免費移動${perS}`
     case 'LOGISTICS_REVIVE': return `後勤：免費復活卒${perS}`
@@ -70,7 +107,9 @@ function getAbilityLabel(ab: SoulAbility): string {
     case 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER': return `每相鄰卒 +${(ab as any).amountPer ?? 1} 傷（上限 +${(ab as any).max ?? '∞'}）`
     case 'CROSS_RIVER': return '過河後效果生效'
     case 'MINGLEI': return '冥雷：穿透魔法防禦，過河目標額外傷害'
-    case 'AURA_DAMAGE_BONUS': return `氣場：友軍攻擊傷害 +${(ab as any).amount ?? '?'}`
+    case 'AURA_DAMAGE_BONUS':
+    case 'AURA_DAMAGE_MODIFIER':
+      return `氣場：友軍攻擊傷害 +${(ab as any).amount ?? '?'}`
     case 'TARGET_DEF_MINUS': {
       const k = String((ab as any).key ?? '')
       return `穿透防禦（${DEF_KEY_LABEL[k] ?? k}）${condLabel(ab)}`
@@ -134,7 +173,75 @@ function condLabel(ab: SoulAbility): string {
   if (!when) return ''
   if (when.type === 'SOLDIERS_GTE') return `（卒 ≥ ${when.count}）`
   if (when.type === 'CORPSES_GTE') return `（屍骸 ≥ ${when.count}）`
+  if (when.type === 'AFTER_CROSS_RIVER') return '（過河後）'
+  if (when.type === 'MOVED_THIS_TURN') return '（本回合已移動）'
+  if (when.type === 'ENEMY_KILLED_THIS_TURN_GTE') return `（本回合擊殺 ≥ ${when.count}）`
+  if (when.type === 'SOURCE_IN_PALACE') return '（來源在九宮）'
+  if (when.type === 'ATTACKER_IN_PALACE') return '（攻擊者在九宮）'
+  if (when.type === 'ALLIES_IN_PALACE_GTE') return `（九宮友軍 ≥ ${when.count}）`
+  if (when.type === 'RESONANCE_ACTIVE') return '（共鳴啟動）'
   return ''
+}
+
+function whenStatus(state: GameState, unit: Unit, ab: SoulAbility): { active: boolean; note: string } | null {
+  const when = (ab as any).when
+  if (!when) return null
+
+  if (when.type === 'SOLDIERS_GTE') {
+    const soldiers = countSoldiers(state, unit.side)
+    const need = Number(when.count ?? 0)
+    if (soldiers < need) return { active: false, note: `卒：${soldiers}/${need}` }
+    return { active: true, note: `卒：${soldiers}/${need}` }
+  }
+  if (when.type === 'CORPSES_GTE') {
+    const corpses = countCorpses(state, unit.side)
+    const need = Number(when.count ?? 0)
+    if (corpses < need) return { active: false, note: `屍骸：${corpses}/${need}` }
+    return { active: true, note: `屍骸：${corpses}/${need}` }
+  }
+  if (when.type === 'AFTER_CROSS_RIVER') {
+    const crossed = crossedRiver(unit.side, unit.pos.y)
+    return { active: crossed, note: crossed ? '已過河' : '未過河' }
+  }
+  if (when.type === 'MOVED_THIS_TURN') {
+    const moved = !!props.state.turnFlags.movedThisTurn?.[unit.id]
+    return { active: moved, note: moved ? '已移動' : '未移動' }
+  }
+  if (when.type === 'ENEMY_KILLED_THIS_TURN_GTE') {
+    const need = Number(when.count ?? 0)
+    const cur = Number(props.state.turnFlags.enemyKilledThisTurnCount ?? 0)
+    if (cur < need) return { active: false, note: `擊殺：${cur}/${need}` }
+    return { active: true, note: `擊殺：${cur}/${need}` }
+  }
+  if (when.type === 'SOURCE_IN_PALACE') {
+    const ok = palaceContains(unit.side, unit.pos)
+    return { active: ok, note: ok ? '來源在九宮' : '來源不在九宮' }
+  }
+  if (when.type === 'ALLIES_IN_PALACE_GTE') {
+    const need = Number(when.count ?? 0)
+    const cur = alliesInPalaceCount(state, unit.side)
+    if (cur < need) return { active: false, note: `九宮：${cur}/${need}` }
+    return { active: true, note: `九宮：${cur}/${need}` }
+  }
+  if (when.type === 'RESONANCE_ACTIVE') {
+    const myCard = getSoulCard(unit.enchant?.soulId ?? '')
+    const clan = String(myCard?.clan ?? '')
+    const res = (myCard?.abilities ?? []).find((x: any) => x.type === 'RESONANCE') as any
+    const need = Number(res?.need ?? 0)
+    const resClan = String(res?.clan ?? clan)
+    const ok = isResonanceActive(state, unit.side, resClan, need)
+    const count = resClan
+      ? Object.values(state.units).filter((u) => u.side === unit.side && u.enchant && getSoulCard(u.enchant.soulId)?.clan === resClan).length
+      : 0
+    return { active: ok, note: `同族 ${count}/${need || '?'}${resClan ? '' : '（缺 clan）'}` }
+  }
+
+  // Unsupported in EffectsModal context (depends on attacker/target at action time)
+  if (when.type === 'ATTACKER_IN_PALACE') {
+    return { active: true, note: '需攻擊者在九宮' }
+  }
+
+  return null
 }
 
 function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { active: boolean; note: string } {
@@ -200,6 +307,10 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
     const crossed = side === 'red' ? unit.pos.y <= 4 : unit.pos.y >= 5
     return { active: crossed, note: crossed ? '已過河' : '未過河' }
   }
+
+  // Common `when` conditions (data-driven)
+  const ws = whenStatus(state, unit, ab)
+  if (ws) return ws
 
   // Check `when` condition
   const when = (ab as any).when

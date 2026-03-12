@@ -157,8 +157,8 @@ export function canUseItemFromHand(state: GameState, itemId: string): GuardResul
   // 牢籠掠奪：己方牢籠已有 5 張 or 敵方牢籠為空
   if (itemId === 'item_cage_plunder') {
     const enemySide = side === 'red' ? 'black' : 'red'
-    if (state.hands[enemySide].souls.length === 0) return fail('敵方牢籠沒有靈魂卡')
-    if (state.hands[side].souls.length >= 5) return fail('己方牢籠已有 5 張，無法發動')
+    if (state.hands[enemySide].souls.length < 1) return fail('敵方牢籠沒有靈魂卡')
+    if (state.hands[side].souls.length >= state.limits.soulHandMax) return fail(`己方牢籠已滿（${state.limits.soulHandMax}張），無法發動`)
   }
   return ok()
 }
@@ -195,7 +195,8 @@ export function canMove(state: GameState, unitId: string, to: Pos): GuardResult 
   const cost = state.rules.moveManaCost
   // 整編：周圍有 FORMATION_COMMAND 的卒免費移動
   const fc = findFormationCommand(state, unit.id)
-  const effectiveManaCost = fc ? 0 : cost
+  const canUseFreeMove = (state.turnFlags.freeMoveBonus ?? 0) > 0 && !state.turnFlags.movedThisTurn?.[unitId]
+  const effectiveManaCost = (fc || canUseFreeMove) ? 0 : cost
   if (r.mana < effectiveManaCost) return fail('魔力不足')
   if (!isOnBoard(to)) return fail('目標位置超出棋盤')
   if (getUnitAt(state, to)) return fail('目標位置已有單位')
@@ -213,7 +214,8 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
   if (attacker.side !== state.turn.side) return fail('不是你的回合')
 
   // 魂能超載: 若有免費射擊，暫時提升魔力以通過消耗檢查
-  const stateForCheck = (state.turnFlags.freeShootBonus ?? 0) > 0 ? {
+  const canUseFreeShoot = (state.turnFlags.freeShootBonus ?? 0) > 0 && !state.turnFlags.shotUsed?.[attackerId]
+  const stateForCheck = canUseFreeShoot ? {
     ...state,
     resources: {
       ...state.resources,
