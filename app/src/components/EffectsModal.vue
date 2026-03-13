@@ -121,13 +121,60 @@ function getAbilityLabel(ab: SoulAbility): string {
     case 'COUNTER_ON_KING_DAMAGED': return `反擊：帥受傷時對攻擊者反擊${condLabel(ab)}`
     case 'RESONANCE': return `共鳴：同族單位達 ${(ab as any).need ?? 3} 名時生效`
     case 'PIERCE': return `貫穿：射擊穿透目標${condLabel(ab)}`
-    case 'SACRIFICE_SHOT_BUFF': return `死後射擊強化：提升攻擊力`
-    case 'ON_DEATH_FIXED_DAMAGE': return `死亡觸發：對帥造成 ${(ab as any).amount ?? '?'} 固定傷害`
+    case 'SACRIFICE_SHOT_BUFF': {
+      const buff = (ab as any).buff ?? {}
+      const parts: string[] = []
+      if (buff.ignoreBlockingAll) parts.push('無視全部阻擋')
+      if (buff.chainRadius != null) parts.push('連鎖')
+      if (buff.damageBonusPerCorpsesCap != null) parts.push(`傷害依屍骸數 +1（上限 +${buff.damageBonusPerCorpsesCap}）`)
+      return `獻祭：摧毀友軍後本回合下次射擊${parts.length ? '：' + parts.join('、') : '獲得強化'}`
+    }
+    case 'ON_DEATH_FIXED_DAMAGE': return `冥土歸還：死亡時對周圍 ${(ab as any).radius ?? 1} 格敵方造成 ${(ab as any).amount ?? '?'} 固定傷害（無視防禦）`
     case 'AURA_DEF_BONUS': return `氣場：友軍防禦 +${(ab as any).amount ?? '?'}`
     case 'HEAL_KING_ON_KILL': return `擊殺後：帥回復 ${(ab as any).amount ?? '?'} HP`
+    case 'HEAL_SELF_AND_KING_ON_KILL': return `血回：擊殺後自身回復 ${(ab as any).selfAmount ?? '?'} HP，帥回復 ${(ab as any).kingAmount ?? '?'} HP`
     case 'PALACE_ONLY': return `僅在九宮格內生效`
     case 'ATK_BONUS': return `攻擊力 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
     case 'AURA_HP_REGEN_ON_KILL': return `氣場：友軍擊殺後回復 HP`
+    case 'KILL_MANA_GAIN': return `擊殺後獲得 ${(ab as any).amount ?? '?'} 魔力`
+    case 'FIRST_DAMAGED_REDUCTION': return `首次受傷減傷 ${(ab as any).amount ?? '?'}${perS}`
+    case 'COUNTER': return `反擊：自身或帥受傷時對攻擊者造成 1d${(ab as any).damage?.dice ?? 6} 傷害${perS}`
+    case 'BELOW_MAX_HP_DEFENSE_BONUS': {
+      const defBonus = ((ab as any).defBonus ?? []) as { key: string; value: number }[]
+      const label = defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
+      return `末命：HP 低於上限時，${label || '雙防提升'}`
+    }
+    case 'ITEM_VALUE_AURA': {
+      const threshold = (ab as any).threshold ?? '?'
+      const bonus = (ab as any).bonus as { atk?: number; def?: { phys?: number; magic?: number } } | undefined
+      if (bonus?.atk != null) return `展示收藏（攻）：道具費用 ≥ ${threshold} 時，全軍 ATK +${bonus.atk}`
+      if (bonus?.def) return `展示收藏（守）：道具費用 ≥ ${threshold} 時，全軍雙防 +${bonus.def.phys ?? 0}/+${bonus.def.magic ?? 0}`
+      return `展示收藏：道具費用 ≥ ${threshold} 時生效`
+    }
+    case 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD': {
+      const thr = (ab as any).threshold ?? '?'
+      const amt = (ab as any).amount ?? '?'
+      return `逐利：首次攻擊時若財力 < ${thr}，獲得 ${amt} 財力${perS}`
+    }
+    case 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD': {
+      const thr = (ab as any).threshold ?? '?'
+      const amt = (ab as any).amount ?? '?'
+      return `回扣：首次使用道具後若財力 < ${thr}，獲得 ${amt} 財力${perS}`
+    }
+    case 'SACRIFICE_SELF_APPLY_STATUS': return `獻祭自身：使己方帥進入無敵（直到下回合開始）`
+    case 'UNIT_COUNT_ADVANTAGE_AURA': {
+      const margin = (ab as any).margin ?? 2
+      const defBonus = ((ab as any).defBonus ?? []) as { key: string; value: number }[]
+      const defLabel = defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
+      const atkBonus = (ab as any).atkBonus
+      const effectLabel = atkBonus != null ? `ATK +${atkBonus}` : defLabel || '提升'
+      return `盛勢：己方單位數比敵方多 ${margin} 以上時，全軍 ${effectLabel}`
+    }
+    case 'UNIT_COUNT_UNDERDOG_AURA': {
+      const margin = (ab as any).margin ?? 2
+      const atkBonus = (ab as any).atkBonus ?? '?'
+      return `逆勢：己方單位數比敵方少 ${margin} 以上時，全軍 ATK +${atkBonus}`
+    }
     // ── 死誓氏族 ──────────────────────────────────────────────────────────
     case 'FREE_SHOOT_DRAIN': return '透支：射擊不消耗魔力（下回合魔力回復 −1）'
     case 'BLOOD_TITHE_ON_KILL': return '血什一稅：擊殺附魂敵方後帥回復 HP'
@@ -180,6 +227,8 @@ function condLabel(ab: SoulAbility): string {
   if (when.type === 'ATTACKER_IN_PALACE') return '（攻擊者在九宮）'
   if (when.type === 'ALLIES_IN_PALACE_GTE') return `（九宮友軍 ≥ ${when.count}）`
   if (when.type === 'RESONANCE_ACTIVE') return '（共鳴啟動）'
+  if (when.type === 'TARGET_IN_PALACE') return '（目標在九宮）'
+  if (when.type === 'TARGET_CROSS_RIVER') return '（目標已過河）'
   return ''
 }
 

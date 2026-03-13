@@ -76,6 +76,7 @@ export const useUiStore = defineStore('ui', {
     toastPosition: (localStorage.getItem('v2_toast_pos') ?? 'top') as 'top' | 'right' | 'left',
     boardHoverEnabled: localStorage.getItem('v2_board_hover') !== '0',
     bodyFontSize: Number(localStorage.getItem('v2_font_size') ?? 16),
+    autoOpenShopOnBuy: localStorage.getItem('v2_auto_open_shop') !== '0',
   }),
   actions: {
     openShop: function () {
@@ -173,6 +174,10 @@ export const useUiStore = defineStore('ui', {
     toggleBoardHover: function () {
       this.boardHoverEnabled = !this.boardHoverEnabled
       localStorage.setItem('v2_board_hover', this.boardHoverEnabled ? '1' : '0')
+    },
+    toggleAutoOpenShop: function () {
+      this.autoOpenShopOnBuy = !this.autoOpenShopOnBuy
+      localStorage.setItem('v2_auto_open_shop', this.autoOpenShopOnBuy ? '1' : '0')
     },
     cycleBodyFontSize: function () {
       const sizes = [14, 15, 16, 17, 18]

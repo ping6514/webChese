@@ -463,14 +463,21 @@ export default defineComponent({
       if (!(Number.isFinite(x) && Number.isFinite(y))) {
         return { left: '50%', top: '6%', transform: `translate(-50%, 0) translate(${dx}px, ${dy}px)` }
       }
-      const leftPct = ((x + 0.5) / BOARD_WIDTH) * 100
-      const targetY = y <= 5 ? Math.min(BOARD_HEIGHT - 1, y + 2) : Math.max(0, y - 2)
-      const topPct = ((targetY + 0.5) / BOARD_HEIGHT) * 100
-      const anchorX = x <= 1 ? '0%' : x >= BOARD_WIDTH - 2 ? '-100%' : '-50%'
+      // Offset 2 cells toward board center (center = col 4, row 4.5)
+      const xOffset = x < 4 ? 2 : x > 4 ? -2 : 0
+      const yOffset = y <= 4 ? 2 : -2
+      const targetX = Math.max(0, Math.min(BOARD_WIDTH - 1, x + xOffset))
+      const targetY = Math.max(0, Math.min(BOARD_HEIGHT - 1, y + yOffset))
+      const leftPct = ((targetX + 0.5) / BOARD_WIDTH) * 100
+      const topPct  = ((targetY + 0.5) / BOARD_HEIGHT) * 100
+      // Horizontal anchor: left edge of popup points to unit side (open toward center)
+      const anchorX = targetX > x ? '0%' : targetX < x ? '-100%' : '-50%'
+      // Vertical anchor: top when below unit, bottom when above unit
+      const anchorY = targetY > y ? '0%' : '-100%'
       return {
         left: `${leftPct}%`,
         top: `${topPct}%`,
-        transform: `translate(${anchorX}, -50%) translate(${dx}px, ${dy}px)`,
+        transform: `translate(${anchorX}, ${anchorY}) translate(${dx}px, ${dy}px)`,
       }
     })
 

@@ -260,6 +260,27 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     }
   }
 
+  // GOLD_THRESHOLD_ATK global ATK aura (財魂 style: all allies get ATK bonus when gold >= threshold)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
+      const scope = String(ab.scope ?? 'self')
+      if (scope !== 'global') continue
+      const atkBonus = Number(ab.atkBonus ?? 0)
+      if (!(Number.isFinite(atkBonus) && atkBonus > 0)) continue
+      const threshold = Number(ab.threshold ?? 0)
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      if (state.resources[unit.side].gold < threshold) continue
+      bonus += atkBonus
+      parts.push({ label: auraCard.name + ' 財力共鳴', amount: atkBonus })
+    }
+  }
+
   // ITEM_VALUE_AURA (global ATK aura when total item value in hand reaches threshold)
   for (const auraUnit of Object.values(state.units)) {
     if (auraUnit.side !== unit.side) continue
@@ -280,6 +301,53 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
       const add = Math.floor(amount)
       bonus += add
       parts.push({ label: auraCard.name + ' 收藏', amount: add })
+    }
+  }
+
+  // AURA_DAMAGE_BONUS (e.g., 骨靈相、冥骨相 for eternal_night clan)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'AURA_DAMAGE_BONUS') continue
+
+      // when condition
+      const when = ab.when
+      const whenType = String(when?.type ?? '')
+      if (whenType === 'CORPSES_GTE') {
+        const need = Number(when?.count ?? 0)
+        if (countCorpses(state, auraUnit.side) < need) continue
+      }
+
+      // for restriction
+      const forKey = String(ab.for ?? '')
+      if (forKey === 'CLAN') {
+        const clan = String(ab.clan ?? '')
+        if (!clan) continue
+        const sid = unit.enchant?.soulId
+        const uc = sid ? getSoulCard(sid) : undefined
+        if (!uc || String(uc.clan ?? '') !== clan) continue
+        const excludeBase = String(ab.excludeBase ?? '')
+        if (excludeBase && unit.base === excludeBase) continue
+      }
+
+      // calculate amount (flat or per-corpse)
+      let amount = 0
+      if (ab.per?.type === 'CORPSES_PER') {
+        const divisor = Number(ab.per.count ?? 1)
+        const amountPer = Number(ab.amountPer ?? 0)
+        if (divisor > 0 && amountPer > 0) {
+          amount = Math.floor(countCorpses(state, auraUnit.side) / divisor) * amountPer
+        }
+      } else {
+        amount = Number(ab.amount ?? 0)
+      }
+      if (!Number.isFinite(amount) || amount <= 0) continue
+      bonus += amount
+      parts.push({ label: auraCard.name + ' 光環', amount })
     }
   }
 

@@ -221,6 +221,7 @@ export function useInteractionMode(opts: {
     const prevSelectedUnit = selectedUnit.value
 
     // While shoot preview is open, allow selecting a CHAIN extra target by clicking a second eligible enemy.
+    // Clicking ANY enemy while preview is open (eligible or not) should never reopen/reset the preview.
     if (shootPreview.value && payload.unitId) {
       const clicked = state.value.units[payload.unitId]
       if (clicked && clicked.side !== state.value.turn.side) {
@@ -231,8 +232,8 @@ export function useInteractionMode(opts: {
             targetUnitId: shootPreview.value.targetUnitId,
             extraTargetUnitId: shootExtraTargetUnitId.value === clicked.id ? null : clicked.id,
           })
-          return
         }
+        return
       }
     }
 

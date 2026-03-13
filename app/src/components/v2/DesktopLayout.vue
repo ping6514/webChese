@@ -13,6 +13,7 @@ const state = ctx.state as Ref<GameState>
 
 const leftCollapsed = ref(localStorage.getItem('v2_left_collapsed') === '1')
 const rightCollapsed = ref(localStorage.getItem('v2_right_collapsed') === '1')
+const buffBarCollapsed = ref(localStorage.getItem('v2_buff_collapsed') !== '0')
 
 // ── Right panel width cycle ────────────────────────────────────────────────────
 type PanelSize = 'sm' | 'md' | 'lg'
@@ -27,9 +28,10 @@ const PANEL_LABELS: Record<PanelSize, string> = { sm: '◀◀', md: '◀▶', lg
 function cyclePanelSize() {
   panelSize.value = panelSize.value === 'sm' ? 'md' : panelSize.value === 'md' ? 'lg' : 'sm'
 }
-watch(leftCollapsed,  (v) => localStorage.setItem('v2_left_collapsed',  v ? '1' : '0'))
-watch(rightCollapsed, (v) => localStorage.setItem('v2_right_collapsed', v ? '1' : '0'))
-watch(panelSize,      (v) => localStorage.setItem('v2_panel_size', v))
+watch(leftCollapsed,    (v) => localStorage.setItem('v2_left_collapsed',  v ? '1' : '0'))
+watch(rightCollapsed,   (v) => localStorage.setItem('v2_right_collapsed', v ? '1' : '0'))
+watch(buffBarCollapsed, (v) => localStorage.setItem('v2_buff_collapsed',  v ? '1' : '0'))
+watch(panelSize,        (v) => localStorage.setItem('v2_panel_size', v))
 
 const rightPanelStyle = computed(() =>
   rightCollapsed.value ? { width: '28px' } : { width: PANEL_WIDTHS[panelSize.value] }
@@ -103,7 +105,10 @@ const res = computed(() => state.value.resources)
       <!-- Board area -->
       <main class="boardArea">
         <!-- Buff bar (sticky top of board area) -->
-        <div class="buffBar">
+        <div class="buffBar" :class="{ 'buffBar--collapsed': buffBarCollapsed }">
+          <button class="buffToggle" @click="buffBarCollapsed = !buffBarCollapsed" :title="buffBarCollapsed ? '展開場效' : '收合場效'">
+            {{ buffBarCollapsed ? '▶ 場效' : '▼ 場效' }}
+          </button>
           <span
             v-for="(b, i) in ctx.activeBuffs"
             :key="i"
@@ -299,6 +304,31 @@ const res = computed(() => state.value.resources)
   background: rgba(14, 16, 30, 0.9);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(6px);
+}
+.buffBar--collapsed {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.buffBar--collapsed::-webkit-scrollbar { height: 3px; }
+.buffBar--collapsed::-webkit-scrollbar-track { background: transparent; }
+.buffBar--collapsed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 99px; }
+.buffToggle {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgb(14, 16, 30);
+  box-shadow: 6px 0 8px 4px rgb(14, 16, 30);
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .buffPill {

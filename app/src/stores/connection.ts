@@ -53,10 +53,10 @@ function makePollingAdapter(intervalMs = 60000): SyncAdapter {
 }
 
 // Realtime + polling hybrid: Realtime fires instantly when available,
-// polling fires every 4s as a safety net when Realtime is unreliable
+// polling fires every 60s as a safety net when Realtime is unreliable
 function makeHybridAdapter(roomId: string, getLocalVersion: () => number): SyncAdapter {
   const rt = makeRealtimeAdapter(roomId, getLocalVersion)
-  const poll = makePollingAdapter(4000)
+  const poll = makePollingAdapter(60000)
   return {
     start(onTick) {
       rt.start(onTick)

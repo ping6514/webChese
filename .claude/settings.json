@@ -36,7 +36,13 @@
       "Bash(cat app/api/rooms/[roomId]/join.ts)",
       "Bash(npx vue-tsc -b --noEmit)",
       "Bash(du -sh dist/assets/*.js)",
-      "Bash(ls src/use*.ts)"
+      "Bash(ls src/use*.ts)",
+      "Bash(/tmp/json_types.txt:*)",
+      "Bash(__NEW_LINE_dd0c951e7a1dac2d__ cat:*)",
+      "Bash(/tmp/engine_types.txt:*)",
+      "Bash(__NEW_LINE_dd0c951e7a1dac2d__ echo:*)",
+      "Read(//tmp/**)",
+      "Bash(grep -r \"AURA_DAMAGE_BONUS\\\\|BLOOD_SACRIFICE\\\\|COUNTER\\\\|DEATH_COUNTER\\\\|EXTRA_SHOT\\\\|KILL_GOLD_GAIN\\\\|KILL_MANA_GAIN\\\\|ON_DEATH_FIXED_DAMAGE\\\\|SACRIFICE_SHOT_BUFF\\\\|TARGET_DEF_MINUS\" /d/workspace/webChese/app/src/engine/*.ts)"
     ]
   }
 }

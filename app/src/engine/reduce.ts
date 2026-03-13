@@ -47,39 +47,51 @@ export type ReduceResult = ReduceOk | ReduceErr
 function applyFirstAttackIfGoldLtGainGold(state: GameState, attackerId: string, events: Event[]): GameState {
   const attacker = state.units[attackerId]
   if (!attacker) return state
-  const soulId = attacker.enchant?.soulId
-  if (!soulId) return state
-  const card = getSoulCard(soulId)
-  if (!card) return state
+  const side = attacker.side
 
   let nextState = state
-  for (const ab of card.abilities as any[]) {
-    if (ab.type !== 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') continue
-    const perTurn = Number(ab.perTurn ?? 1)
-    const threshold = Number(ab.threshold ?? 0)
-    const amount = Number(ab.amount ?? 0)
-    if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
-    if (!(Number.isFinite(threshold) && threshold > 0)) continue
-    if (!(Number.isFinite(amount) && amount > 0)) continue
 
-    const key = `${attackerId}:FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD`
-    const used = Number(nextState.turnFlags.abilityUsed?.[key] ?? 0)
-    if (used >= perTurn) continue
-    const side = attacker.side
-    const r = nextState.resources[side]
-    if (r.gold >= threshold) continue
-    const gained = Math.floor(amount)
-    const nextGold = Math.min(nextState.limits.goldMax, r.gold + gained)
-    nextState = {
-      ...nextState,
-      resources: { ...nextState.resources, [side]: { ...r, gold: nextGold } },
-      turnFlags: {
-        ...nextState.turnFlags,
-        abilityUsed: { ...(nextState.turnFlags.abilityUsed ?? {}), [key]: used + 1 },
-      },
+  // Check all ally units for FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD (self or global scope)
+  for (const auraUnit of Object.values(nextState.units)) {
+    if (auraUnit.side !== side) continue
+    const soulId = auraUnit.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    for (const ab of card.abilities as any[]) {
+      if (ab.type !== 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') continue
+      const scope = String(ab.scope ?? 'self')
+      // self scope: only triggers when this unit itself attacks
+      if (scope === 'self' && auraUnit.id !== attackerId) continue
+      const perTurn = Number(ab.perTurn ?? 1)
+      const threshold = Number(ab.threshold ?? 0)
+      const amount = Number(ab.amount ?? 0)
+      if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      if (!(Number.isFinite(amount) && amount > 0)) continue
+
+      // global scope uses side-level key (one trigger per turn regardless of which unit attacks)
+      const key = scope === 'global'
+        ? `${auraUnit.id}:FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD:global`
+        : `${attackerId}:FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD`
+      const used = Number(nextState.turnFlags.abilityUsed?.[key] ?? 0)
+      if (used >= perTurn) continue
+      const r = nextState.resources[side]
+      if (r.gold >= threshold) continue
+      const gained = Math.floor(amount)
+      const nextGold = Math.min(nextState.limits.goldMax, r.gold + gained)
+      nextState = {
+        ...nextState,
+        resources: { ...nextState.resources, [side]: { ...r, gold: nextGold } },
+        turnFlags: {
+          ...nextState.turnFlags,
+          abilityUsed: { ...(nextState.turnFlags.abilityUsed ?? {}), [key]: used + 1 },
+        },
+      }
+      events.push({ type: 'ABILITY_TRIGGERED', unitId: auraUnit.id, abilityType: 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD', text: `逐利 +${gained}G` })
+      events.push({ type: 'RESOURCES_CHANGED', side, gold: nextState.resources[side].gold, mana: nextState.resources[side].mana, storageMana: nextState.resources[side].storageMana })
     }
-    events.push({ type: 'ABILITY_TRIGGERED', unitId: attackerId, abilityType: 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD', text: `逐利 +${gained}G` })
-    events.push({ type: 'RESOURCES_CHANGED', side, gold: nextState.resources[side].gold, mana: nextState.resources[side].mana, storageMana: nextState.resources[side].storageMana })
   }
 
   return nextState
@@ -702,12 +714,12 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
     case 'DISCARD_ITEM_FROM_HAND': {
       if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }
-      if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return { ok: false, error: '本回合購買道具次數已用完' }
       const side = state.turn.side
       const hand = state.hands[side].items
       if (!hand.includes(action.itemId)) return { ok: false, error: '道具不在手牌中' }
 
-      const nextHand = hand.filter((id) => id !== action.itemId)
+      const idx = hand.indexOf(action.itemId)
+      const nextHand = idx >= 0 ? [...hand.slice(0, idx), ...hand.slice(idx + 1)] : hand
       const nextState: GameState = {
         ...state,
         itemDiscard: [...state.itemDiscard, action.itemId],
@@ -717,10 +729,6 @@ export function reduce(state: GameState, action: Action): ReduceResult {
             ...state.hands[side],
             items: nextHand,
           },
-        },
-        turnFlags: {
-          ...state.turnFlags,
-          buyItemActionsUsed: state.turnFlags.buyItemActionsUsed + 1,
         },
       }
 
@@ -780,6 +788,10 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           }
         }
       }
+
+      // FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD: check gold BEFORE attack executes (before any kill/gold effects)
+      const preShotGoldEvents: Event[] = []
+      stateForShot = applyFirstAttackIfGoldLtGainGold(stateForShot, action.attackerId, preShotGoldEvents)
 
       const execRes = executeShotPlan(stateForShot, planRes.plan)
       if (!execRes.ok) return execRes
@@ -847,8 +859,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           }
         }
       }
-      finalState = applyFirstAttackIfGoldLtGainGold(finalState, action.attackerId, afterEvents)
-      return { ok: true, state: finalState, events: [...prePlanEvents, ...buildEvents, ...execRes.events, ...afterEvents] }
+      return { ok: true, state: finalState, events: [...prePlanEvents, ...preShotGoldEvents, ...buildEvents, ...execRes.events, ...afterEvents] }
     }
 
     case 'SACRIFICE': {
@@ -1249,7 +1260,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
-      return { ok: true, state: nextState, events: [] }
+      // 若展示區空缺，把剛回到牌堆的卡自動翻出攤開
+      const nextStateWithDisplay = refillDisplayByBase(nextState, card.base)
+      return { ok: true, state: nextStateWithDisplay, events: [] }
     }
     case 'BUY_SOUL_FROM_DISPLAY': {
       if (state.turn.phase !== 'buy') return { ok: false, error: '需要在購買階段' }

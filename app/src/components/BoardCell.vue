@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, type PropType } from 'vue'
+import { defineComponent, computed, type PropType } from 'vue'
 
 type UnitView = {
   id: string
@@ -56,7 +56,14 @@ export default defineComponent({
       e.preventDefault()
     }
 
-    return { onClick, onDrop, onDragOver }
+    // Popup direction: toward board center (y≤4→below, y≥5→above; x≤1→right, x≥7→left)
+    const tipClass = computed(() => ({
+      'tip-below': props.y <= 4,
+      'tip-right': props.x <= 1,
+      'tip-left': props.x >= 7,
+    }))
+
+    return { onClick, onDrop, onDragOver, tipClass }
   },
 })
 </script>
@@ -97,16 +104,16 @@ export default defineComponent({
     </div>
 
     <template v-if="showTip">
-      <div v-if="unit?.enchantName" class="tip" :class="{ 'tip-below': y <= 2 }">
+      <div v-if="unit?.enchantName" class="tip" :class="tipClass">
         <div class="tipRow">{{ unit.label }}</div>
         <img v-if="unit.enchantImage" class="tipImg" :src="unit.enchantImage" alt="" />
         <div v-else class="tipNoImg mono">no img</div>
       </div>
-      <div v-else-if="unit?.baseImage" class="tip" :class="{ 'tip-below': y <= 2 }">
+      <div v-else-if="unit?.baseImage" class="tip" :class="tipClass">
         <div class="tipRow">{{ unit.label }}</div>
         <img class="tipImg" :src="unit.baseImage" alt="" />
       </div>
-      <div v-if="!unit && titleText" class="tip tip-invalid" :class="{ 'tip-below': y <= 2 }">
+      <div v-if="!unit && titleText" class="tip tip-invalid" :class="tipClass">
         <div class="tipRow">{{ titleText }}</div>
       </div>
     </template>
@@ -711,9 +718,22 @@ export default defineComponent({
   transition: opacity 120ms ease;
 }
 
+/* vertical: below (toward board center when y≤4) */
 .tip.tip-below {
   top: calc(100% + 6px);
   transform: none;
+}
+
+/* horizontal: open right (x≤1, left side of board) */
+.tip.tip-right {
+  left: 0;
+  right: auto;
+}
+
+/* horizontal: open left (x≥7, right side of board) */
+.tip.tip-left {
+  left: auto;
+  right: 0;
 }
 
 .cell:hover .tip {

@@ -66,10 +66,25 @@ const useGuards = computed(() => {
 function tryEnchantOrToast(soulId: string) {
   const side = state.value.turn.side
   const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
-  if (!hasValid) return
+  if (!hasValid) {
+    const soulCard = getSoulCard(soulId)
+    const firstMatch = soulCard ? Object.values(state.value.units).find(u =>
+      u.side === side && u.base === soulCard.base && !u.enchant
+    ) : null
+    if (firstMatch) ctx.dispatch({ type: 'ENCHANT', unitId: firstMatch.id, soulId })
+    return
+  }
   ui.startEnchantSelectUnit(soulId)
 }
 function selectSoul(id: string) {
+  if (phase.value === 'necro') {
+    const side = state.value.turn.side
+    const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, id).ok)
+    if (!hasValid) {
+      tryEnchantOrToast(id)
+      return
+    }
+  }
   selectedSoulId.value = id
   if (phase.value === 'necro') tryEnchantOrToast(id)
 }
@@ -97,7 +112,15 @@ function returnSoul(soulId: string) {
 
 // ── Item actions ───────────────────────────────────────────────────────────────
 function discardItem(itemId: string) {
-  ctx.dispatch({ type: 'DISCARD_ITEM_FROM_HAND', itemId })
+  const card = getItemCard(itemId)
+  ui.setPendingConfirm({
+    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId } as any,
+    title: '確認棄置',
+    detail: [
+      '確認將道具卡棄置到棄牌堆',
+      card ? `道具：${card.name}` : `id: ${itemId}`,
+    ].filter(Boolean).join('\n'),
+  })
 }
 
 function getUnitHpMax(unit: GameState['units'][string]): number {

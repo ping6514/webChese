@@ -86,7 +86,6 @@ export function canBloodRitual(state: GameState): GuardResult {
 
 export function canDiscardItemFromHand(state: GameState, itemId: string): GuardResult {
   if (state.turn.phase !== 'buy') return fail('需要在購買階段')
-  if (state.turnFlags.buyItemActionsUsed >= state.limits.buyItemActionsPerTurn) return fail('本回合購買道具次數已用完')
   const hand = state.hands[state.turn.side].items
   if (!hand.includes(itemId)) return fail('道具不在手牌中')
   return ok()

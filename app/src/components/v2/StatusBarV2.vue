@@ -50,10 +50,10 @@ const nextBtnClass = computed(() =>
   props.currentSide === 'red' ? 'nextRed' : 'nextGreen'
 )
 const playerDetailHint = '點擊查看玩家詳情'
-const blackSoulCount = computed(() => gameCtx?.state.value.hands.black.souls.length ?? 0)
-const blackItemCount = computed(() => gameCtx?.state.value.hands.black.items.length ?? 0)
-const redSoulCount = computed(() => gameCtx?.state.value.hands.red.souls.length ?? 0)
-const redItemCount = computed(() => gameCtx?.state.value.hands.red.items.length ?? 0)
+//const blackSoulCount = computed(() => gameCtx?.state.value.hands.black.souls.length ?? 0)
+//const blackItemCount = computed(() => gameCtx?.state.value.hands.black.items.length ?? 0)
+//const redSoulCount = computed(() => gameCtx?.state.value.hands.red.souls.length ?? 0)
+//const redItemCount = computed(() => gameCtx?.state.value.hands.red.items.length ?? 0)
 
 // ── Connection ─────────────────────────────────────────────────────────────────
 const isOnline = computed(() => setup.mode === 'online')
@@ -114,11 +114,11 @@ function openPlayerDetail(side: Side) {
     title: `${sideLabel} 詳情`,
     image: null,
     detail: [
-      `財力: ${res.gold}`,
-      `魔力: ${res.mana}`,
-      `存魔: ${res.storageMana}`,
-      `靈魂手牌: ${hands.souls.length}`,
-      `道具手牌: ${hands.items.length}`,
+      `💰 財力: ${res.gold}`,
+      `🌟 魔力: ${res.mana}`,
+      `⚖ 存魔: ${res.storageMana}`,
+      `🃏 靈魂手牌: ${hands.souls.length}`,
+      `🎒 道具手牌: ${hands.items.length}`,
     ].join('\n'),
     actionLabel: null,
     actionDisabled: false,
@@ -144,8 +144,8 @@ onMounted(() => {
       <span class="playerInfoHint">ⓘ</span>
       <span v-if="currentSide === 'black'" class="turnBadge turnBadge--black">▶ 回合</span>
       <span class="hp">♥ {{ blackHp ?? '?' }}</span>
-      <span class="res handCount">🃏 {{ blackSoulCount }}</span>
-      <span class="res handCount">🎒 {{ blackItemCount }}</span>
+      <!-- <span class="res handCount">🃏 {{ blackSoulCount }}</span>
+      <span class="res handCount">🎒 {{ blackItemCount }}</span> -->
       <span class="res">💰 <span class="resLbl">財力</span> {{ blackGold }}</span>
       <span class="res">🌟 <span class="resLbl">魔力</span> {{ blackMana }}</span>
       <span class="res">⚖ <span class="resLbl">存魔</span> {{ blackStorageMana }}</span>
@@ -193,8 +193,8 @@ onMounted(() => {
         <span class="playerInfoHint">ⓘ</span>
         <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="hp">♥ {{ redHp ?? '?' }}</span>
-        <span class="res handCount">🃏 {{ redSoulCount }}</span>
-        <span class="res handCount">🎒 {{ redItemCount }}</span>
+        <!-- <span class="res handCount">🃏 {{ redSoulCount }}</span>
+        <span class="res handCount">🎒 {{ redItemCount }}</span> -->
         <span class="res">💰 <span class="resLbl">財力</span> {{ redGold }}</span>
         <span class="res">🌟 <span class="resLbl">魔力</span> {{ redMana }}</span>
         <span class="res">⚖ <span class="resLbl">存魔</span> {{ redStorageMana }}</span>
@@ -240,6 +240,7 @@ onMounted(() => {
             </template>
             <div class="gearDivider" />
             <button class="gearItem" @click="ui.cycleBodyFontSize()">🔤 字體大小：{{ ui.bodyFontSize }}px</button>
+            <button class="gearItem" @click="ui.toggleAutoOpenShop()">🛒 買階段自動開商店：<span :class="ui.autoOpenShopOnBuy ? 'toggleOn' : 'toggleOff'">{{ ui.autoOpenShopOnBuy ? '開' : '關' }}</span></button>
             <div class="gearDivider" />
             <button v-if="!surrenderPending" class="gearItem gearSurrender" @click="surrender">🏳️ 投降</button>
             <template v-else>
@@ -548,6 +549,8 @@ onMounted(() => {
 
 .gearSurrender { border-color: rgba(250,173,20,0.25); color: rgba(250,210,80,0.85); }
 .gearSurrender:hover { background: rgba(250,173,20,0.12); color: #ffd666; }
+.toggleOn { color: #95de64; font-weight: 700; }
+.toggleOff { color: #ff7875; font-weight: 700; }
 
 .gearSurrenderConfirm {
   font-size: 0.8125rem;

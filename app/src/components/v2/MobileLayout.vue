@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, inject, onMounted, onUnmounted, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import type { GameState, Phase } from '../../engine'
 import { getSoulCard, getItemCard, canEnchant, canReturnSoulToDeckBottom, canDiscardItemFromHand, canUseItemFromHand, BASE_STATS } from '../../engine'
@@ -70,10 +70,27 @@ const useGuards = computed(() => {
 function tryEnchantOrToast(soulId: string) {
   const side = state.value.turn.side
   const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, soulId).ok)
-  if (!hasValid) return
+  if (!hasValid) {
+    // 找看看有沒有底層可附魔的單位（忽略財力）
+    const soulCard = getSoulCard(soulId)
+    const firstMatch = soulCard ? Object.values(state.value.units).find(u =>
+      u.side === side && u.base === soulCard.base && !u.enchant
+    ) : null
+    // 有匹配單位但附魔仍失敗 → 派送以觸發錯誤提示（財力不足等）
+    if (firstMatch) ctx.dispatch({ type: 'ENCHANT', unitId: firstMatch.id, soulId })
+    return
+  }
   ui.startEnchantSelectUnit(soulId)
 }
 function selectSoul(id: string) {
+  if (phase.value === 'necro') {
+    const side = state.value.turn.side
+    const hasValid = Object.values(state.value.units).some(u => u.side === side && canEnchant(state.value, u.id, id).ok)
+    if (!hasValid) {
+      tryEnchantOrToast(id)
+      return
+    }
+  }
   selectedSoulId.value = id
   if (phase.value === 'necro') tryEnchantOrToast(id)
 }
@@ -87,7 +104,14 @@ function onSoulDragEnd() {
   if (ui.interactionMode.kind === 'enchant_select_unit') ui.clearInteractionMode()
 }
 function returnSoul(soulId: string) { ctx.dispatch({ type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId }) }
-function discardItem(itemId: string) { ctx.dispatch({ type: 'DISCARD_ITEM_FROM_HAND', itemId }) }
+function discardItem(itemId: string) {
+  const card = getItemCard(itemId)
+  ui.setPendingConfirm({
+    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId } as any,
+    title: '確認棄置',
+    detail: ['確認將道具卡棄置到棄牌堆', card ? `道具：${card.name}` : `id: ${itemId}`].filter(Boolean).join('\n'),
+  })
+}
 function getUnitHpMax(unit: GameState['units'][string]) {
   const soul = unit.enchant?.soulId ? getSoulCard(unit.enchant.soulId) : null
   return soul?.stats.hp ?? (BASE_STATS as any)[unit.base]?.hp ?? 10
@@ -198,17 +222,20 @@ function openPlayerDetail(side: 'red' | 'black') {
     title: `${sideLabel} 詳情`,
     image: null,
     detail: [
-      `財力: ${playerRes.gold}`,
-      `魔力: ${playerRes.mana}`,
-      `存魔: ${playerRes.storageMana}`,
-      `靈魂手牌: ${hands.souls.length}`,
-      `道具手牌: ${hands.items.length}`,
+      `💰 財力: ${playerRes.gold}`,
+      `🌟 魔力: ${playerRes.mana}`,
+      `⚖ 存魔: ${playerRes.storageMana}`,
+      `🃏 靈魂手牌: ${hands.souls.length}`,
+      `🎒 道具手牌: ${hands.items.length}`,
     ].join('\n'),
     actionLabel: null,
     actionDisabled: false,
     actionTitle: '',
   })
 }
+
+const buffBarCollapsed = ref(localStorage.getItem('v2_buff_collapsed') !== '0')
+watch(buffBarCollapsed, (v) => localStorage.setItem('v2_buff_collapsed', v ? '1' : '0'))
 
 const gearOpen = ref(false)
 const homePending = ref(false)
@@ -328,6 +355,7 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
             </template>
             <div class="gearDivider" />
             <button class="gearItem" @click="ui.cycleBodyFontSize()">🔤 字體：{{ ui.bodyFontSize }}px</button>
+            <button class="gearItem" @click="ui.toggleAutoOpenShop()">🛒 買階段自動開商店：<span :class="ui.autoOpenShopOnBuy ? 'toggleOn' : 'toggleOff'">{{ ui.autoOpenShopOnBuy ? '開' : '關' }}</span></button>
             <div class="gearDivider" />
             <button v-if="!surrenderPending" class="gearItem gearSurrender" @click="surrender">🏳️ 投降</button>
             <template v-else>
@@ -347,7 +375,10 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
     <!-- ── Board area ── -->
     <div class="boardArea">
       <!-- Buff bar -->
-      <div class="buffBar">
+      <div class="buffBar" :class="{ 'buffBar--collapsed': buffBarCollapsed }">
+        <button class="buffToggle" @click="buffBarCollapsed = !buffBarCollapsed" :title="buffBarCollapsed ? '展開場效' : '收合場效'">
+          {{ buffBarCollapsed ? '▶ 場效' : '▼ 場效' }}
+        </button>
         <span
           v-for="(b, i) in ctx.activeBuffs"
           :key="i"
@@ -623,6 +654,8 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
 .gearDivider { height: 1px; background: rgba(255,255,255,0.07); margin: 4px 0; }
 .gearSurrender { border-color: rgba(250,173,20,0.25); color: rgba(250,210,80,0.85); }
 .gearSurrender:hover { background: rgba(250,173,20,0.12); color: #ffd666; }
+.toggleOn { color: #95de64; font-weight: 700; }
+.toggleOff { color: #ff7875; font-weight: 700; }
 .gearSurrenderConfirm { font-weight: 700; color: rgba(250,210,80,0.9); cursor: default; border-color: rgba(250,173,20,0.2); }
 .gearSurrenderConfirm:hover { background: rgba(255,255,255,0.03); color: rgba(250,210,80,0.9); }
 .gearConfirmRow { display: flex; gap: 6px; }
@@ -636,7 +669,6 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  overflow-x: hidden;
 }
 
 .buffBar {
@@ -646,6 +678,31 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
   background: rgba(14, 16, 30, 0.92);
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   backdrop-filter: blur(6px);
+}
+.buffBar--collapsed {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  touch-action: pan-x;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+.buffBar--collapsed::-webkit-scrollbar { height: 3px; }
+.buffBar--collapsed::-webkit-scrollbar-track { background: transparent; }
+.buffBar--collapsed::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 99px; }
+.buffToggle {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  flex-shrink: 0;
+  font-size: 0.625rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgb(14, 16, 30);
+  box-shadow: 6px 0 8px 4px rgb(14, 16, 30);
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  white-space: nowrap;
 }
 .buffPill {
   font-size: 0.625rem; padding: 2px 7px; border-radius: 999px; border: 1px solid; white-space: nowrap;

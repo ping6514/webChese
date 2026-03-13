@@ -271,7 +271,7 @@ watch(
     if (setup.mode === 'pve' && side === npcSide.value) return
     if (setup.mode === 'online' && conn.side !== side) return
     autoShopOpenedForCurrentBuy.value = true
-    setTimeout(() => ui.openShop(), 1600)
+    if (ui.autoOpenShopOnBuy) setTimeout(() => ui.openShop(), 1600)
   },
   { immediate: true },
 )

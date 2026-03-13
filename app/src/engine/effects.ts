@@ -691,6 +691,17 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
           },
         })
+      } else if (effType === 'FREE_SHOOT') {
+        handlers.push({
+          onBeforeShootValidate: (ctx) => {
+            if (ctx.attackerId !== bsUnit.id) return
+            ctx.shootRules.manaCostOverride = 0
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: bsUnit.id, abilityType: 'BLOOD_SACRIFICE', text: '血祭→免費射擊' })
+          },
+          onAfterShotPlanBuilt: (_ctx, plan) => {
+            plan.cost = 0
+          },
+        })
       } else if (effType === 'PIERCE') {
         handlers.push({
           onBeforeShootValidate: (ctx) => {

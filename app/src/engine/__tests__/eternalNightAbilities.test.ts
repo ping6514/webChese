@@ -43,7 +43,7 @@ function clearCells(s: GameState, cells: Array<{ x: number; y: number }>, keep: 
 }
 
 describe('eternal night abilities', () => {
-  test('xuegu MOVE_THEN_SHOOT requires corpses>=3', () => {
+  test('xuegu: shooting once blocks a second shot (no EXTRA_SHOT)', () => {
     const s0 = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
     s0.turn.phase = 'combat'
     s0.turn.side = 'red'
@@ -57,22 +57,12 @@ describe('eternal night abilities', () => {
     setUnitPos(s0, targetId, 7, 7)
 
     const keep0 = new Set([attackerId, targetId])
-    clearCells(
-      s0,
-      [
-        { x: 6, y: 5 },
-        { x: 6, y: 6 },
-      ],
-      keep0,
-    )
+    clearCells(s0, [{ x: 6, y: 5 }, { x: 6, y: 6 }], keep0)
 
-    // Move once to activate movedThisTurn.
-    // Move from (4,4) -> (6,5) is legal and keeps a clear shot to (7,7).
     const moveRes = reduce(s0, { type: 'MOVE', unitId: attackerId, to: { x: 6, y: 5 } })
     expect(moveRes.ok).toBe(true)
     const s1 = moveRes.ok ? (moveRes.state as GameState) : s0
 
-    // First shot.
     const p1 = buildShotPlan(s1, attackerId, targetId)
     expect(p1.ok).toBe(true)
     if (!p1.ok) return
@@ -80,16 +70,10 @@ describe('eternal night abilities', () => {
     expect(e1.ok).toBe(true)
     if (!e1.ok) return
 
-    // Without enough corpses, second shot should be blocked.
+    // After first shot, second shot must be blocked (blood骨 has no EXTRA_SHOT)
     const s2 = e1.state
     const c2 = canShoot(s2, attackerId, targetId)
     expect(c2.ok).toBe(false)
-
-    // With corpses>=3, second shot should be allowed.
-    const s3: GameState = JSON.parse(JSON.stringify(s2))
-    putCorpses(s3, 'red', 3)
-    const p2 = buildShotPlan(s3, attackerId, targetId)
-    expect(p2.ok).toBe(true)
   })
 
   test('suigu CHAIN requires corpses>=3 to add chain instance', () => {
