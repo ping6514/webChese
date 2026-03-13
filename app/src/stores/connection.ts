@@ -37,7 +37,7 @@ function makeRealtimeAdapter(roomId: string, getLocalVersion: () => number): Syn
 }
 
 // Strategy 4: Polling fallback (no Realtime, just intervals)
-function makePollingAdapter(intervalMs = 3000): SyncAdapter {
+function makePollingAdapter(intervalMs = 60000): SyncAdapter {
   let timer: ReturnType<typeof setInterval> | null = null
   return {
     start(onTick) {
