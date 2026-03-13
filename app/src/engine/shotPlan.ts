@@ -5,7 +5,7 @@ import { canShoot } from './shooting'
 import { getDefValueInState } from './stats'
 import { getEffectHandlers, type ShotPlan } from './effects'
 import { getSoulCard } from './cards'
-import { computeDamageWithBreakdown } from './damage'
+import { computeDamageWithBreakdown, findFirstDamagedReduction } from './damage'
 import { killUnit as killUnitShared } from './kill'
 import { rollDice, type RngState } from '../serverSim'
 import { countCorpses, countSoldiers } from './corpses'
@@ -170,7 +170,6 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
   if (plan.abilityUses && plan.abilityUses.length > 0) {
     const cur = nextState.turnFlags.abilityUsed ?? {}
     const next: Record<string, number> = { ...cur }
-    let drainCount = 0
     for (const u of plan.abilityUses) {
       const key = String((u as any).key ?? '')
       if (!key) continue
@@ -182,7 +181,6 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (unitId && abilityType) {
         events.push({ type: 'ABILITY_TRIGGERED', unitId, abilityType, text: abilityType })
       }
-      if (abilityType === 'FREE_SHOOT_DRAIN') drainCount++
     }
     nextState = {
       ...nextState,
@@ -190,15 +188,6 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         ...nextState.turnFlags,
         abilityUsed: next,
       },
-    }
-    // FREE_SHOOT_DRAIN: accumulate mana drain for next turn start
-    if (drainCount > 0) {
-      const side = state.turn.side
-      const prevDrain = nextState.pendingManaDrainBySide[side] ?? 0
-      nextState = {
-        ...nextState,
-        pendingManaDrainBySide: { ...nextState.pendingManaDrainBySide, [side]: prevDrain + drainCount },
-      }
     }
   }
 
@@ -343,6 +332,20 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return s
   }
 
+  function healUnitById(s: GameState, events: Event[], unitId: string, amount: number, reason: string): GameState {
+    if (!(Number.isFinite(amount) && amount > 0)) return s
+    const unit = s.units[unitId]
+    if (!unit) return s
+
+    const maxHp = maxHpForUnit(s, unitId)
+    const cappedMax = maxHp > 0 ? maxHp : unit.hpCurrent
+    const nextHp = Math.min(cappedMax, unit.hpCurrent + Math.floor(amount))
+    if (nextHp === unit.hpCurrent) return s
+    s.units[unitId] = { ...unit, hpCurrent: nextHp }
+    events.push({ type: 'UNIT_HP_CHANGED', unitId, from: unit.hpCurrent, to: nextHp, reason })
+    return s
+  }
+
   function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
     if (pos.x < 3 || pos.x > 5) return false
     if (side === 'red') return pos.y >= 7 && pos.y <= 9
@@ -427,6 +430,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       ? { damage: Math.floor(isFixed ? fixedDamage : lastDirectDamage), breakdown: undefined }
       : computeDamageWithBreakdown(nextState, src.id, tgt.id, dice, extraBonus)
     const rawDamage = hasMult ? Math.max(0, Math.floor(rawResult.damage * dmgMult)) : rawResult.damage
+    const firstDamagedReduction = findFirstDamagedReduction(nextState, tgt.id)
 
     // DAMAGE_SHARE: transfer exactly N damage from target to an eligible allied unit.
     // Only activates if full N can be shared this time, and sharer will not die from sharing.
@@ -464,6 +468,23 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
     const kingInvincible = tgt.base === 'king' && nextState.status.kingInvincibleSide === tgt.side
     const finalDamageToTarget = kingInvincible ? 0 : damageToTarget
+
+    if (firstDamagedReduction) {
+      const cur = nextState.turnFlags.abilityUsed ?? {}
+      nextState.turnFlags = {
+        ...nextState.turnFlags,
+        abilityUsed: {
+          ...cur,
+          [firstDamagedReduction.key]: Number(cur[firstDamagedReduction.key] ?? 0) + 1,
+        },
+      }
+      events.push({
+        type: 'ABILITY_TRIGGERED',
+        unitId: tgt.id,
+        abilityType: 'FIRST_DAMAGED_REDUCTION',
+        text: '迴避',
+      })
+    }
 
     const nextHp = tgt.hpCurrent - finalDamageToTarget
     nextState.units[tgt.id] = { ...tgt, hpCurrent: nextHp }
@@ -517,6 +538,21 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         const amount = Number((heal as any)?.amount ?? 0)
         if (Number.isFinite(amount) && amount > 0) {
           nextState = healKingOnKill(nextState, events, src.id, amount)
+        }
+
+        const dualHeal = card?.abilities.find((a) => a.type === 'HEAL_SELF_AND_KING_ON_KILL')
+        if (dualHeal) {
+          const selfAmount = Number((dualHeal as any)?.selfAmount ?? 0)
+          const kingAmount = Number((dualHeal as any)?.kingAmount ?? 0)
+          if (Number.isFinite(selfAmount) && selfAmount > 0) {
+            nextState = healUnitById(nextState, events, src.id, selfAmount, 'HEAL_SELF_AND_KING_ON_KILL')
+          }
+          if (Number.isFinite(kingAmount) && kingAmount > 0) {
+            nextState = healKingOnKill(nextState, events, src.id, kingAmount)
+          }
+          if ((Number.isFinite(selfAmount) && selfAmount > 0) || (Number.isFinite(kingAmount) && kingAmount > 0)) {
+            events.push({ type: 'ABILITY_TRIGGERED', unitId: src.id, abilityType: 'HEAL_SELF_AND_KING_ON_KILL', text: '血回' })
+          }
         }
 
         // KILL_MANA_GAIN: gain mana when this unit kills an enemy

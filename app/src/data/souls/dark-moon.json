@@ -162,7 +162,7 @@
     "image": "/assets/cards/dark_moon/dark_moon_advisor_yingji.jpg",
     "costGold": 4,
     "stats": {
-      "hp": 10,
+      "hp": 9,
       "atk": { "key": "phys", "value": 2 },
       "def": [
         { "key": "phys", "value": 1 },
@@ -178,9 +178,10 @@
         ],
         "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 },
         "perTurn": 1
-      }
+      },
+      { "type": "FIRST_DAMAGED_REDUCTION", "amount": 3, "perTurn": 1 }
     ],
-    "text": "【反擊】：若「帥」或自身受到傷害，立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。"
+    "text": "【反擊】：若「帥」或自身受到傷害，立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。【迴避】每回合首次受到傷害時，減少 3 傷害。"
   },
   {
     "id": "dark_moon_elephant_yueji",

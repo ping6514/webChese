@@ -15,10 +15,10 @@
       ]
     },
     "abilities": [
-      { "type": "FREE_SHOOT_DRAIN" },
-      { "type": "BLOOD_TITHE_ON_KILL" }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "DAMAGE_BONUS", "amount": 2 } },
+      { "type": "HEAL_SELF_AND_KING_ON_KILL", "selfAmount": 2, "kingAmount": 2 }
     ],
-    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 附魂(費用/2) HP。"
+    "text": "【血祭→傷害+2】射擊前可消耗帥 2 HP，本次傷害額外 +2。【血回】擊殺敵方單位時，自身回復 2 HP，己方帥回復 2 HP。"
   },
   {
     "id": "death_oath_rook_chiyun",
@@ -57,9 +57,10 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "MOVE_THEN_SHOOT", "perTurn": 1 } }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "FREE_SHOOT", "perTurn": 1 } },
+      { "type": "HEAL_SELF_AND_KING_ON_KILL", "selfAmount": 2, "kingAmount": 2 }
     ],
-    "text": "【血祭→移動後射】射擊前可消耗帥 2 HP，本回合移動後可額外射擊一次（每回合限 1 次）。"
+    "text": "【血祭→連射】射擊前可消耗帥 2 HP，本回合可額外射擊一次（每回合限 1 次）。【血回】擊殺敵方單位時，自身回復 2 HP，己方帥回復 2 HP。"
   },
   {
     "id": "death_oath_knight_nihun",
@@ -91,17 +92,17 @@
     "costGold": 8,
     "stats": {
       "hp": 10,
-      "atk": { "key": "magic", "value": 4 },
+      "atk": { "key": "magic", "value": 3 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 1 }
       ]
     },
     "abilities": [
-      { "type": "FREE_SHOOT_DRAIN" },
-      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "DAMAGE_BONUS", "amount": 1 } }
+      { "type": "UNDERDOG_AURA", "scope": "self", "stages": [{ "margin": 1, "atkBonus": 2 }] },
+      { "type": "HEAL_SELF_AND_KING_ON_KILL", "selfAmount": 2, "kingAmount": 2 }
     ],
-    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。【血祭→傷害+1】射擊前可消耗帥 1 HP，本次傷害額外 +1。"
+    "text": "【逆境】己方活著的單位數少於敵方時，此單位 ATK +2。【血回】擊殺敵方單位時，自身回復 2 HP，己方帥回復 2 HP。"
   },
   {
     "id": "death_oath_cannon_nupo",
@@ -140,9 +141,10 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_RAGE_AURA", "scope": "global", "stages": [{ "threshold": 10, "atkBonus": 1 }, { "threshold": 5, "atkBonus": 2 }] }
+      { "type": "BLOOD_RAGE_AURA", "scope": "global", "stages": [{ "threshold": 10, "atkBonus": 1 }, { "threshold": 5, "atkBonus": 2 }] },
+      { "type": "PALACE_GUARD", "amount": 2, "perTurn": 1 }
     ],
-    "text": "【血憤・全場】常駐光環：帥 HP ≤ 10 時，全體己方單位 ATK +1；帥 HP ≤ 5 時，ATK 提升為 +2。"
+    "text": "【血憤・全場】常駐光環：帥 HP ≤ 10 時，全體己方單位 ATK +1；帥 HP ≤ 5 時，ATK 提升為 +2。【鐵護】己方帥受傷時，該次傷害 -2（每回合限 1 次）。"
   },
   {
     "id": "death_oath_advisor_moming",
@@ -160,9 +162,24 @@
       ]
     },
     "abilities": [
-      { "type": "UNDERDOG_AURA", "scope": "global", "stages": [{ "margin": 1, "atkBonus": 1 }, { "margin": 3, "atkBonus": 2 }] }
+      {
+        "type": "COUNTER",
+        "targets": [
+          { "type": "SELF" },
+          { "type": "ALLY_BASE", "base": "king" }
+        ],
+        "damage": { "dice": 6, "atkKey": "phys", "atkValue": 0 },
+        "perTurn": 1
+      },
+      {
+        "type": "BELOW_MAX_HP_DEFENSE_BONUS",
+        "defBonus": [
+          { "key": "phys", "value": 2 },
+          { "key": "magic", "value": 2 }
+        ]
+      }
     ],
-    "text": "【逆境・全場】常駐光環：己方活著的單位數少於敵方 1 位時，全體己方單位 ATK +1；少於 3 位時，ATK 提升為 +2。"
+    "text": "【反擊】若自身或「帥」受到傷害，立即對攻擊者造成 1d6 物理傷害（本回合限 1 次）。【末命】若此單位目前 HP 低於最大 HP，雙防 +2。"
   },
   {
     "id": "death_oath_elephant_fenhun",
@@ -180,10 +197,18 @@
       ]
     },
     "abilities": [
-      { "type": "FREE_SHOOT_DRAIN" },
-      { "type": "BLOOD_TITHE_ON_KILL" }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "FREE_SHOOT", "perTurn": 1 } },
+      {
+        "type": "UNIT_COUNT_ADVANTAGE_AURA",
+        "scope": "global",
+        "margin": 2,
+        "defBonus": [
+          { "key": "phys", "value": 2 },
+          { "key": "magic", "value": 2 }
+        ]
+      }
     ],
-    "text": "【透支】射擊不消耗魔力，但下回合己方魔力回復 −1。擊殺有附魂的敵方單位時，帥回復 附魂(費用/2) HP。"
+    "text": "【血祭→連射】射擊前可消耗帥 2 HP，本回合可額外射擊一次（每回合限 1 次）。【盛勢】己方活著的單位數比敵方多 2 以上時，全體己方單位雙防 +2。"
   },
   {
     "id": "death_oath_elephant_jueyu",
@@ -201,9 +226,9 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "IGNORE_BLOCKING", "mode": "count", "count": 1 } },
-      { "type": "UNDERDOG_AURA", "scope": "self", "stages": [{ "margin": 1, "atkBonus": 2 }] }
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "DAMAGE_BONUS", "amount": 3 } },
+      { "type": "UNIT_COUNT_UNDERDOG_AURA", "scope": "global", "margin": 2, "atkBonus": 2 }
     ],
-    "text": "【血祭→無視阻擋+1】射擊前可消耗帥 1 HP，本次射擊無視 1 個阻擋。【逆境】己方活著的單位數少於敵方時，此單位 ATK +2"
+    "text": "【血祭→傷害+3】射擊前可消耗帥 2 HP，本次傷害額外 +3。【逆勢】己方活著的單位數比敵方少 2 以上時，全體己方單位 ATK +2。"
   }
 ]

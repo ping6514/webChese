@@ -1,8 +1,18 @@
 import type { GameState, Unit } from './state'
 import { BASE_STATS } from './state'
 import { getSoulCard } from './cards'
+import { getItemCard } from './items'
 import { countCorpses } from './corpses'
 import { countSoldiers } from './corpses'
+
+function getItemHandTotalValue(state: GameState, side: 'red' | 'black'): number {
+  let total = 0
+  for (const itemId of state.hands[side].items) {
+    const item = getItemCard(itemId)
+    total += Number(item?.costGold ?? 0)
+  }
+  return total
+}
 
 export function getDefValue(unit: Unit, atkKey: string): number {
   const found = unit.def.find((d) => d.key === atkKey)
@@ -85,6 +95,24 @@ function getAuraStatBonusDefAmounts(ab: any): { phys: number; magic: number } {
   }
 }
 
+function getDefBonusAmountByKey(raw: any, key: string): number {
+  if (Array.isArray(raw)) {
+    const found = raw.find((x: any) => String(x?.key ?? '') === key)
+    const value = Number(found?.value ?? 0)
+    return Number.isFinite(value) ? Math.floor(value) : 0
+  }
+  if (!raw || typeof raw !== 'object') return 0
+  const value = Number(raw[key] ?? 0)
+  return Number.isFinite(value) ? Math.floor(value) : 0
+}
+
+function getDefBonusPair(raw: any): { phys: number; magic: number } {
+  return {
+    phys: getDefBonusAmountByKey(raw, 'phys'),
+    magic: getDefBonusAmountByKey(raw, 'magic'),
+  }
+}
+
 function auraForKeysOk(targetUnit: Unit, ab: any): boolean {
   const forRaw = ab?.for
   const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
@@ -113,6 +141,12 @@ function auraForKeysOk(targetUnit: Unit, ab: any): boolean {
     }
   }
   return true
+}
+
+function unitCountDelta(state: GameState, side: 'red' | 'black'): number {
+  const ownCount = Object.values(state.units).filter((u) => u.side === side).length
+  const enemyCount = Object.values(state.units).filter((u) => u.side !== side).length
+  return ownCount - enemyCount
 }
 
 export function getAuraHpBonusInState(state: GameState, unitId: string): { hpBonus: number; healCurrent: boolean } {
@@ -226,6 +260,29 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     }
   }
 
+  // ITEM_VALUE_AURA (global ATK aura when total item value in hand reaches threshold)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'ITEM_VALUE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const threshold = Number(ab.threshold ?? 0)
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      const totalValue = getItemHandTotalValue(state, unit.side)
+      if (totalValue < threshold) continue
+      const amount = Number(ab?.bonus?.atk ?? 0)
+      if (!(Number.isFinite(amount) && amount > 0)) continue
+      const add = Math.floor(amount)
+      bonus += add
+      parts.push({ label: auraCard.name + ' 收藏', amount: add })
+    }
+  }
+
   const total = base + bonus
   return { key, base, total, parts }
 }
@@ -292,6 +349,21 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
   const magicParts: StatBonusPart[] = []
   let physBonus = 0
   let magicBonus = 0
+
+  {
+    const selfSoulId = u.enchant?.soulId
+    if (selfSoulId) {
+      const selfCard = getSoulCard(selfSoulId)
+      if (selfCard && u.hpCurrent < getMaxHpForUnitInState(state, u.id)) {
+        for (const ab of selfCard.abilities as any[]) {
+          if (ab.type !== 'BELOW_MAX_HP_DEFENSE_BONUS') continue
+          const { phys: p, magic: m } = getDefBonusPair(ab?.defBonus)
+          if (p > 0) { physBonus += p; physParts.push({ label: selfCard.name, amount: p }) }
+          if (m > 0) { magicBonus += m; magicParts.push({ label: selfCard.name, amount: m }) }
+        }
+      }
+    }
+  }
 
   // GOLD_THRESHOLD_ATK self DEF bonus
   {
@@ -400,6 +472,47 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     }
   }
 
+  // ITEM_VALUE_AURA(def)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== u.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'ITEM_VALUE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const threshold = Number(ab.threshold ?? 0)
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      const totalValue = getItemHandTotalValue(state, u.side)
+      if (totalValue < threshold) continue
+      const { phys: p, magic: m } = getDefBonusPair(ab?.bonus?.def)
+      if (p > 0) { physBonus += p; physParts.push({ label: auraCard.name + ' 收藏', amount: p }) }
+      if (m > 0) { magicBonus += m; magicParts.push({ label: auraCard.name + ' 收藏', amount: m }) }
+    }
+  }
+
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== u.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    const advantage = unitCountDelta(state, u.side)
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'UNIT_COUNT_ADVANTAGE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const margin = Number(ab.margin ?? 1)
+      if (!(Number.isFinite(margin) && margin > 0)) continue
+      if (advantage < margin) continue
+      const { phys: p, magic: m } = getDefBonusPair(ab?.defBonus)
+      if (p > 0) { physBonus += p; physParts.push({ label: auraCard.name + ' 盛勢', amount: p }) }
+      if (m > 0) { magicBonus += m; magicParts.push({ label: auraCard.name + ' 盛勢', amount: m }) }
+    }
+  }
+
   return {
     phys: { base: basePhys, total: basePhys + physBonus, parts: physParts },
     magic: { base: baseMagic, total: baseMagic + magicBonus, parts: magicParts },
@@ -408,6 +521,20 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
 
 export function getDefValueInState(state: GameState, unit: Unit, atkKey: string): number {
   let defValue = getDefValue(unit, atkKey)
+
+  {
+    const selfSoulId = unit.enchant?.soulId
+    if (selfSoulId) {
+      const selfCard = getSoulCard(selfSoulId)
+      if (selfCard && unit.hpCurrent < getMaxHpForUnitInState(state, unit.id)) {
+        for (const ab of selfCard.abilities as any[]) {
+          if (ab.type !== 'BELOW_MAX_HP_DEFENSE_BONUS') continue
+          const bonusAmount = getDefBonusAmountByKey(ab?.defBonus, atkKey)
+          if (Number.isFinite(bonusAmount) && bonusAmount > 0) defValue += Math.floor(bonusAmount)
+        }
+      }
+    }
+  }
 
   // GOLD_THRESHOLD_ATK self DEF bonus (守金 style: threshold-based self DEF)
   {
@@ -449,6 +576,26 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
       const threshold = Number((ab as any).threshold ?? 0)
       if (!Number.isFinite(threshold) || threshold <= 0) continue
       if (state.resources[auraUnit.side].gold >= threshold) defValue += bonusAmount
+    }
+  }
+
+  // ITEM_VALUE_AURA global DEF aura
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'ITEM_VALUE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const threshold = Number(ab.threshold ?? 0)
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      const totalValue = getItemHandTotalValue(state, unit.side)
+      if (totalValue < threshold) continue
+      const bonusAmount = getDefBonusAmountByKey(ab?.bonus?.def, atkKey)
+      if (Number.isFinite(bonusAmount) && bonusAmount > 0) defValue += Math.floor(bonusAmount)
     }
   }
 
@@ -515,6 +662,25 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
       const { phys, magic } = getAuraStatBonusDefAmounts(ab)
       const add = atkKey === 'magic' ? magic : phys
       if (add > 0) defValue += add
+    }
+  }
+
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== unit.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    const advantage = unitCountDelta(state, unit.side)
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'UNIT_COUNT_ADVANTAGE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const margin = Number(ab.margin ?? 1)
+      if (!(Number.isFinite(margin) && margin > 0)) continue
+      if (advantage < margin) continue
+      const bonusAmount = getDefBonusAmountByKey(ab?.defBonus, atkKey)
+      if (Number.isFinite(bonusAmount) && bonusAmount > 0) defValue += Math.floor(bonusAmount)
     }
   }
 

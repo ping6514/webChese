@@ -148,7 +148,60 @@ describe('dark moon missing abilities', () => {
 
     const after = (res as any).state as GameState
     const attackerHp1 = after.units[redRookId]?.hpCurrent ?? 0
-    expect(attackerHp1).toBeLessThan(attackerHp0)
+    expect(after.units[blackAdvisorId]?.hpCurrent).toBe(s.units[blackAdvisorId]!.hpCurrent)
+    expect(attackerHp1).toBe(attackerHp0)
+  })
+
+  test('yingji reduces the first damage taken each turn by 3, then takes normal damage on the second hit', () => {
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    s.turn.phase = 'combat'
+    s.turn.side = 'red'
+
+    const redRookId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'rook')!.id
+    const blackAdvisorId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'advisor')!.id
+
+    setUnitPos(s, redRookId, 4, 4)
+    setUnitPos(s, blackAdvisorId, 4, 1)
+
+    for (const u of Object.values(s.units)) {
+      if (u.id === redRookId || u.id === blackAdvisorId) continue
+      if (u.pos.x === 4 && u.pos.y > 1 && u.pos.y < 4) setUnitPos(s, u.id, 0, 0)
+    }
+
+    enchantUnit(s, blackAdvisorId, 'dark_moon_advisor_yingji')
+
+    const hp0 = s.units[blackAdvisorId]!.hpCurrent
+
+    const p1 = buildShotPlan(s, redRookId, blackAdvisorId)
+    expect(p1.ok).toBe(true)
+    if (!p1.ok) return
+    const r1 = executeShotPlan(s, p1.plan)
+    expect(r1.ok).toBe(true)
+    if (!r1.ok) return
+
+    const after1 = r1.state
+    expect(after1.units[blackAdvisorId]?.hpCurrent).toBe(hp0)
+    expect(after1.units[redRookId]?.hpCurrent).toBe(s.units[redRookId]!.hpCurrent)
+
+    const after1Reset = {
+      ...after1,
+      turnFlags: {
+        ...after1.turnFlags,
+        shotUsed: {},
+      },
+    }
+
+    const p2 = buildShotPlan(after1Reset, redRookId, blackAdvisorId)
+    expect(p2.ok).toBe(true)
+    if (!p2.ok) return
+    const attackerHp1 = after1Reset.units[redRookId]!.hpCurrent
+    const r2 = executeShotPlan(after1Reset, p2.plan)
+    expect(r2.ok).toBe(true)
+    if (!r2.ok) return
+
+    const after2 = r2.state
+    expect(after2.units[blackAdvisorId]?.hpCurrent).toBeLessThan(hp0)
+    expect(after2.units[redRookId]?.hpCurrent).toBeLessThan(attackerHp1)
   })
 
   test('AURA_DAMAGE_BONUS adds +1 to cross-river unit damage when resonance is active', () => {

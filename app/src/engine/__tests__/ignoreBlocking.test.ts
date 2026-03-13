@@ -40,6 +40,7 @@ describe('shooting ignore blocking', () => {
         phase: 'combat' as const,
       },
       turnFlags: {
+        ...s0.turnFlags,
         shotUsed: {},
         movedThisTurn: {},
         enemyKilledThisTurnCount: 0,
@@ -52,6 +53,7 @@ describe('shooting ignore blocking', () => {
         bloodRitualUsed: false,
         necroBonusActions: 0,
         freeShootBonus: 0,
+        freeMoveBonus: 0,
         enchantGoldDiscount: 0,
         itemNecroBonus: 0,
         lastStandContractBonus: 0,

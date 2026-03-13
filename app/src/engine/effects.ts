@@ -265,28 +265,6 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
       })
     }
 
-    // FREE_SHOOT_DRAIN: free mana cost, but next turn mana income -1
-    for (const ab of card.abilities) {
-      if (ab.type !== 'FREE_SHOOT_DRAIN') continue
-
-      handlers.push({
-        onBeforeShootValidate: (ctx) => {
-          if (ctx.attackerId !== u.id) return
-          ctx.shootRules.manaCostOverride = 0
-          ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'FREE_SHOOT_DRAIN', text: '透支射擊' })
-        },
-        onAfterShotPlanBuilt: (ctx, plan) => {
-          if (ctx.attackerId !== u.id) return
-          plan.cost = 0
-          // Mark drain via abilityUses so executeShotPlan can record it
-          const key = `${u.id}:FREE_SHOOT_DRAIN`
-          const next = plan.abilityUses ? [...plan.abilityUses] : []
-          next.push({ key })
-          plan.abilityUses = next
-        },
-      })
-    }
-
     for (const ab of card.abilities) {
       if (ab.type !== 'FREE_SHOOT') continue
 

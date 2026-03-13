@@ -16,6 +16,7 @@ describe('DAMAGE_BONUS: cross river gating', () => {
       rules: { ...s0.rules, diceFixed: 6 },
       turn: { side: 'red' as const, phase: 'combat' as const },
       turnFlags: {
+        ...s0.turnFlags,
         shotUsed: {},
         movedThisTurn: {},
         enemyKilledThisTurnCount: 0,
@@ -28,6 +29,7 @@ describe('DAMAGE_BONUS: cross river gating', () => {
         bloodRitualUsed: false,
         necroBonusActions: 0,
         freeShootBonus: 0,
+        freeMoveBonus: 0,
         enchantGoldDiscount: 0,
         itemNecroBonus: 0,
         lastStandContractBonus: 0,

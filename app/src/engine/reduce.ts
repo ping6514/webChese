@@ -44,6 +44,47 @@ export type ReduceErr = {
 
 export type ReduceResult = ReduceOk | ReduceErr
 
+function applyFirstAttackIfGoldLtGainGold(state: GameState, attackerId: string, events: Event[]): GameState {
+  const attacker = state.units[attackerId]
+  if (!attacker) return state
+  const soulId = attacker.enchant?.soulId
+  if (!soulId) return state
+  const card = getSoulCard(soulId)
+  if (!card) return state
+
+  let nextState = state
+  for (const ab of card.abilities as any[]) {
+    if (ab.type !== 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') continue
+    const perTurn = Number(ab.perTurn ?? 1)
+    const threshold = Number(ab.threshold ?? 0)
+    const amount = Number(ab.amount ?? 0)
+    if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+    if (!(Number.isFinite(threshold) && threshold > 0)) continue
+    if (!(Number.isFinite(amount) && amount > 0)) continue
+
+    const key = `${attackerId}:FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD`
+    const used = Number(nextState.turnFlags.abilityUsed?.[key] ?? 0)
+    if (used >= perTurn) continue
+    const side = attacker.side
+    const r = nextState.resources[side]
+    if (r.gold >= threshold) continue
+    const gained = Math.floor(amount)
+    const nextGold = Math.min(nextState.limits.goldMax, r.gold + gained)
+    nextState = {
+      ...nextState,
+      resources: { ...nextState.resources, [side]: { ...r, gold: nextGold } },
+      turnFlags: {
+        ...nextState.turnFlags,
+        abilityUsed: { ...(nextState.turnFlags.abilityUsed ?? {}), [key]: used + 1 },
+      },
+    }
+    events.push({ type: 'ABILITY_TRIGGERED', unitId: attackerId, abilityType: 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD', text: `逐利 +${gained}G` })
+    events.push({ type: 'RESOURCES_CHANGED', side, gold: nextState.resources[side].gold, mana: nextState.resources[side].mana, storageMana: nextState.resources[side].storageMana })
+  }
+
+  return nextState
+}
+
 function applyAuraStatHpHealOnceAfterNecroAction(state: GameState, events: Event[]): GameState {
   // Conservative: only heals after ENCHANT / REVIVE, and only once per (auraUnitId -> targetUnitId).
   const used = state.status.auraStatHpHealUsedByKey ?? {}
@@ -287,19 +328,14 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
 
   const goldAfterIncome = clamp(gold + state.rules.incomeGold + incomeBonus, 0, state.limits.goldMax)
 
-  // FREE_SHOOT_DRAIN: apply pending mana drain accumulated from last turn's transparent shots
-  const pendingDrain = (state.pendingManaDrainBySide?.[side] ?? 0)
-  const manaAfterDrain = Math.max(0, mana - pendingDrain)
-
   let next: GameState = {
     ...state,
-    pendingManaDrainBySide: { ...state.pendingManaDrainBySide, [side]: 0 },
     resources: {
       ...state.resources,
       [side]: {
         ...r,
         gold: goldAfterIncome,
-        mana: manaAfterDrain,
+        mana,
         storageMana: 0,
       },
     },
@@ -379,7 +415,6 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
   if (goldFromStorage > 0) reportItems.push({ label: '儲存轉換', amount: goldFromStorage, kind: 'gold' })
   if (incomeBonus > 0) reportItems.push({ label: '附魔加成', amount: incomeBonus, kind: 'gold' })
   reportItems.push({ label: '魔力', amount: state.rules.incomeMana, kind: 'mana' })
-  if (pendingDrain > 0) reportItems.push({ label: '透支扣除', amount: -pendingDrain, kind: 'mana' })
   events.push({ type: 'INCOME_REPORT', side, items: reportItems })
 
   return next
@@ -811,6 +846,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
           }
         }
       }
+      finalState = applyFirstAttackIfGoldLtGainGold(finalState, action.attackerId, afterEvents)
       return { ok: true, state: finalState, events: [...prePlanEvents, ...buildEvents, ...execRes.events, ...afterEvents] }
     }
 

@@ -5,6 +5,41 @@ import { getItemCard } from './items'
 import { getDefValueInState } from './stats'
 import { countCorpses, countSoldiers } from './corpses'
 
+function getItemHandTotalValue(state: GameState, side: 'red' | 'black'): number {
+  let totalValue = 0
+  for (const itemId of state.hands[side].items) {
+    const itemCard = getItemCard(itemId)
+    totalValue += Number(itemCard?.costGold ?? 0)
+  }
+  return totalValue
+}
+
+export function findFirstDamagedReduction(
+  state: GameState,
+  targetUnitId: string,
+): { amount: number; key: string; label: string } | null {
+  const target = state.units[targetUnitId]
+  if (!target) return null
+  const soulId = target.enchant?.soulId
+  if (!soulId) return null
+  const card = getSoulCard(soulId)
+  if (!card) return null
+
+  for (const ab of card.abilities) {
+    if (String((ab as any).type ?? '') !== 'FIRST_DAMAGED_REDUCTION') continue
+    const amount = Number((ab as any).amount ?? 0)
+    const perTurn = Number((ab as any).perTurn ?? 1)
+    if (!(Number.isFinite(amount) && amount > 0)) continue
+    if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+    const key = `${target.id}:FIRST_DAMAGED_REDUCTION`
+    const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
+    if (used >= perTurn) continue
+    return { amount: Math.floor(amount), key, label: `${card.name} 迴避` }
+  }
+
+  return null
+}
+
 export function crossedRiver(side: 'red' | 'black', y: number): boolean {
   return side === 'red' ? y <= 4 : y >= 5
 }
@@ -392,6 +427,33 @@ function computeDamageCore(
     }
   }
 
+  // UNIT_COUNT_UNDERDOG_AURA: global ATK bonus when own unit count < enemy count by margin
+  {
+    const ownCount = Object.values(state.units).filter((u) => u.side === attacker.side).length
+    const enemyCount = Object.values(state.units).filter((u) => u.side !== attacker.side).length
+    const deficit = enemyCount - ownCount
+
+    for (const auraUnit of Object.values(state.units)) {
+      if (auraUnit.side !== attacker.side) continue
+      const auraSoulId = auraUnit.enchant?.soulId
+      if (!auraSoulId) continue
+      const auraCard = getSoulCard(auraSoulId)
+      if (!auraCard) continue
+      for (const ab of auraCard.abilities as any[]) {
+        if (ab.type !== 'UNIT_COUNT_UNDERDOG_AURA') continue
+        const scope = String(ab.scope ?? 'global')
+        if (scope !== 'global') continue
+        const margin = Number(ab.margin ?? 1)
+        const atkBonus = Number(ab.atkBonus ?? 0)
+        if (!(Number.isFinite(margin) && margin > 0)) continue
+        if (!(Number.isFinite(atkBonus) && atkBonus > 0)) continue
+        if (deficit < margin) continue
+        bonus += Math.floor(atkBonus)
+        breakdown.push({ label: auraCard.name + ' 逆勢', amount: Math.floor(atkBonus) })
+      }
+    }
+  }
+
   // GOLD_THRESHOLD_ATK (self ATK bonus)
   if (attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
@@ -446,6 +508,28 @@ function computeDamageCore(
           breakdown.push({ label: card.name + ' 高價', amount: atkBonus })
         }
       }
+    }
+  }
+
+  // ITEM_VALUE_AURA (global ATK aura when total item value in hand reaches threshold)
+  for (const auraUnit of Object.values(state.units)) {
+    if (auraUnit.side !== attacker.side) continue
+    const auraSoulId = auraUnit.enchant?.soulId
+    if (!auraSoulId) continue
+    const auraCard = getSoulCard(auraSoulId)
+    if (!auraCard) continue
+    for (const ab of auraCard.abilities as any[]) {
+      if (ab.type !== 'ITEM_VALUE_AURA') continue
+      const scope = String(ab.scope ?? 'global')
+      if (scope !== 'global') continue
+      const threshold = Number(ab.threshold ?? 0)
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      if (getItemHandTotalValue(state, attacker.side) < threshold) continue
+      const atkBonus = Number(ab?.bonus?.atk ?? 0)
+      if (!(Number.isFinite(atkBonus) && atkBonus > 0)) continue
+      const add = Math.floor(atkBonus)
+      bonus += add
+      breakdown.push({ label: auraCard.name + ' 收藏', amount: add })
     }
   }
 
@@ -589,6 +673,12 @@ function computeDamageCore(
 
   if (dmgReduction > 0) {
     breakdown.push({ label: dmgReductionLabel + ' 減傷', amount: -dmgReduction })
+  }
+
+  const firstDamagedReduction = findFirstDamagedReduction(state, targetUnitId)
+  if (firstDamagedReduction && firstDamagedReduction.amount > 0) {
+    dmgReduction += firstDamagedReduction.amount
+    breakdown.push({ label: firstDamagedReduction.label, amount: -firstDamagedReduction.amount })
   }
 
   // extraBonus from active abilities (e.g. GOLD_FOR_DAMAGE)

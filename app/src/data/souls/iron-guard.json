@@ -48,9 +48,10 @@
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
     },
     "abilities": [
+      { "type": "SOLDIERS_TIERED_DAMAGE_BONUS", "tiers": [{ "count": 3, "amount": 1 }, { "count": 5, "amount": 2 }] },
       { "type": "ARMY_RALLY" }
     ],
-    "text": "【軍援】：射擊時聯動目標相鄰 1 格內的「卒」進行追加攻擊。"
+    "text": "【軍勢】：卒 ≥ 3 時傷害 +1；≥ 5 時傷害 +2。【軍援】：射擊時聯動目標相鄰 1 格內的「卒」進行追加攻擊。"
   },
   {
     "id": "iron_guard_knight_lianjunma",
@@ -65,10 +66,10 @@
       "def": [{ "key": "phys", "value": 1 }, { "key": "magic", "value": 0 }]
     },
     "abilities": [
-      { "type": "MOVE_THEN_SHOOT", "perTurn": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
-      { "type": "DAMAGE_BONUS_PER_ADJACENT_SOLDIER", "radius": 2, "amountPer": 1, "max": 3 }
+      { "type": "IGNORE_BLOCKING", "count": 1, "when": { "type": "SOLDIERS_GTE", "count": 3 } },
+      { "type": "DAMAGE_BONUS_PER_ADJACENT_SOLDIER", "radius": 2, "amountPer": 2, "max": 4 }
     ],
-    "text": "【軍勢】：卒 ≥ 3 時獲得「移動後射擊」；自身周圍 2 格每多 1 個卒，傷害額外 +1（上限 +3）。"
+    "text": "【軍勢】：卒 ≥ 3 時，射擊獲得【無視阻擋】1 個。自身周圍 2 格每多 1 個卒，傷害額外 +2（上限 +4）。"
   },
   {
     "id": "iron_guard_cannon_paobinghua",
@@ -94,17 +95,17 @@
     "base": "cannon",
     "name": "爆兵砲",
     "image": "/assets/cards/iron_guard/iron_guard_cannon_baobingpao.jpg",
-    "costGold": 8,
+    "costGold": 7,
     "stats": {
       "hp": 10,
-      "atk": { "key": "phys", "value": 4 },
+      "atk": { "key": "phys", "value": 3 },
       "def": [{ "key": "phys", "value": 0 }, { "key": "magic", "value": 1 }]
     },
     "abilities": [
       { "type": "IGNORE_BLOCKING", "mode": "all", "when": { "type": "SOLDIERS_GTE", "count": 4 } },
-      { "type": "DAMAGE_BONUS", "amount": 1, "when": { "type": "SOLDIERS_GTE", "count": 5 }, "targetWhen": { "type": "TARGET_IN_PALACE" } }
+      { "type": "DAMAGE_BONUS", "amount": 2, "when": { "type": "SOLDIERS_GTE", "count": 5 }, "targetWhen": { "type": "TARGET_IN_PALACE" } }
     ],
-    "text": "【軍勢】：卒 ≥ 4 時獲得【無視阻擋】；≥ 5 時，對「宮內」目標傷害額外 +1。"
+    "text": "【軍勢】：卒 ≥ 4 時獲得【無視阻擋】；≥ 5 時，對「宮內」目標傷害額外 +2。"
   },
   {
     "id": "iron_guard_advisor_junhu",

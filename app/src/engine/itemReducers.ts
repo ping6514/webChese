@@ -16,6 +16,49 @@ type ItemAbilityExecResult =
   | { ok: false; error: string }
   | { ok: false; unsupported: true; abilityType?: string; reason?: string }
 
+function applyFirstItemUseIfGoldLtGainGold(state: GameState, events: Event[]): GameState {
+  const side = state.turn.side
+  let nextState = state
+
+  for (const u of Object.values(state.units)) {
+    if (u.side !== side) continue
+    const soulId = u.enchant?.soulId
+    if (!soulId) continue
+    const card = getSoulCard(soulId)
+    if (!card) continue
+
+    for (const ab of card.abilities as any[]) {
+      if (ab.type !== 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD') continue
+      const perTurn = Number(ab.perTurn ?? 1)
+      const threshold = Number(ab.threshold ?? 0)
+      const amount = Number(ab.amount ?? 0)
+      if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+      if (!(Number.isFinite(threshold) && threshold > 0)) continue
+      if (!(Number.isFinite(amount) && amount > 0)) continue
+
+      const key = `${u.id}:FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD`
+      const used = Number(nextState.turnFlags.abilityUsed?.[key] ?? 0)
+      if (used >= perTurn) continue
+      const r = nextState.resources[side]
+      if (r.gold >= threshold) continue
+      const gained = Math.floor(amount)
+      const nextGold = Math.min(nextState.limits.goldMax, r.gold + gained)
+      nextState = {
+        ...nextState,
+        resources: { ...nextState.resources, [side]: { ...r, gold: nextGold } },
+        turnFlags: {
+          ...nextState.turnFlags,
+          abilityUsed: { ...(nextState.turnFlags.abilityUsed ?? {}), [key]: used + 1 },
+        },
+      }
+      events.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD', text: `回扣 +${gained}G` })
+      events.push({ type: 'RESOURCES_CHANGED', side, gold: nextState.resources[side].gold, mana: nextState.resources[side].mana, storageMana: nextState.resources[side].storageMana })
+    }
+  }
+
+  return nextState
+}
+
 function resolveTargetUnit(
   state: GameState,
   action: UseItemFromHandAction,
@@ -62,7 +105,8 @@ function executeItemAbilitiesA1(
       const targetRes = resolveTargetUnit(nextState, action, ab?.target)
       if (!targetRes.ok) {
         if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
-        return { ok: false, error: targetRes.error }
+        if ('error' in targetRes) return { ok: false, error: targetRes.error }
+        return { ok: false, error: '目標解析失敗' }
       }
       const unit = targetRes.unit
       const baseStats = BASE_STATS[unit.base]
@@ -97,7 +141,8 @@ function executeItemAbilitiesA1(
       const targetRes = resolveTargetUnit(nextState, action, ab?.target)
       if (!targetRes.ok) {
         if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
-        return { ok: false, error: targetRes.error }
+        if ('error' in targetRes) return { ok: false, error: targetRes.error }
+        return { ok: false, error: '目標解析失敗' }
       }
       const target = targetRes.unit
       if (!target.enchant) return { ok: false, error: '該單位未附魔' }
@@ -143,7 +188,8 @@ function executeItemAbilitiesA1(
       const targetRes = resolveTargetUnit(nextState, action, ab?.target)
       if (!targetRes.ok) {
         if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
-        return { ok: false, error: targetRes.error }
+        if ('error' in targetRes) return { ok: false, error: targetRes.error }
+        return { ok: false, error: '目標解析失敗' }
       }
       const targetUnitId = targetRes.unitId
 
@@ -400,7 +446,9 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
   // A1 executor: prefer item.abilities[] if supported, otherwise fallback to legacy switch-case.
   const execRes = executeItemAbilitiesA1(nextState, action, item)
   if (execRes.ok) {
-    return { ok: true, state: execRes.state, events: [...events, ...execRes.events] }
+    const mergedEvents = [...events, ...execRes.events]
+    const finalState = applyFirstItemUseIfGoldLtGainGold(execRes.state, mergedEvents)
+    return { ok: true, state: finalState, events: mergedEvents }
   }
   if (!execRes.ok && 'unsupported' in execRes) {
     const detail = execRes.abilityType ? ` (${execRes.abilityType}${execRes.reason ? `: ${execRes.reason}` : ''})` : (execRes.reason ? ` (${execRes.reason})` : '')

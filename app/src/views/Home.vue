@@ -32,7 +32,7 @@ const ALL_CLANS = [
   { id: 'styx',          label: '💧 冥河' },
   { id: 'eternal_night', label: '🌑 永夜' },
   { id: 'iron_guard',    label: '🛡️ 鐵衛' },
-  { id: 'gold_merc',     label: '💰 逐利' },
+  { id: 'gold_merc',     label: '💰 金傭' },
   { id: 'death_oath',    label: '🩸 死誓' },
 ]
 const selectedClans = ref<string[]>(['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath'])

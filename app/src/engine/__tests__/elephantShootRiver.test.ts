@@ -38,6 +38,7 @@ describe('shooting: elephant can shoot across river', () => {
         phase: 'combat' as const,
       },
       turnFlags: {
+        ...s0.turnFlags,
         shotUsed: {},
         movedThisTurn: {},
         enemyKilledThisTurnCount: 0,
@@ -50,6 +51,7 @@ describe('shooting: elephant can shoot across river', () => {
         bloodRitualUsed: false,
         necroBonusActions: 0,
         freeShootBonus: 0,
+        freeMoveBonus: 0,
         enchantGoldDiscount: 0,
         itemNecroBonus: 0,
         lastStandContractBonus: 0,
