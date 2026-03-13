@@ -36,27 +36,48 @@ function makeRealtimeAdapter(roomId: string, getLocalVersion: () => number): Syn
   }
 }
 
-// Strategy 4: Polling fallback (no Realtime, just intervals)
-function makePollingAdapter(intervalMs = 60000): SyncAdapter {
+// Strategy 4: Adaptive polling — fast when waiting for opponent, slow on own turn
+// getIsWaitingForOpponent: () => boolean drives the interval switching
+function makeAdaptivePollingAdapter(
+  getIsWaitingForOpponent: () => boolean,
+  fastMs = 10000,
+  slowMs = 30000,
+): SyncAdapter {
   let timer: ReturnType<typeof setInterval> | null = null
+  let currentFast = false
+  let onTickFn: (() => void) | null = null
+
+  function reschedule() {
+    const shouldBeFast = getIsWaitingForOpponent()
+    if (shouldBeFast === currentFast && timer !== null) return
+    if (timer) clearInterval(timer)
+    currentFast = shouldBeFast
+    timer = setInterval(() => {
+      onTickFn?.()
+      reschedule() // re-evaluate interval after each tick
+    }, shouldBeFast ? fastMs : slowMs)
+  }
+
   return {
     start(onTick) {
-      timer = setInterval(onTick, intervalMs)
+      onTickFn = onTick
+      reschedule()
     },
     stop() {
-      if (timer) {
-        clearInterval(timer)
-        timer = null
-      }
+      if (timer) { clearInterval(timer); timer = null }
+      onTickFn = null
     },
   }
 }
 
-// Realtime + polling hybrid: Realtime fires instantly when available,
-// polling fires every 60s as a safety net when Realtime is unreliable
-function makeHybridAdapter(roomId: string, getLocalVersion: () => number): SyncAdapter {
+// Realtime + adaptive-polling hybrid
+function makeHybridAdapter(
+  roomId: string,
+  getLocalVersion: () => number,
+  getIsWaitingForOpponent: () => boolean,
+): SyncAdapter {
   const rt = makeRealtimeAdapter(roomId, getLocalVersion)
-  const poll = makePollingAdapter(60000)
+  const poll = makeAdaptivePollingAdapter(getIsWaitingForOpponent)
   return {
     start(onTick) {
       rt.start(onTick)
@@ -99,26 +120,40 @@ export const useConnection = defineStore('connection', {
     async createRoom(enabledClans: string[] = ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']) {
       this.status = 'connecting'
       this.errorMsg = null
-      const res = await fetch('/api/rooms/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabledClans }),
-      })
-      if (!res.ok) {
-        this.errorMsg = 'Failed to create room'
-        this.status = 'error'
-        return null
+      const MAX_RETRIES = 3
+      let lastErr = '建立房間失敗'
+      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 1200 * attempt))
+        let res: Response
+        try {
+          res = await fetch('/api/rooms/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ enabledClans }),
+          })
+        } catch (e) {
+          lastErr = e instanceof Error ? e.message : '網路錯誤，請檢查連線'
+          continue
+        }
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}))
+          lastErr = errBody.error ?? `伺服器錯誤 (${res.status})`
+          continue
+        }
+        const data = await res.json()
+        this.roomId = data.roomId
+        this.side = data.side
+        this.secret = data.secret
+        this._persist()
+        await this._fetchState()
+        this._startAdapter()
+        this.attachLifecycleHandlers()
+        this.status = 'waiting'
+        return data.roomId as string
       }
-      const data = await res.json()
-      this.roomId = data.roomId
-      this.side = data.side
-      this.secret = data.secret
-      this._persist()
-      await this._fetchState()
-      this._startAdapter()
-      this.attachLifecycleHandlers()
-      this.status = 'waiting'
-      return data.roomId as string
+      this.errorMsg = lastErr
+      this.status = 'error'
+      return null
     },
 
     // ── Join an existing room (become black) ────────────────────────────
@@ -178,6 +213,9 @@ export const useConnection = defineStore('connection', {
         })
         const data = await res.json()
         if (!res.ok) {
+          // Await resync before returning so _suppressPollEvents is still true
+          // during the fetch — prevents stale pollEvents from being double-processed
+          await this._fetchState()
           return {
             ok: false,
             error: data.error,
@@ -298,10 +336,12 @@ export const useConnection = defineStore('connection', {
     _startAdapter() {
       this._stopAdapter()
       if (!this.roomId) return
+      const isWaiting = () =>
+        !!this.gameState && this.side !== null && this.gameState.turn.side !== this.side
       const adapter: SyncAdapter =
         this.syncMode === 'realtime'
-          ? makeHybridAdapter(this.roomId, () => this.localVersion)
-          : makePollingAdapter(60000)
+          ? makeHybridAdapter(this.roomId, () => this.localVersion, isWaiting)
+          : makeAdaptivePollingAdapter(isWaiting)
       adapter.start(() => this._fetchState())
       this._adapter = adapter
     },

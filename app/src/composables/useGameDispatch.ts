@@ -143,12 +143,13 @@ export function useGameDispatch(opts: {
     const result = await conn.sendAction(onlineAction)
     onlineWaiting.value = false
     if (!result.ok) {
+      // Always resync on any failure — server may have newer state
+      await conn.resyncNow(false)
       if ((result as any).code === 'VERSION_MISMATCH') {
-        await conn.resyncNow(true)
         lastError.value = '狀態已過期，正在重新同步最新戰局…'
-        return
+      } else {
+        lastError.value = result.error ?? '操作失敗，已重新同步'
       }
-      lastError.value = result.error ?? 'Server error'
       return
     }
     lastError.value = null
