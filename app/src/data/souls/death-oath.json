@@ -36,10 +36,10 @@
       ]
     },
     "abilities": [
-      { "type": "BLOOD_SACRIFICE", "onActivate": { "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 } },
+      { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2 } },
       { "type": "DEATH_COUNTER" }
     ],
-    "text": "【血祭→貫穿】射擊前可消耗帥 1 HP，本次射擊穿透前兩個目標。【最後一搏】死亡前對擊殺者反擊一次。"
+    "text": "【血祭→貫穿】射擊前可消耗帥 2 HP，本次射擊穿透前兩個目標。【最後一搏】死亡前對擊殺者反擊一次。"
   },
   {
     "id": "death_oath_knight_mingyan",

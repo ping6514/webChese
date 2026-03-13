@@ -95,7 +95,7 @@
   {
     "id": "item_cage_plunder",
     "name": "牢籠掠奪",
-    "costGold": 2,
+    "costGold": 3,
     "timing": "buy",
     "image": "/assets/cards/item/item_cage_plunder.jpg",
     "text": "【購買】干擾：隨機奪取敵方牢籠 1 張靈魂卡納入己方牢籠。己方牢籠已有 5 張時無法發動。",

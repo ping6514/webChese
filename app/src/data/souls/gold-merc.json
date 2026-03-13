@@ -15,10 +15,10 @@
       ]
     },
     "abilities": [
-      { "type": "KILL_GOLD_GAIN", "amount": 1 },
-      { "type": "GOLD_FOR_DAMAGE", "goldCost": 2, "damageBonus": 2 }
+      { "type": "KILL_GOLD_GAIN", "amount": 2 },
+      { "type": "GOLD_FOR_DAMAGE", "goldCost": 1, "damageBonus": 2 }
     ],
-    "text": "【血金掠奪】擊殺任意敵方單位時獲得 1 財力。【以財傷敵】射擊前可消耗 2 財力，本次傷害 +2。"
+    "text": "【血金掠奪】擊殺任意敵方單位時獲得 2 財力。【以財傷敵】射擊前可消耗 1 財力，本次傷害 +2。"
   },
   {
     "id": "gold_merc_rook_caifa",
@@ -58,9 +58,9 @@
     },
     "abilities": [
       { "type": "GOLD_THRESHOLD_ATK", "threshold": 7, "atkBonus": 1 },
-      { "type": "GOLD_FOR_DAMAGE", "goldCost": 2, "damageBonus": 2 }
+      { "type": "GOLD_FOR_DAMAGE", "goldCost": 1, "damageBonus": 2 }
     ],
-    "text": "【財力共鳴】持有財力 ≥ 7 時，ATK +1。【以財傷敵】射擊前可消耗 2 財力，本次傷害 +2。"
+    "text": "【財力共鳴】持有財力 ≥ 7 時，ATK +1。【以財傷敵】射擊前可消耗 1 財力，本次傷害 +2。"
   },
   {
     "id": "gold_merc_knight_biying",
@@ -78,10 +78,10 @@
       ]
     },
     "abilities": [
-      { "type": "ITEM_VALUE_ATK_BONUS", "threshold": 7, "atkBonus": 1 },
+      { "type": "ITEM_VALUE_ATK_BONUS", "threshold": 7, "atkBonus": 2 },
       { "type": "GOLD_THRESHOLD_ATK", "threshold": 6, "atkBonus": 1 }
     ],
-    "text": "【高價震懾】手牌道具卡總費用 ≥ 7 時，ATK +1。【財力共鳴】持有財力 ≥ 6 時，ATK 額外 +1。"
+    "text": "【高價震懾】手牌道具卡總費用 ≥ 7 時，ATK +2。【財力共鳴】持有財力 ≥ 6 時，ATK 額外 +1。"
   },
   {
     "id": "gold_merc_cannon_jinyan",
@@ -99,10 +99,10 @@
       ]
     },
     "abilities": [
-      { "type": "GOLD_FOR_DAMAGE", "goldCost": 2, "damageBonus": 2 },
+      { "type": "GOLD_FOR_DAMAGE", "goldCost": 1, "damageBonus": 2 },
       { "type": "GOLD_THRESHOLD_ATK", "threshold": 10, "atkBonus": 3 }
     ],
-    "text": "【以財傷敵】射擊前可消耗 2 財力，本次傷害 +2。【財力共鳴】持有財力 ≥ 10 時，ATK +3。"
+    "text": "【以財傷敵】射擊前可消耗 1 財力，本次傷害 +2。【財力共鳴】持有財力 ≥ 10 時，ATK +3。"
   },
   {
     "id": "gold_merc_cannon_caiyan",
@@ -121,9 +121,9 @@
     },
     "abilities": [
       { "type": "ITEM_VALUE_ATK_BONUS", "threshold": 8, "atkBonus": 3 },
-      { "type": "KILL_GOLD_GAIN", "amount": 1 }
+      { "type": "KILL_GOLD_GAIN", "amount": 2 }
     ],
-    "text": "【高價震懾】手牌道具卡總費用 ≥ 8 時，ATK +3。【血金掠奪】擊殺任意敵方單位時獲得 1 財力。"
+    "text": "【高價震懾】手牌道具卡總費用 ≥ 8 時，ATK +3。【血金掠奪】擊殺任意敵方單位時獲得 2 財力。"
   },
   {
     "id": "gold_merc_advisor_caihun",
@@ -183,7 +183,7 @@
       ]
     },
     "abilities": [
-      { "type": "FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD", "threshold": 8, "amount": 1, "perTurn": 1 },
+      { "type": "FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD", "scope": "global", "threshold": 8, "amount": 1, "perTurn": 1 },
       { "type": "ITEM_VALUE_AURA", "threshold": 8, "scope": "global", "bonus": { "def": { "phys": 1, "magic": 1 } } }
     ],
     "text": "【逐利】本回合首次發動攻擊時，若目前財力低於 8，獲得 1 財力（每回合限 1 次）。【展示收藏（守）】手牌道具卡總費用 ≥ 8 時，全體己方單位雙防 +1。"

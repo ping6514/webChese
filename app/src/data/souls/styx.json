@@ -80,7 +80,7 @@
     "costGold": 7,
     "stats": {
       "hp": 11,
-      "atk": { "key": "magic", "value": 2 },
+      "atk": { "key": "magic", "value": 3 },
       "def": [
         { "key": "phys", "value": 0 },
         { "key": "magic", "value": 1 }
@@ -128,7 +128,7 @@
       { "type": "TARGET_DEF_MINUS", "key": "magic", "amount": 2, "onlyIfAtkKey": "magic", "minDef": 0 },
       { "type": "DAMAGE_BONUS", "amount": 2, "targetWhen": { "type": "TARGET_CROSS_RIVER" } }
     ],
-    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，本回合獲得 1 次免費射擊。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
+    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，回合開始合獲得 1 次免費射擊。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
   },
   {
     "id": "styx_elephant_mingyanxiang",
@@ -151,7 +151,7 @@
       { "type": "TARGET_DEF_MINUS", "key": "magic", "amount": 2, "onlyIfAtkKey": "magic", "minDef": 0 },
       { "type": "DAMAGE_BONUS", "amount": 2, "targetWhen": { "type": "TARGET_CROSS_RIVER" } }
     ],
-    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，本回合獲得 1 次免費移動。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
+    "text": "【共鳴】：場上己方「冥河」單位 ≥ 3，回合開始合獲得 1 次免費移動。【冥雷】：射擊時目標魔防 -2（最低為 0）；且對處於「越境」狀態的敵方額外 +2 傷害。"
   },
   {
     "id": "styx_advisor_minghu",
