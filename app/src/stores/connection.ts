@@ -301,7 +301,7 @@ export const useConnection = defineStore('connection', {
       const adapter: SyncAdapter =
         this.syncMode === 'realtime'
           ? makeHybridAdapter(this.roomId, () => this.localVersion)
-          : makePollingAdapter(3000)
+          : makePollingAdapter(60000)
       adapter.start(() => this._fetchState())
       this._adapter = adapter
     },
