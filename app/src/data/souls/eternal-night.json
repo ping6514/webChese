@@ -200,6 +200,10 @@
         "for": "CLAN",
         "clan": "eternal_night",
         "excludeBase": "king"
+      },
+      {
+        "type": "SACRIFICE_SELF_APPLY_STATUS",
+        "status": "KING_INVINCIBLE_UNTIL_NEXT_TURN_START"
       }
     ],
     "text": "【永夜血脈（物防）】：屍氣 ≥3 時，我方所有永夜單位（不含帥）物防 +2。\n【獻祭】：摧毀自身，使我方帥進入【無敵】直到我方下一回合開始（完全免疫所有傷害，包含冥土歸還等固定傷害）。"
@@ -228,6 +232,10 @@
         "for": "CLAN",
         "clan": "eternal_night",
         "excludeBase": "king"
+      },
+      {
+        "type": "SACRIFICE_SELF_APPLY_STATUS",
+        "status": "KING_INVINCIBLE_UNTIL_NEXT_TURN_START"
       }
     ],
     "text": "【永夜血脈（魔防）】：屍氣 ≥3 時，我方所有永夜單位（不含帥）魔防 +3。\n【獻祭】：摧毀自身，使我方帥進入【無敵】直到我方下一回合開始（完全免疫所有傷害，包含冥土歸還等固定傷害）。"

@@ -53,6 +53,61 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
     }
   })
 
+  it('revives the topmost allied corpse even when enemy corpses are stacked above other allied corpses', () => {
+    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+    const side = s0.turn.side
+    const enemySide = side === 'red' ? 'black' : 'red'
+    const pos = { x: 0, y: 5 }
+
+    const s1 = {
+      ...s0,
+      turn: { side, phase: 'necro' as const },
+      corpsesByPos: {
+        ...s0.corpsesByPos,
+        [`${pos.x},${pos.y}`]: [
+          { ownerSide: side, base: 'soldier' },
+          { ownerSide: enemySide, base: 'rook' },
+          { ownerSide: side, base: 'knight' },
+        ] as any,
+      },
+    }
+
+    const res = reduce(s1 as any, { type: 'REVIVE', pos } as any)
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+
+    const revived = Object.values(res.state.units).find((u) =>
+      String(u.id).startsWith(`${side}:knight:revive:`),
+    )
+    expect(!!revived).toBe(true)
+    expect(res.state.corpsesByPos[`${pos.x},${pos.y}`]).toEqual([
+      { ownerSide: side, base: 'soldier' },
+      { ownerSide: enemySide, base: 'rook' },
+    ])
+  })
+
+  it('cannot revive onto a tile that currently has a living unit', () => {
+    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+    const side = s0.turn.side
+    const occupiedUnit = Object.values(s0.units).find((u) => u.side === side)
+    if (!occupiedUnit) throw new Error('missing occupied unit')
+    const pos = { ...occupiedUnit.pos }
+
+    const s1 = {
+      ...s0,
+      turn: { side, phase: 'necro' as const },
+      corpsesByPos: {
+        ...s0.corpsesByPos,
+        [`${pos.x},${pos.y}`]: [{ ownerSide: side, base: 'soldier' }] as any,
+      },
+    }
+
+    const res = reduce(s1 as any, { type: 'REVIVE', pos } as any)
+    expect(res.ok).toBe(false)
+    if (res.ok) return
+    expect(res.error).toContain('目標位置已有單位')
+  })
+
   it('supports numeric atk/def bonuses in AURA_STAT_BONUS', () => {
     const auraSoulId = 'styx_advisor_minghu'
     const auraCard = soulCardsById[auraSoulId]

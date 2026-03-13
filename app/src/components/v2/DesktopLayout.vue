@@ -70,7 +70,7 @@ const res = computed(() => state.value.resources)
       :red-storage-mana="res.red.storageMana"
       :online-side="ctx.onlineSide"
       :action-locked="ctx.actionLocked"
-      @next-phase="ctx.dispatch({ type: 'NEXT_PHASE' })"
+      @next-phase="ctx.dispatch($event)"
     />
 
     <!-- ── Main body ── -->

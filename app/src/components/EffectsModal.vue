@@ -3,7 +3,7 @@ export default { name: 'EffectsModal' }
 </script>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import type { GameState, Unit } from '../engine/state'
 import { getSoulCard } from '../engine/cards'
 import type { SoulAbility } from '../engine/cards'
@@ -368,8 +368,21 @@ const mySideLabel = computed(() => mySide.value === 'red' ? '紅方（己方）'
 const enemySideLabel = computed(() => enemySide.value === 'red' ? '紅方（敵方）' : '黑方（敵方）')
 
 const mobileTab = ref<'my' | 'enemy'>('my')
+const isNarrowScreen = ref(typeof window !== 'undefined' ? window.innerWidth <= 767 : false)
 
 const modalEl = ref<HTMLElement | null>(null)
+
+onMounted(() => {
+  const onResize = () => { isNarrowScreen.value = window.innerWidth <= 767 }
+  window.addEventListener('resize', onResize)
+  onUnmounted(() => window.removeEventListener('resize', onResize))
+})
+
+watch(() => props.open, (open) => {
+  if (!open) return
+  mobileTab.value = 'my'
+  modalEl.value?.scrollTo({ top: 0 })
+})
 
 watch(mobileTab, () => {
   // Ensure tab switch always visibly updates by resetting scroll position.
@@ -387,13 +400,13 @@ watch(mobileTab, () => {
 
       <!-- Mobile tab bar -->
       <div class="mobileTabs">
-        <button class="mobileTabBtn" :class="{ active: mobileTab === 'my' }" @click="mobileTab = 'my'">{{ mySideLabel }}</button>
-        <button class="mobileTabBtn" :class="{ active: mobileTab === 'enemy' }" @click="mobileTab = 'enemy'">{{ enemySideLabel }}</button>
+        <button type="button" class="mobileTabBtn" :class="{ active: mobileTab === 'my' }" @click="mobileTab = 'my'">{{ mySideLabel }}</button>
+        <button type="button" class="mobileTabBtn" :class="{ active: mobileTab === 'enemy' }" @click="mobileTab = 'enemy'">{{ enemySideLabel }}</button>
       </div>
 
       <div class="grid">
         <!-- 己方 -->
-        <div class="col" :class="{ mobileHidden: mobileTab !== 'my' }">
+        <div v-if="!isNarrowScreen || mobileTab === 'my'" class="col">
           <div class="colTitle">{{ mySideLabel }}</div>
           <div v-if="myRows.length === 0" class="empty">— 無附魔單位 —</div>
           <div v-for="row in myRows" :key="row.unitId" class="cardRow">
@@ -421,10 +434,10 @@ watch(mobileTab, () => {
           </div>
         </div>
 
-        <div class="divider mobileHiddenFlex" />
+        <div v-if="!isNarrowScreen" class="divider mobileHiddenFlex" />
 
         <!-- 敵方 -->
-        <div class="col" :class="{ mobileHidden: mobileTab !== 'enemy' }">
+        <div v-if="!isNarrowScreen || mobileTab === 'enemy'" class="col">
           <div class="colTitle">{{ enemySideLabel }}</div>
           <div v-if="enemyRows.length === 0" class="empty">— 無附魔單位 —</div>
           <div v-for="row in enemyRows" :key="row.unitId" class="cardRow">

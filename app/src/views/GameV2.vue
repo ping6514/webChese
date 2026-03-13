@@ -66,6 +66,12 @@ watch(lastError, (err) => {
   if (errorToastTimer) clearTimeout(errorToastTimer)
   errorToastTimer = setTimeout(() => { errorToastText.value = null }, 1600)
 })
+watch(() => conn.errorMsg, (err) => {
+  if (!err) return
+  errorToastText.value = err
+  if (errorToastTimer) clearTimeout(errorToastTimer)
+  errorToastTimer = setTimeout(() => { errorToastText.value = null }, 2200)
+})
 
 // ── Active buffs ───────────────────────────────────────────────────────────────
 const { activeBuffs } = useActiveBuffs(state)
@@ -195,10 +201,13 @@ watch(winnerSide, (w) => {
 const isMyTurn = computed(() =>
   setup.mode !== 'online' || conn.side === state.value.turn.side
 )
+const onlineBusy = computed(() =>
+  setup.mode === 'online' && (onlineWaiting.value || conn.isSyncing || conn.isSendingAction || conn.status === 'connecting')
+)
 const actionLocked = computed(() => {
   if (splashActive.value) return true
   if (kingDying.value) return true
-  if (setup.mode === 'online') return !isMyTurn.value || onlineWaiting.value
+  if (setup.mode === 'online') return !isMyTurn.value || onlineBusy.value
   if (setup.mode === 'pve')    return botRunning.value
   return false
 })
@@ -225,11 +234,6 @@ onMounted(() => {
   if (setup.mode === 'online' && conn.side) {
     const sideLabel = conn.side === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
     showSplash(`${sideLabel}\n${clans}`, conn.side)
-
-    // Auto-resync when tab regains focus (e.g. after backgrounding)
-    const onVisible = () => { if (!document.hidden) conn._fetchState() }
-    document.addEventListener('visibilitychange', onVisible)
-    onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
   } else if (setup.mode === 'pve') {
     const mySide = setup.resolvedPlayerSide
     const sideLabel = mySide === 'red' ? '你是 RED 紅方' : '你是 BLACK 黑方'
@@ -252,15 +256,24 @@ watch(
 )
 
 // ── Auto-open shop at buy phase (human turn only) ──────────────────────────────
+const autoShopOpenedForCurrentBuy = ref(false)
 watch(
-  () => state.value.turn.phase,
-  (phase, prev) => {
-    if (phase !== 'buy' || prev === 'buy') return  // only on transition INTO buy
-    const side = state.value.turn.side
-    if (setup.mode === 'pve' && side === npcSide.value) return  // skip bot turns
-    if (setup.mode === 'online' && conn.side !== side) return   // skip opponent turns
-    setTimeout(() => ui.openShop(), 1600) // 自動彈出商店秒數
+  () => [state.value.turn.phase, state.value.turn.side, splashActive.value] as const,
+  ([phase, side, isSplashActive], prevTuple) => {
+    const [prevPhase, prevSide] = prevTuple ?? []
+    if (phase !== 'buy') {
+      autoShopOpenedForCurrentBuy.value = false
+      return
+    }
+    if (prevPhase !== phase || prevSide !== side) autoShopOpenedForCurrentBuy.value = false
+    if (isSplashActive) return
+    if (autoShopOpenedForCurrentBuy.value) return
+    if (setup.mode === 'pve' && side === npcSide.value) return
+    if (setup.mode === 'online' && conn.side !== side) return
+    autoShopOpenedForCurrentBuy.value = true
+    setTimeout(() => ui.openShop(), 1600)
   },
+  { immediate: true },
 )
 
 // ── Turn-based background ──────────────────────────────────────────────────────
@@ -277,8 +290,13 @@ watchEffect(() => {
   document.body.style.overscrollBehavior = anyOpen ? 'none' : ''
 })
 
+watchEffect(() => {
+  document.body.style.cursor = onlineBusy.value ? 'wait' : ''
+})
+
 onUnmounted(() => {
   document.body.style.backgroundImage = ''
+  document.body.style.cursor = ''
   if (setup.mode === 'online') conn.disconnect()
 })
 
@@ -331,6 +349,9 @@ provideGameV2({
     <div v-if="kingDying" class="kingDyingOverlay" />
 
     <div v-if="splashActive" class="splashBlocker" />
+    <div v-if="onlineBusy" class="syncBlocker">
+      <div class="syncPanel">{{ conn.isSendingAction ? '送出中…' : '同步中…' }}</div>
+    </div>
     <Transition name="side-splash">
       <div
         v-if="sideSplashVisible"
@@ -368,6 +389,31 @@ provideGameV2({
   backdrop-filter: blur(3px);
   pointer-events: all;
   touch-action: none;
+}
+.syncBlocker {
+  position: fixed;
+  inset: 0;
+  z-index: 9170;
+  background: rgba(6, 10, 18, 0.22);
+  backdrop-filter: blur(1px);
+  pointer-events: all;
+  touch-action: none;
+  cursor: wait;
+  display: grid;
+  place-items: start center;
+  padding-top: 84px;
+}
+.syncPanel {
+  min-width: 132px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(12, 18, 30, 0.92);
+  color: rgba(240, 245, 255, 0.94);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.32);
 }
 .splashRed   { color: #ffb0b2; }
 .splashGreen { color: #b7eb8f; }

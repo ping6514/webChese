@@ -488,6 +488,7 @@ function reduceNextPhase(state: GameState): ReduceResult {
         enemyKilledThisTurnCount: 0,
         soulReturnUsedCount: 0,
         abilityUsed: {},
+        itemUsedByItemId: {},
         soulBuyUsed: false,
         buySoulActionsUsed: 0,
         buyItemActionsUsed: 0,
@@ -873,20 +874,23 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       let nextState: GameState = nextState0
       const events: Event[] = []
 
-      // Eternal Night advisors: self sacrifice grants allied king invincibility for one full enemy turn.
       const soulId = src.enchant?.soulId ?? null
-      if ((soulId === 'eternal_night_advisor_guhu' || soulId === 'eternal_night_advisor_hunshi') && src.id === tgt.id) {
-        nextState = {
-          ...nextState,
-          status: {
-            ...nextState.status,
-            kingInvincibleSide: src.side,
-          },
+      const card = soulId ? getSoulCard(soulId) : null
+      const selfSacAb = card?.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SELF_APPLY_STATUS')
+      if (selfSacAb && src.id === tgt.id) {
+        const statusType = String((selfSacAb as any).status ?? '')
+        if (statusType === 'KING_INVINCIBLE_UNTIL_NEXT_TURN_START') {
+          nextState = {
+            ...nextState,
+            status: {
+              ...nextState.status,
+              kingInvincibleSide: src.side,
+            },
+          }
         }
       }
 
       if (src.id !== tgt.id && soulId) {
-        const card = getSoulCard(soulId)
         const ab = card?.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
         const buff = (ab as any)?.buff
         if (buff) {
@@ -1047,7 +1051,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       const occupied = getUnitAt(state, action.pos)
       if (occupied) return { ok: false, error: '目標位置已有單位' }
 
-      const index = action.corpseIndex ?? stack.length - 1
+      const friendlyIndices = stack
+        .map((corpse, index) => ({ corpse, index }))
+        .filter(({ corpse }) => corpse.ownerSide === state.turn.side)
+      if (friendlyIndices.length === 0) return { ok: false, error: '此格無己方屍骸' }
+
+      const requestedIndex = action.corpseIndex
+      const index = requestedIndex ?? friendlyIndices[friendlyIndices.length - 1]!.index
       if (index < 0 || index >= stack.length) return { ok: false, error: '無效的屍骸索引' }
 
       const corpse = stack[index]

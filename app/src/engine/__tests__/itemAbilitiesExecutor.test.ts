@@ -114,6 +114,52 @@ describe('items: abilities executor (A1)', () => {
     expect(after.resources[side].gold).toBeGreaterThan(0)
   })
 
+  it('item_bone_refine removes the topmost allied corpse even if an enemy corpse is above another allied corpse in the same stack', () => {
+    const s0 = createInitialState()
+    const side = s0.turn.side
+    const enemySide = side === 'red' ? 'black' : 'red'
+
+    const baseState = {
+      ...s0,
+      turn: { ...s0.turn, phase: 'buy' as const },
+      hands: {
+        ...s0.hands,
+        [side]: {
+          ...s0.hands[side],
+          items: ['item_bone_refine'],
+        },
+      },
+      corpsesByPos: {
+        ...s0.corpsesByPos,
+        '0,0': [
+          { ownerSide: side, base: 'soldier' },
+          { ownerSide: enemySide, base: 'rook' },
+          { ownerSide: side, base: 'knight' },
+        ],
+      },
+      resources: {
+        ...s0.resources,
+        [side]: { ...s0.resources[side], gold: 0, mana: 0 },
+      },
+    }
+
+    const res = reduce(baseState as any, {
+      type: 'USE_ITEM_FROM_HAND',
+      itemId: 'item_bone_refine',
+      targetPos: { x: 0, y: 0 },
+      choice: 'mana',
+    })
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+
+    const after = res.state
+    expect(after.corpsesByPos['0,0']).toEqual([
+      { ownerSide: side, base: 'soldier' },
+      { ownerSide: enemySide, base: 'rook' },
+    ])
+    expect(after.resources[side].mana).toBeGreaterThan(0)
+  })
+
   it('GAIN_NECRO_ACTION + ENCHANT_GOLD_DISCOUNT: item_soul_infusion updates turnFlags (via abilities executor)', () => {
     const s0 = createInitialState()
     const side = s0.turn.side

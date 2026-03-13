@@ -31,6 +31,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(403).json({ error: 'Invalid secret' })
   }
 
+  const expectedVersion = Number((action as any)?.expectedVersion ?? NaN)
+  if (Number.isFinite(expectedVersion) && expectedVersion !== room.version) {
+    return res.status(409).json({
+      error: '狀態版本不同步，正在重新同步',
+      code: 'VERSION_MISMATCH',
+      currentVersion: room.version,
+    })
+  }
+
   // Special-case: SURRENDER can be sent anytime, but can only surrender your own side.
   if ((action as any)?.type === 'SURRENDER') {
     const actionSide = (action as any)?.side

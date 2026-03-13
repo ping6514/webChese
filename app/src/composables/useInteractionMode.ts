@@ -67,9 +67,9 @@ export function useInteractionMode(opts: {
       }
       case 'item_nether_seal': {
         const validUnitIds = Object.values(state.value.units)
-          .filter((u) => u.side !== side)
+          .filter((u) => u.side !== side && u.base !== 'king')
           .map((u) => u.id)
-        if (validUnitIds.length === 0) { lastError.value = '沒有可封印的敵方單位'; return }
+        if (validUnitIds.length === 0) { lastError.value = '沒有可封印的敵方非帥單位'; return }
         ui.startUseItemTargetUnit(itemId, validUnitIds)
         break
       }
@@ -192,7 +192,7 @@ export function useInteractionMode(opts: {
       if (hasFriendly) {
         const revGuard = canRevive(state.value, { x: payload.x, y: payload.y })
         if (revGuard.ok) {
-          const corpse = stack![stack!.length - 1]
+          const corpse = [...stack!].reverse().find((c) => c.ownerSide === state.value.turn.side)
           const BASE_LABEL: Record<string, string> = { king: '帥', advisor: '士', elephant: '象', rook: '車', knight: '馬', cannon: '炮', soldier: '卒' }
           const baseName = BASE_LABEL[corpse?.base ?? ''] ?? (corpse?.base ?? '?')
           const isContract = (state.value.turnFlags.lastStandContractBonus ?? 0) > 0

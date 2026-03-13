@@ -27,7 +27,7 @@ const props = defineProps<{
   actionLocked?: boolean
 }>()
 
-const emit = defineEmits<{ nextPhase: [] }>()
+const emit = defineEmits<{ nextPhase: [payload: { type: 'NEXT_PHASE'; expectedPhase: Phase }] }>()
 
 const router = useRouter()
 const conn   = useConnection()
@@ -49,12 +49,18 @@ const nextPhaseLabel = computed(() => {
 const nextBtnClass = computed(() =>
   props.currentSide === 'red' ? 'nextRed' : 'nextGreen'
 )
+const playerDetailHint = '點擊查看玩家詳情'
+const blackSoulCount = computed(() => gameCtx?.state.value.hands.black.souls.length ?? 0)
+const blackItemCount = computed(() => gameCtx?.state.value.hands.black.items.length ?? 0)
+const redSoulCount = computed(() => gameCtx?.state.value.hands.red.souls.length ?? 0)
+const redItemCount = computed(() => gameCtx?.state.value.hands.red.items.length ?? 0)
 
 // ── Connection ─────────────────────────────────────────────────────────────────
 const isOnline = computed(() => setup.mode === 'online')
 
 const connDotClass = computed(() => {
   if (!isOnline.value) return null
+  if (conn.isOffline) return 'dot--red'
   switch (conn.status) {
     case 'playing':    return 'dot--green'
     case 'waiting':    return 'dot--yellow'
@@ -67,15 +73,21 @@ const connLabel = computed(() => {
   const labels: Record<string, string> = {
     playing: '已連線', waiting: '等待對手', connecting: '連線中', error: '連線錯誤',
   }
+  if (conn.isOffline) return '離線'
   return labels[conn.status] ?? conn.status
 })
 
 // ── Gear popover ───────────────────────────────────────────────────────────────
 const gearOpen = ref(false)
+const homePending = ref(false)
 const surrenderPending = ref(false)
 
-function closeGear() { gearOpen.value = false; surrenderPending.value = false }
-function goHome() { router.push({ name: 'home' }); closeGear() }
+function closeGear() { gearOpen.value = false; homePending.value = false; surrenderPending.value = false }
+function goHome() {
+  if (!homePending.value) { homePending.value = true; surrenderPending.value = false; return }
+  router.push({ name: 'home' })
+  closeGear()
+}
 
 function surrender() {
   if (!surrenderPending.value) { surrenderPending.value = true; return }
@@ -90,6 +102,30 @@ function surrender() {
   router.push({ name: 'gameOver', query: { winner } })
 }
 
+function openPlayerDetail(side: Side) {
+  const res = gameCtx?.state.value.resources[side]
+  const hands = gameCtx?.state.value.hands[side]
+  if (!res || !hands) return
+  const sideLabel =
+    side === 'red'
+      ? (props.onlineSide === 'red' ? '我方（紅）' : props.onlineSide === 'black' ? '敵方（紅）' : '紅方')
+      : (props.onlineSide === 'black' ? '我方（黑）' : props.onlineSide === 'red' ? '敵方（黑）' : '黑方')
+  ui.openDetailModal({
+    title: `${sideLabel} 詳情`,
+    image: null,
+    detail: [
+      `財力: ${res.gold}`,
+      `魔力: ${res.mana}`,
+      `存魔: ${res.storageMana}`,
+      `靈魂手牌: ${hands.souls.length}`,
+      `道具手牌: ${hands.items.length}`,
+    ].join('\n'),
+    actionLabel: null,
+    actionDisabled: false,
+    actionTitle: '',
+  })
+}
+
 onMounted(() => {
   const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') gearOpen.value = false }
   window.addEventListener('keydown', onKey)
@@ -100,17 +136,20 @@ onMounted(() => {
 <template>
   <header class="statusBar" :class="currentSide === 'red' ? 'bar--red' : 'bar--black'">
     <!-- 黑方 -->
-    <div class="playerBlock" :class="{ active: currentSide === 'black' }">
+    <button class="playerBlock playerBlockBtn" :class="{ active: currentSide === 'black' }" :title="playerDetailHint" @click="openPlayerDetail('black')">
       <span class="sideDot sideBlack" />
       <span class="playerLabel">
         {{ onlineSide === 'black' ? '你' : onlineSide === 'red' ? '敵' : 'BLACK' }}
       </span>
+      <span class="playerInfoHint">ⓘ</span>
       <span v-if="currentSide === 'black'" class="turnBadge turnBadge--black">▶ 回合</span>
       <span class="hp">♥ {{ blackHp ?? '?' }}</span>
+      <span class="res handCount">🃏 {{ blackSoulCount }}</span>
+      <span class="res handCount">🎒 {{ blackItemCount }}</span>
       <span class="res">💰 <span class="resLbl">財力</span> {{ blackGold }}</span>
       <span class="res">🌟 <span class="resLbl">魔力</span> {{ blackMana }}</span>
       <span class="res">⚖ <span class="resLbl">存魔</span> {{ blackStorageMana }}</span>
-    </div>
+    </button>
 
     <!-- 中央控制 -->
     <div class="centerBlock">
@@ -133,7 +172,7 @@ onMounted(() => {
         class="nextBtn"
         :class="nextBtnClass"
         :disabled="actionLocked"
-        @click="emit('nextPhase')"
+        @click="emit('nextPhase', { type: 'NEXT_PHASE', expectedPhase: currentPhase })"
       >{{ nextPhaseLabel }}</button>
       <span style="margin: auto 0.5rem;">|</span>
       <button
@@ -146,17 +185,20 @@ onMounted(() => {
 
     <!-- 紅方 + 齒輪（包在 rightSide 內） -->
     <div class="rightSide">
-      <div class="playerBlock sideRed" :class="{ active: currentSide === 'red' }">
+      <button class="playerBlock playerBlockBtn sideRed" :class="{ active: currentSide === 'red' }" :title="playerDetailHint" @click="openPlayerDetail('red')">
         <span class="sideDot sideRedDot" />
         <span class="playerLabel">
           {{ onlineSide === 'red' ? '你' : onlineSide === 'black' ? '敵' : 'RED' }}
         </span>
+        <span class="playerInfoHint">ⓘ</span>
         <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="hp">♥ {{ redHp ?? '?' }}</span>
+        <span class="res handCount">🃏 {{ redSoulCount }}</span>
+        <span class="res handCount">🎒 {{ redItemCount }}</span>
         <span class="res">💰 <span class="resLbl">財力</span> {{ redGold }}</span>
         <span class="res">🌟 <span class="resLbl">魔力</span> {{ redMana }}</span>
         <span class="res">⚖ <span class="resLbl">存魔</span> {{ redStorageMana }}</span>
-      </div>
+      </button>
 
       <!-- 連線品質 + 商店 + 齒輪（獨立於紅方資訊格外） -->
       <div class="rightTools">
@@ -176,10 +218,19 @@ onMounted(() => {
           <button class="gearBtn" :class="{ gearActive: gearOpen }" @click="gearOpen = !gearOpen">⚙️</button>
           <div v-if="gearOpen" class="gearPopover" @click.stop>
             <div class="gearTitle">選項</div>
-            <button class="gearItem" @click="goHome">🏠 返回首頁</button>
+            <template v-if="!homePending">
+              <button class="gearItem" @click="goHome">🏠 返回首頁</button>
+            </template>
+            <template v-else>
+              <div class="gearItem gearSurrenderConfirm">確認返回首頁？</div>
+              <div class="gearConfirmRow">
+                <button class="gearItem gearClose" @click="goHome">確認</button>
+                <button class="gearItem" @click="homePending = false">取消</button>
+              </div>
+            </template>
             <template v-if="isOnline">
               <div class="gearDivider" />
-              <button class="gearItem" @click="conn._fetchState(); closeGear()">🔄 重新同步</button>
+              <button class="gearItem" @click="conn.resyncNow(true); closeGear()">🔄 重新同步</button>
             </template>
             <template v-if="gameCtx?.isPve">
               <div class="gearDivider" />
@@ -243,6 +294,22 @@ onMounted(() => {
   border: 1px solid transparent;
   transition: border-color 0.3s, background 0.3s, box-shadow 0.3s;
   min-width: 0;
+}
+.playerBlockBtn {
+  appearance: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.playerBlockBtn:hover {
+  border-color: rgba(145, 202, 255, 0.35);
+}
+.playerInfoHint {
+  font-size: 0.6875rem;
+  color: rgba(145, 202, 255, 0.72);
+}
+.handCount {
+  opacity: 0.86;
 }
 
 .playerBlock.active {

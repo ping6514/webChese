@@ -269,9 +269,12 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         const sacrificePairs: SacrificePair[] = []
         for (const src of myUnits) {
           const srcCard = getSoulCard((src.enchant?.soulId as string) ?? '')
-          if (srcCard?.clan === 'eternal_night' && srcCard.abilities.some((a: any) => a.type === 'SACRIFICE_SHOT_BUFF')) {
+          if (
+            srcCard?.clan === 'eternal_night'
+            && srcCard.abilities.some((a: any) => a.type === 'SACRIFICE_SHOT_BUFF' || a.type === 'SACRIFICE_SELF_APPLY_STATUS')
+          ) {
             for (const tgt of myUnits) {
-              if ((tgt.id as string) !== (src.id as string) && !tgt.enchant && canSacrifice(state, src.id as string, tgt.id as string).ok)
+              if (canSacrifice(state, src.id as string, tgt.id as string).ok)
                 sacrificePairs.push({ sourceUnitId: src.id as string, targetUnitId: tgt.id as string })
             }
           }

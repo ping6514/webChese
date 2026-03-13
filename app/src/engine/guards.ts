@@ -12,8 +12,6 @@ import { FREE_SHOOT_MANA_SENTINEL } from './gameConfig'
 
 export type GuardResult = { ok: true } | { ok: false; reason: string }
 
-const EN_SACRIFICE_SELF_SOUL_IDS = new Set(['eternal_night_advisor_guhu', 'eternal_night_advisor_hunshi'])
-
 export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitId: string, range?: number): GuardResult {
   if (state.turn.phase !== 'combat') return fail('需要在戰鬥階段')
 
@@ -25,14 +23,15 @@ export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitI
   if (!srcSoulId || !srcCard) return fail('來源單位沒有獻祭技能')
   if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('來源單位沒有獻祭技能')
   const sacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
-  const hasSacrifice = !!sacAb || EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)
+  const selfSacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SELF_APPLY_STATUS')
+  const hasSacrifice = !!sacAb || !!selfSacAb
   if (!hasSacrifice) return fail('來源單位沒有獻祭技能')
 
   if (state.turnFlags.shotUsed?.[src.id]) return fail('本回合已射擊過')
   if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('獻祭前必須先移動')
 
   // Advisors: sacrifice self only.
-  if (EN_SACRIFICE_SELF_SOUL_IDS.has(srcSoulId)) {
+  if (selfSacAb) {
     if (src.id !== tgt.id) return fail('此技能只能對自身獻祭')
   }
 
@@ -132,6 +131,9 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
     case 'SACRIFICE':
       return canSacrifice(state, action.sourceUnitId, action.targetUnitId, action.range)
     case 'NEXT_PHASE':
+      if (action.expectedPhase && action.expectedPhase !== state.turn.phase) {
+        return fail(`階段不同步：目前為 ${state.turn.phase}`)
+      }
       return ok()
     default: {
       const _exhaustive: never = action
@@ -288,9 +290,8 @@ export function canRevive(state: GameState, pos: Pos): GuardResult {
   if (!stack || stack.length === 0) return fail('No corpses here')
   if (getUnitAt(state, pos)) return fail('Target position occupied')
 
-  const corpse = stack[stack.length - 1]
+  const corpse = [...stack].reverse().find((c) => c.ownerSide === state.turn.side)
   if (!corpse) return fail('No corpses here')
-  if (corpse.ownerSide !== state.turn.side) return fail('Not your corpse')
 
   // 後勤：召侍在場且卒屍骸可免費復活（不消耗死靈術次數）
   const usingContract = (state.turnFlags.lastStandContractBonus ?? 0) > 0

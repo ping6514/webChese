@@ -1,5 +1,6 @@
 import type { Pos } from './types'
 import type { PieceBase } from './types'
+import type { Phase } from './types'
 
 export type MoveAction = {
   type: 'MOVE'
@@ -9,6 +10,7 @@ export type MoveAction = {
 
 export type NextPhaseAction = {
   type: 'NEXT_PHASE'
+  expectedPhase?: Phase
 }
 
 export type SurrenderAction = {

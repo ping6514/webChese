@@ -131,7 +131,8 @@ export function useGameDispatch(opts: {
   )
 
   async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
-    if (onlineWaiting.value) return
+    if (onlineWaiting.value || conn.isSyncing || conn.isSendingAction) return
+    const onlineAction = { ...(action as any), expectedVersion: conn.localVersion } as Parameters<typeof reduce>[1]
     const isSurrender = (action as any)?.type === 'SURRENDER'
     if (!isSurrender && conn.side !== state.value.turn.side) {
       lastError.value = '現在是對手的回合'
@@ -139,9 +140,14 @@ export function useGameDispatch(opts: {
     }
     onlineWaiting.value = true
     const prevState = state.value
-    const result = await conn.sendAction(action)
+    const result = await conn.sendAction(onlineAction)
     onlineWaiting.value = false
     if (!result.ok) {
+      if ((result as any).code === 'VERSION_MISMATCH') {
+        await conn.resyncNow(true)
+        lastError.value = '狀態已過期，正在重新同步最新戰局…'
+        return
+      }
       lastError.value = result.error ?? 'Server error'
       return
     }

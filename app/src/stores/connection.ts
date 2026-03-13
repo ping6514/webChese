@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { supabase } from '../lib/supabaseClient'
 import type { GameState } from '../engine'
 
+let detachLifecycleHandlers: (() => void) | null = null
+
 // ─── SyncAdapter interface ─────────────────────────────────────────────────
 
 type SyncAdapter = {
@@ -75,6 +77,7 @@ export type ConnStatus = 'idle' | 'connecting' | 'waiting' | 'playing' | 'error'
 export const useConnection = defineStore('connection', {
   state: () => ({
     status: 'idle' as ConnStatus,
+    isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
     roomId: null as string | null,
     side: null as 'red' | 'black' | null,
     secret: null as string | null,
@@ -85,6 +88,8 @@ export const useConnection = defineStore('connection', {
     pollEvents: [] as unknown[],   // events from opponent (via polling)
     _suppressPollEvents: false,
     _fetchInFlight: false,
+    isSyncing: false,
+    isSendingAction: false,
     errorMsg: null as string | null,
     _adapter: null as SyncAdapter | null,
   }),
@@ -111,6 +116,7 @@ export const useConnection = defineStore('connection', {
       this._persist()
       await this._fetchState()
       this._startAdapter()
+      this.attachLifecycleHandlers()
       this.status = 'waiting'
       return data.roomId as string
     },
@@ -133,6 +139,7 @@ export const useConnection = defineStore('connection', {
       this._persist()
       await this._fetchState()
       this._startAdapter()
+      this.attachLifecycleHandlers()
       this.status = 'playing'
       return true
     },
@@ -151,15 +158,18 @@ export const useConnection = defineStore('connection', {
       this.secret = secret
       await this._fetchState()
       this._startAdapter()
+      this.attachLifecycleHandlers()
       return true
     },
 
     // ── Send an action to the server ────────────────────────────────────
     async sendAction(action: unknown) {
       if (!this.roomId || !this.secret || !this.side) return { ok: false, error: 'Not connected' }
+      if (this.isSendingAction || this.isSyncing) return { ok: false, error: '同步中，請稍候' }
       // Suppress pollEvents for the entire request window so Realtime can't fire
       // during the fetch and double-process our own events
       this._suppressPollEvents = true
+      this.isSendingAction = true
       try {
         const res = await fetch(`/api/rooms/${this.roomId}/action`, {
           method: 'POST',
@@ -167,12 +177,20 @@ export const useConnection = defineStore('connection', {
           body: JSON.stringify({ action, secret: this.secret, side: this.side }),
         })
         const data = await res.json()
-        if (!res.ok) return { ok: false, error: data.error }
+        if (!res.ok) {
+          return {
+            ok: false,
+            error: data.error,
+            code: data.code,
+            currentVersion: data.currentVersion,
+          }
+        }
         this.lastEvents = data.events ?? []
         this.localVersion = data.version
         await this._fetchState()
         return { ok: true }
       } finally {
+        this.isSendingAction = false
         this._suppressPollEvents = false
       }
     },
@@ -189,12 +207,16 @@ export const useConnection = defineStore('connection', {
     // ── Disconnect ───────────────────────────────────────────────────────
     disconnect() {
       this._stopAdapter()
+      this.detachLifecycleHandlers()
       this.status = 'idle'
+      this.isOffline = false
       this.roomId = null
       this.side = null
       this.secret = null
       this.gameState = null
       this.localVersion = -1
+      this.isSyncing = false
+      this.isSendingAction = false
       localStorage.removeItem('chess_connection')
     },
 
@@ -203,6 +225,7 @@ export const useConnection = defineStore('connection', {
       if (!this.roomId) return
       if (this._fetchInFlight) return  // prevent concurrent duplicate fetches
       this._fetchInFlight = true
+      this.isSyncing = true
       try {
         const url = `/api/rooms/${this.roomId}/state?since=${this.localVersion}`
         const res = await fetch(url)
@@ -220,6 +243,55 @@ export const useConnection = defineStore('connection', {
         if (data.status === 'finished') this.status = 'idle'
       } finally {
         this._fetchInFlight = false
+        this.isSyncing = false
+      }
+    },
+
+    async resyncNow(restartAdapter = false) {
+      if (!this.roomId) return
+      if (restartAdapter) this._startAdapter()
+      await this._fetchState()
+    },
+
+    attachLifecycleHandlers() {
+      if (typeof window === 'undefined' || typeof document === 'undefined') return
+      this.detachLifecycleHandlers()
+
+      const onVisibility = () => {
+        if (document.hidden) return
+        this.resyncNow(true)
+      }
+      const onFocus = () => { this.resyncNow(false) }
+      const onPageShow = () => { this.resyncNow(true) }
+      const onOnline = () => {
+        this.isOffline = false
+        if (this.errorMsg === '目前已離線，等待網路恢復後自動同步') this.errorMsg = null
+        this.resyncNow(true)
+      }
+      const onOffline = () => {
+        this.isOffline = true
+        this.errorMsg = '目前已離線，等待網路恢復後自動同步'
+      }
+
+      document.addEventListener('visibilitychange', onVisibility)
+      window.addEventListener('focus', onFocus)
+      window.addEventListener('pageshow', onPageShow)
+      window.addEventListener('online', onOnline)
+      window.addEventListener('offline', onOffline)
+
+      detachLifecycleHandlers = () => {
+        document.removeEventListener('visibilitychange', onVisibility)
+        window.removeEventListener('focus', onFocus)
+        window.removeEventListener('pageshow', onPageShow)
+        window.removeEventListener('online', onOnline)
+        window.removeEventListener('offline', onOffline)
+      }
+    },
+
+    detachLifecycleHandlers() {
+      if (detachLifecycleHandlers) {
+        detachLifecycleHandlers()
+        detachLifecycleHandlers = null
       }
     },
 

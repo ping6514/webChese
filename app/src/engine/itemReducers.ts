@@ -209,10 +209,15 @@ function executeItemAbilitiesA1(
       const posKey = `${action.targetPos.x},${action.targetPos.y}`
       const stack = nextState.corpsesByPos[posKey]
       if (!stack || stack.length === 0) return { ok: false, error: '該位置沒有屍骸' }
-      const topIdx = stack.length - 1
-      const topCorpse = stack[topIdx]
-      if (!topCorpse || topCorpse.ownerSide !== nextState.turn.side) return { ok: false, error: '沒有己方屍骸' }
-      const nextStack = stack.slice(0, topIdx)
+      let topIdx = -1
+      for (let i = stack.length - 1; i >= 0; i--) {
+        if (stack[i]?.ownerSide === nextState.turn.side) {
+          topIdx = i
+          break
+        }
+      }
+      if (topIdx < 0) return { ok: false, error: '沒有己方屍骸' }
+      const nextStack = stack.slice(0, topIdx).concat(stack.slice(topIdx + 1))
       const nextCorpsesByPos = { ...nextState.corpsesByPos }
       if (nextStack.length === 0) delete nextCorpsesByPos[posKey]
       else nextCorpsesByPos[posKey] = nextStack
@@ -424,6 +429,11 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
   if (!hand.includes(action.itemId)) return { ok: false, error: '道具卡不在手牌中' }
   const item = getItemCard(action.itemId)
   if (!item) return { ok: false, error: '找不到道具卡' }
+  const limitPerTurn = Number((item as any).limitPerTurn ?? 0)
+  if (Number.isFinite(limitPerTurn) && limitPerTurn > 0) {
+    const used = Number(state.turnFlags.itemUsedByItemId?.[action.itemId] ?? 0)
+    if (used >= limitPerTurn) return { ok: false, error: '此道具本回合已達使用上限' }
+  }
 
   const timing = item.timing
   if (timing === 'buy' && state.turn.phase !== 'buy') return { ok: false, error: '此道具只能在購買階段使用' }
@@ -447,7 +457,21 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
   const execRes = executeItemAbilitiesA1(nextState, action, item)
   if (execRes.ok) {
     const mergedEvents = [...events, ...execRes.events]
-    const finalState = applyFirstItemUseIfGoldLtGainGold(execRes.state, mergedEvents)
+    let finalState = execRes.state
+    if (Number.isFinite(limitPerTurn) && limitPerTurn > 0) {
+      const used = Number(finalState.turnFlags.itemUsedByItemId?.[action.itemId] ?? 0)
+      finalState = {
+        ...finalState,
+        turnFlags: {
+          ...finalState.turnFlags,
+          itemUsedByItemId: {
+            ...(finalState.turnFlags.itemUsedByItemId ?? {}),
+            [action.itemId]: used + 1,
+          },
+        },
+      }
+    }
+    finalState = applyFirstItemUseIfGoldLtGainGold(finalState, mergedEvents)
     return { ok: true, state: finalState, events: mergedEvents }
   }
   if (!execRes.ok && 'unsupported' in execRes) {

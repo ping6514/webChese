@@ -78,6 +78,7 @@ export type GameState = {
     enemyKilledThisTurnCount: number
     soulReturnUsedCount: number
     abilityUsed: Record<string, number>
+    itemUsedByItemId: Record<string, number>
     soulBuyUsed: boolean
     buySoulActionsUsed: number
     buyItemActionsUsed: number
@@ -299,6 +300,7 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
       enemyKilledThisTurnCount: 0,
       soulReturnUsedCount: 0,
       abilityUsed: {},
+      itemUsedByItemId: {},
       soulBuyUsed: false,
       buySoulActionsUsed: 0,
       buyItemActionsUsed: 0,

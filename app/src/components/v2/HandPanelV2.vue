@@ -127,8 +127,9 @@ function useItem(itemId: string) {
       break
     case 'item_nether_seal': {
       const validUnitIds = Object.values(state.value.units)
-        .filter((u) => u.side !== side)
+        .filter((u) => u.side !== side && u.base !== 'king')
         .map((u) => u.id)
+      if (validUnitIds.length === 0) break
       ui.startUseItemTargetUnit(itemId, validUnitIds)
       break
     }

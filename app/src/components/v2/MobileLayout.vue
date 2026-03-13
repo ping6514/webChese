@@ -172,6 +172,7 @@ const nextPhaseLabel = computed(() => {
 const isOnline = computed(() => setup.mode === 'online')
 const connDotClass = computed(() => {
   if (!isOnline.value) return null
+  if (conn.isOffline) return 'dot--red'
   switch (conn.status) {
     case 'playing':    return 'dot--green'
     case 'waiting':    return 'dot--yellow'
@@ -182,14 +183,43 @@ const connDotClass = computed(() => {
 })
 const connLabel = computed(() => {
   const m: Record<string, string> = { playing: '連線', waiting: '等待', connecting: '連線中', error: '錯誤' }
+  if (conn.isOffline) return '離線'
   return m[conn.status] ?? ''
 })
+const playerDetailHint = '點擊查看玩家詳情'
+function openPlayerDetail(side: 'red' | 'black') {
+  const playerRes = state.value.resources[side]
+  const hands = state.value.hands[side]
+  const sideLabel =
+    side === 'red'
+      ? (ctx.onlineSide === 'red' ? '我方（紅）' : ctx.onlineSide === 'black' ? '敵方（紅）' : '紅方')
+      : (ctx.onlineSide === 'black' ? '我方（黑）' : ctx.onlineSide === 'red' ? '敵方（黑）' : '黑方')
+  ui.openDetailModal({
+    title: `${sideLabel} 詳情`,
+    image: null,
+    detail: [
+      `財力: ${playerRes.gold}`,
+      `魔力: ${playerRes.mana}`,
+      `存魔: ${playerRes.storageMana}`,
+      `靈魂手牌: ${hands.souls.length}`,
+      `道具手牌: ${hands.items.length}`,
+    ].join('\n'),
+    actionLabel: null,
+    actionDisabled: false,
+    actionTitle: '',
+  })
+}
 
 const gearOpen = ref(false)
+const homePending = ref(false)
 const surrenderPending = ref(false)
 
-function closeGear() { gearOpen.value = false; surrenderPending.value = false }
-function goHome() { router.push({ name: 'home' }); closeGear() }
+function closeGear() { gearOpen.value = false; homePending.value = false; surrenderPending.value = false }
+function goHome() {
+  if (!homePending.value) { homePending.value = true; surrenderPending.value = false; return }
+  router.push({ name: 'home' })
+  closeGear()
+}
 function surrender() {
   if (!surrenderPending.value) { surrenderPending.value = true; return }
   closeGear()
@@ -225,25 +255,31 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
     <!-- ── Compact mobile header ── -->
     <header class="mobileHeader" :class="currentSide === 'red' ? 'bar--red' : 'bar--black'">
       <!-- Row 1: Black -->
-      <div class="playerRow" :class="{ 'playerRow--active': currentSide === 'black' }">
+      <button class="playerRow playerRowBtn" :class="{ 'playerRow--active': currentSide === 'black' }" :title="playerDetailHint" @click="openPlayerDetail('black')">
         <span class="sdot sdot--black" />
         <span class="pname">{{ ctx.onlineSide === 'black' ? '你' : ctx.onlineSide === 'red' ? '敵' : 'BLACK' }}</span>
+        <span class="playerHint">ⓘ</span>
         <span v-if="currentSide === 'black'" class="turnBadge">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.black ?? '?' }}</span>
+        <span class="mres mcount">🃏 {{ state.hands.black.souls.length }}</span>
+        <span class="mres mcount">🎒 {{ state.hands.black.items.length }}</span>
         <span class="mres">💰 <span class="rl">財力</span> {{ res.black.gold }}</span>
         <span class="mres">🌟 <span class="rl">魔力</span> {{ res.black.mana }}</span>
         <span class="mres">⚖ <span class="rl">存魔</span> {{ res.black.storageMana }}</span>
-      </div>
+      </button>
       <!-- Row 2: Red -->
-      <div class="playerRow playerRow--red" :class="{ 'playerRow--active': currentSide === 'red' }">
+      <button class="playerRow playerRowBtn playerRow--red" :class="{ 'playerRow--active': currentSide === 'red' }" :title="playerDetailHint" @click="openPlayerDetail('red')">
         <span class="sdot sdot--red" />
         <span class="pname">{{ ctx.onlineSide === 'red' ? '你' : ctx.onlineSide === 'black' ? '敵' : 'RED' }}</span>
+        <span class="playerHint">ⓘ</span>
         <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.red ?? '?' }}</span>
+        <span class="mres mcount">🃏 {{ state.hands.red.souls.length }}</span>
+        <span class="mres mcount">🎒 {{ state.hands.red.items.length }}</span>
         <span class="mres">💰 <span class="rl">財力</span> {{ res.red.gold }}</span>
         <span class="mres">🌟 <span class="rl">魔力</span> {{ res.red.mana }}</span>
         <span class="mres">⚖ <span class="rl">存魔</span> {{ res.red.storageMana }}</span>
-      </div>
+      </button>
       <!-- Row 3: Phase + next + gear -->
       <div class="controlRow">
         <div class="phaseTabs">
@@ -262,7 +298,7 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
           class="nextBtn"
           :class="currentSide === 'red' ? 'nextRed' : 'nextGreen'"
           :disabled="ctx.actionLocked"
-          @click="ctx.dispatch({ type: 'NEXT_PHASE' })"
+          @click="ctx.dispatch({ type: 'NEXT_PHASE', expectedPhase: currentPhase })"
         >{{ nextPhaseLabel }}</button>
         <div class="gearWrap">
           <template v-if="isOnline && connDotClass">
@@ -270,7 +306,20 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
           </template>
           <button class="gearBtn" :class="{ gearActive: gearOpen }" @click="gearOpen = !gearOpen">⚙️</button>
           <div v-if="gearOpen" class="gearPop" @click.stop>
-            <button class="gearItem" @click="goHome">🏠 返回首頁</button>
+            <template v-if="!homePending">
+              <button class="gearItem" @click="goHome">🏠 返回首頁</button>
+            </template>
+            <template v-else>
+              <div class="gearItem gearSurrenderConfirm">確認返回首頁？</div>
+              <div class="gearConfirmRow">
+                <button class="gearItem gearClose" @click="goHome">確認</button>
+                <button class="gearItem" @click="homePending = false">取消</button>
+              </div>
+            </template>
+            <template v-if="isOnline">
+              <div class="gearDivider" />
+              <button class="gearItem" @click="conn.resyncNow(true); closeGear()">🔄 重新同步</button>
+            </template>
             <template v-if="ctx.isPve">
               <div class="gearDivider" />
               <button class="gearItem" @click="ctx.cycleBotSpeed?.()">
@@ -428,6 +477,22 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
   padding: 5px 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   transition: background 0.3s;
+}
+.playerRowBtn {
+  width: 100%;
+  appearance: none;
+  background: transparent;
+  border-right: 0;
+  border-top: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.playerHint {
+  font-size: 0.625rem;
+  color: rgba(145, 202, 255, 0.72);
+}
+.mcount {
+  opacity: 0.86;
 }
 .playerRow--active {
   background: linear-gradient(90deg, rgba(82, 196, 26, 0.22) 0%, rgba(82, 196, 26, 0.07) 55%, rgba(0,0,0,0) 100%);

@@ -2,6 +2,7 @@ export type ItemCard = {
   id: string
   name: string
   costGold: number
+  limitPerTurn?: number
   timing?: 'buy' | 'combat' | 'necro'
   image?: string | null
   text?: string
