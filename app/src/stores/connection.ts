@@ -94,6 +94,7 @@ export const useConnection = defineStore('connection', {
     pollEvents: [] as unknown[],   // events from opponent (via polling)
     _suppressPollEvents: false,
     _fetchInFlight: false,
+    _pendingFetch: false,          // a fetch was requested while one was already in-flight
     isSyncing: false,
     isSendingAction: false,
     errorMsg: null as string | null,
@@ -246,7 +247,11 @@ export const useConnection = defineStore('connection', {
     // ── Internal ─────────────────────────────────────────────────────────
     async _fetchState() {
       if (!this.roomId) return
-      if (this._fetchInFlight) return  // prevent concurrent duplicate fetches
+      if (this._fetchInFlight) {
+        // Don't silently drop: mark pending so we retry after current fetch completes
+        this._pendingFetch = true
+        return
+      }
       this._fetchInFlight = true
       this.isSyncing = true
       try {
@@ -269,6 +274,11 @@ export const useConnection = defineStore('connection', {
       } finally {
         this._fetchInFlight = false
         this.isSyncing = false
+        // If a fetch was requested while we were in-flight, do it now
+        if (this._pendingFetch) {
+          this._pendingFetch = false
+          this._fetchState()
+        }
       }
     },
 
