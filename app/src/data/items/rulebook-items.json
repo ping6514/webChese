@@ -6,7 +6,7 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_lingxue_holy_grail.jpg",
     "text": "【購買】修復：選擇 1 個己方單位（含帥），恢復 4 點 HP（不超過上限）。",
-    "copies": 6,
+    "copies": 5,
     "abilities": [{ "type": "HEAL_UNIT", "amount": 4, "target": { "type": "ALLY_UNIT" }, "capToMaxHp": true }]
   },
   {
@@ -73,7 +73,7 @@
   {
     "id": "item_death_chain",
     "name": "死亡連鎖",
-    "costGold": 5,
+    "costGold": 6,
     "limitPerTurn": 1,
     "timing": "combat",
     "image": "/assets/cards/item/item_death_chain.jpg",
@@ -99,7 +99,7 @@
     "timing": "buy",
     "image": "/assets/cards/item/item_cage_plunder.jpg",
     "text": "【購買】干擾：隨機奪取敵方牢籠 1 張靈魂卡納入己方牢籠。己方牢籠已有 5 張時無法發動。",
-    "copies": 2,
+    "copies": 3,
     "abilities": [{ "type": "PLUNDER_CAGE_SOUL", "amount": 1, "random": true }]
   },
   {

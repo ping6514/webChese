@@ -3,12 +3,14 @@ import { supabase } from '../lib/supabaseClient'
 import type { GameState } from '../engine'
 
 let detachLifecycleHandlers: (() => void) | null = null
+let activeAdapter: SyncAdapter | null = null  // kept outside Pinia to avoid reactive wrapping
 
 // ─── SyncAdapter interface ─────────────────────────────────────────────────
 
 type SyncAdapter = {
   start(onTick: () => void): void
   stop(): void
+  nudge?(): void   // hint to re-evaluate interval immediately
 }
 
 // Strategy 1: Realtime version ping (tiny payload, low Realtime message cost)
@@ -67,6 +69,7 @@ function makeAdaptivePollingAdapter(
       if (timer) { clearInterval(timer); timer = null }
       onTickFn = null
     },
+    nudge() { reschedule() },
   }
 }
 
@@ -112,7 +115,6 @@ export const useConnection = defineStore('connection', {
     isSyncing: false,
     isSendingAction: false,
     errorMsg: null as string | null,
-    _adapter: null as SyncAdapter | null,
   }),
 
   actions: {
@@ -279,6 +281,8 @@ export const useConnection = defineStore('connection', {
         this.localVersion = data.version
         if (data.status === 'playing') this.status = 'playing'
         if (data.status === 'finished') this.status = 'idle'
+        // Let adaptive polling re-evaluate fast/slow interval immediately
+        activeAdapter?.nudge?.()
       } finally {
         this._fetchInFlight = false
         this.isSyncing = false
@@ -343,12 +347,12 @@ export const useConnection = defineStore('connection', {
           ? makeHybridAdapter(this.roomId, () => this.localVersion, isWaiting)
           : makeAdaptivePollingAdapter(isWaiting)
       adapter.start(() => this._fetchState())
-      this._adapter = adapter
+      activeAdapter = adapter
     },
 
     _stopAdapter() {
-      this._adapter?.stop()
-      this._adapter = null
+      activeAdapter?.stop()
+      activeAdapter = null
     },
 
     _persist() {

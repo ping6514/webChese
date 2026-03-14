@@ -122,6 +122,7 @@ export function useGameDispatch(opts: {
       state.value = gs
       if (conn.pollEvents.length > 0) {
         const evts = conn.pollEvents as Record<string, unknown>[]
+        conn.pollEvents = []  // clear before processing to prevent re-play if watch fires again
         processEvents(evts as unknown[], state.value, undefined)
         const lines = evts.map((e) => toText(e)).filter(Boolean)
         lastEvents.value = [...lastEvents.value, ...lines].slice(-300)
@@ -143,8 +144,7 @@ export function useGameDispatch(opts: {
     const result = await conn.sendAction(onlineAction)
     onlineWaiting.value = false
     if (!result.ok) {
-      // Always resync on any failure — server may have newer state
-      await conn.resyncNow(false)
+      // sendAction already called _fetchState() on failure; no extra resync needed
       if ((result as any).code === 'VERSION_MISMATCH') {
         lastError.value = '狀態已過期，正在重新同步最新戰局…'
       } else {

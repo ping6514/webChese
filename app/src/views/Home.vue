@@ -145,7 +145,7 @@ function startGame() {
   <div class="page">
     <div class="topBtns">
       <button type="button" class="iconBtn" title="規則與卡牌圖鑑" @click="router.push({ name: 'intro' })">
-        📖
+        <span style="font-weight: bolder;">幫助</span>📖
       </button>
     </div>
 
@@ -348,7 +348,7 @@ function startGame() {
   position: relative;
   color: rgba(255, 255, 255, 0.92);
   background:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0%, rgba(13, 13, 18, 0.58) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.28) 0%, rgba(10, 60, 10, 0.98) 100%),
     url('/assets/home/homeImg.jpg') center / auto 100vh no-repeat fixed;
 }
 
@@ -364,7 +364,6 @@ function startGame() {
 
 /* ── Intro button ────────────────────────────── */
 .iconBtn {
-  width: 38px;
   height: 38px;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -372,9 +371,11 @@ function startGame() {
   backdrop-filter: blur(8px);
   font-size: 1.125rem;
   cursor: pointer;
-  display: grid;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   place-items: center;
-  padding: 0;
+  padding: 0 5px;
   transition: background 0.15s, border-color 0.15s;
 }
 .iconBtn:hover {
@@ -391,17 +392,18 @@ function startGame() {
 }
 
 .buildVer {
-  margin: 0 0 18px;
+  margin: 0 0 5rem;
   font-size: 0.7rem;
-  opacity: 0.35;
+  color: #ffffff;
+  opacity: 0.85;
   letter-spacing: 0.05em;
   font-family: ui-monospace, monospace;
 }
 
 .card {
   width: min(440px, 95vw);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(50, 50, 50, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(50, 50, 50, 0.85);
   border-radius: 14px;
   padding: 24px 28px 28px;
   display: flex;

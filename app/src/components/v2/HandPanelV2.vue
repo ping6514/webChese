@@ -225,23 +225,24 @@ defineExpose({ selectedSoulId })
 <template>
   <div class="handPanel" :class="{ 'handPanel--collapsed': handCollapsed }">
     <!-- Tab header -->
-    <div class="handTabs">
+    <div class="handTabs" style="cursor:pointer" @click="handCollapsed = !handCollapsed">
       <button
         class="handTab"
         :class="{ active: activeTab === 'souls' && !handCollapsed }"
-        @click="activeTab = 'souls'; handCollapsed = false"
+        @click.stop="activeTab = 'souls'; handCollapsed = false"
       >
         🃏 靈魂 <span class="cnt">{{ handSoulCards.length }}/5</span>
       </button>
       <button
         class="handTab"
         :class="{ active: activeTab === 'items' && !handCollapsed }"
-        @click="activeTab = 'items'; handCollapsed = false"
+        @click.stop="activeTab = 'items'; handCollapsed = false"
       >
         🎒 道具 <span class="cnt">{{ handItemIds.length }}/3</span>
       </button>
       <div class="tabSpacer" />
-      <button class="collapseBtn" @click="handCollapsed = !handCollapsed" :title="handCollapsed ? '展開手牌' : '收合手牌'">
+      <button class="collapseBtn" :title="handCollapsed ? '展開手牌' : '收合手牌'"
+        @click.stop="handCollapsed = !handCollapsed">
         {{ handCollapsed ? '▲' : '▼' }}
       </button>
     </div>

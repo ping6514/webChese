@@ -29,7 +29,7 @@
 | `styx` | 💧 冥河 | MVP |
 | `eternal_night` | 🌑 永夜 | MVP |
 | `iron_guard` | 🛡️ 鐵衛 | MVP |
-| `gold_merc` | 💰 逐利傭兵 | 2026-03-08 |
+| `gold_merc` | 💰 黃金傭兵 | 2026-03-08 |
 | `death_oath` | 🩸死誓誓約 | 2026-03-08 |
 
 ---

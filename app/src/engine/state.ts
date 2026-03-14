@@ -116,28 +116,18 @@ export type GameState = {
   rules: GameRules
 }
 
-export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: number; def: KeyValueStat[] }> = {
-  king: { hp: 15, atkKey: 'magic', atk: 2, def: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }] },
-  advisor: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
-  elephant: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }] },
-  rook: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 1 }] },
-  knight: { hp: 10, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }] },
-  cannon: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
-  soldier: { hp: 8, atkKey: 'phys', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }] },
-}
-
-export const REVIVE_GOLD_COST_BY_BASE: Record<PieceBase, number> = {
-  king: 999,
-  advisor: 3,
-  elephant: 3,
-  rook: 5,
-  knight: 3,
-  cannon: 5,
-  soldier: 2,
+export const BASE_STATS: Record<PieceBase, { hp: number; atkKey: StatKey; atk: number; def: KeyValueStat[]; reviveCost: number }> = {
+  king:     { hp: 15, atkKey: 'magic', atk: 2, def: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }], reviveCost: 999 },
+  advisor:  { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }], reviveCost: 3 },
+  elephant: { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 1 }], reviveCost: 3 },
+  rook:     { hp: 10, atkKey: 'phys',  atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 1 }], reviveCost: 5 },
+  knight:   { hp: 10, atkKey: 'phys',  atk: 1, def: [{ key: 'phys', value: 1 }, { key: 'magic', value: 0 }], reviveCost: 3 },
+  cannon:   { hp: 10, atkKey: 'magic', atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }], reviveCost: 5 },
+  soldier:  { hp: 8,  atkKey: 'phys',  atk: 1, def: [{ key: 'phys', value: 0 }, { key: 'magic', value: 0 }], reviveCost: 2 },
 }
 
 export function getReviveGoldCost(base: PieceBase): number {
-  return REVIVE_GOLD_COST_BY_BASE[base] ?? 3
+  return BASE_STATS[base].reviveCost
 }
 
 function makeUnitId(side: Side, base: PieceBase, index: number): string {
