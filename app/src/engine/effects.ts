@@ -258,7 +258,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           }
           const count = Number((ab as any).count ?? 0)
           if (Number.isFinite(count) && count > 0) {
-            ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, count)
+            ctx.shootRules.ignoreBlockingCount += count
             ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
           }
         },
@@ -355,7 +355,8 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
 
           const count = Number((ab as any).count ?? 0)
           if (Number.isFinite(count) && count > 0) {
-            ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, count)
+            ctx.shootRules.ignoreBlockingCount += count
+            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'AURA_IGNORE_BLOCKING', text: '無視阻擋' })
           }
         },
         onAfterShotPlanBuilt: (ctx, plan) => {
@@ -645,7 +646,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
               ctx.shootRules.ignoreBlockingAll = true
             } else {
               const cnt = Number(eff.count ?? 0)
-              if (cnt > 0) ctx.shootRules.ignoreBlockingCount = Math.max(ctx.shootRules.ignoreBlockingCount, cnt)
+              if (cnt > 0) ctx.shootRules.ignoreBlockingCount += cnt
             }
           },
         })

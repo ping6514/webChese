@@ -570,32 +570,22 @@ function computeDamageCore(
 
       const forRaw = (ab as any).for
       const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
+      let forAllowed = true
       for (const forKey of forKeys) {
         if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) {
-          continue
+          forAllowed = false; break
         }
-
         if (forKey === 'CLAN') {
           const clan = String((ab as any).clan ?? '')
-          if (!clan) {
-            continue
-          }
+          if (!clan) { forAllowed = false; break }
           const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
-          if (!attackerCard) {
-            continue
-          }
-          if (String(attackerCard.clan ?? '') !== clan) {
-            continue
-          }
-
+          if (!attackerCard) { forAllowed = false; break }
+          if (String(attackerCard.clan ?? '') !== clan) { forAllowed = false; break }
           const excludeBase = String((ab as any).excludeBase ?? '')
-          if (excludeBase && attacker.base === excludeBase) {
-            continue
-          }
+          if (excludeBase && attacker.base === excludeBase) { forAllowed = false; break }
         }
       }
-
-      // If any forKey check failed, it would've continued the outer loop above.
+      if (!forAllowed) continue
 
       const per = (ab as any).per
       if (per && String(per.type ?? '') === 'CORPSES_PER') {

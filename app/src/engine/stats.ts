@@ -321,18 +321,40 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
         const need = Number(when?.count ?? 0)
         if (countCorpses(state, auraUnit.side) < need) continue
       }
-
-      // for restriction
-      const forKey = String(ab.for ?? '')
-      if (forKey === 'CLAN') {
-        const clan = String(ab.clan ?? '')
-        if (!clan) continue
-        const sid = unit.enchant?.soulId
-        const uc = sid ? getSoulCard(sid) : undefined
-        if (!uc || String(uc.clan ?? '') !== clan) continue
-        const excludeBase = String(ab.excludeBase ?? '')
-        if (excludeBase && unit.base === excludeBase) continue
+      if (whenType === 'RESONANCE_ACTIVE') {
+        const res = (auraCard.abilities as any[]).find((a) => a.type === 'RESONANCE')
+        const need = Number(res?.need ?? 0)
+        if (!(Number.isFinite(need) && need > 0)) continue
+        let count = 0
+        for (const u of Object.values(state.units)) {
+          if (u.side !== auraUnit.side) continue
+          const sid = u.enchant?.soulId
+          if (!sid) continue
+          const c = getSoulCard(sid)
+          if (c?.clan === auraCard.clan) count++
+        }
+        if (count < need) continue
       }
+
+      // for restriction — ab.for may be a string or array
+      const forRaw = ab.for
+      const forKeys = Array.isArray(forRaw)
+        ? forRaw.map((x: any) => String(x ?? '')).filter(Boolean)
+        : [String(forRaw ?? '')].filter(Boolean)
+      let forAllowed = true
+      for (const fk of forKeys) {
+        if (fk === 'CROSS_RIVER_UNITS' && !crossedRiver(unit.side, unit.pos.y)) { forAllowed = false; break }
+        if (fk === 'CLAN') {
+          const clan = String(ab.clan ?? '')
+          if (!clan) { forAllowed = false; break }
+          const sid = unit.enchant?.soulId
+          const uc = sid ? getSoulCard(sid) : undefined
+          if (!uc || String(uc.clan ?? '') !== clan) { forAllowed = false; break }
+          const excludeBase = String(ab.excludeBase ?? '')
+          if (excludeBase && unit.base === excludeBase) { forAllowed = false; break }
+        }
+      }
+      if (!forAllowed) continue
 
       // calculate amount (flat or per-corpse)
       let amount = 0
