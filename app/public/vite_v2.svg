@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="pieceGrad" cx="40%" cy="30%" r="65%">
+      <stop offset="0%"  stop-color="#ede0ff"/>
+      <stop offset="55%" stop-color="#8b3fd1"/>
+      <stop offset="100%" stop-color="#2d0055"/>
+    </radialGradient>
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#aaffcc"/>
+      <stop offset="100%" stop-color="#00cc66" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgDark" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#150025"/>
+      <stop offset="100%" stop-color="#080010"/>
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="eyeBloom" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background fill (no ring, just dark circle) -->
+  <circle cx="50" cy="50" r="50" fill="url(#bgDark)"/>
+
+  <!-- Main coin — large, fills most of the icon -->
+  <circle cx="50" cy="51" r="40" fill="url(#pieceGrad)" filter="url(#glow)"/>
+  <!-- Inner ring engraving -->
+  <circle cx="50" cy="51" r="34" fill="none" stroke="#d0a8ff" stroke-width="1" opacity="0.5"/>
+
+  <!-- Skull dome -->
+  <ellipse cx="50" cy="46" rx="17" ry="15" fill="#f2eaff"/>
+  <!-- Jaw -->
+  <rect x="37" y="57" width="26" height="9" rx="4" fill="#f2eaff"/>
+  <!-- Teeth gaps -->
+  <rect x="39"  y="60" width="4" height="7" rx="1.5" fill="#2d0055"/>
+  <rect x="45"  y="60" width="4" height="7" rx="1.5" fill="#2d0055"/>
+  <rect x="51"  y="60" width="4" height="7" rx="1.5" fill="#2d0055"/>
+  <rect x="57"  y="60" width="4" height="7" rx="1.5" fill="#2d0055"/>
+  <!-- Eye sockets -->
+  <ellipse cx="43" cy="46" rx="5.5" ry="6" fill="#150025"/>
+  <ellipse cx="57" cy="46" rx="5.5" ry="6" fill="#150025"/>
+  <!-- Eye glow blooms -->
+  <ellipse cx="43" cy="46" rx="4" ry="4.5" fill="#00dd77" opacity="0.35" filter="url(#eyeBloom)"/>
+  <ellipse cx="57" cy="46" rx="4" ry="4.5" fill="#00dd77" opacity="0.35" filter="url(#eyeBloom)"/>
+  <!-- Eye pupils -->
+  <ellipse cx="43" cy="46" rx="2.8" ry="3.2" fill="#55ffaa"/>
+  <ellipse cx="57" cy="46" rx="2.8" ry="3.2" fill="#55ffaa"/>
+  <!-- Nose -->
+  <path d="M48 53 L50 50.5 L52 53 Z" fill="#150025" opacity="0.75"/>
+
+  <!-- Soul wisps (small, top area inside coin) -->
+  <ellipse cx="50" cy="15" rx="4" ry="6.5" fill="#cc66ff" opacity="0.8" filter="url(#glow)"/>
+  <ellipse cx="50" cy="15" rx="2" ry="3.5" fill="#eebbff"/>
+  <ellipse cx="24" cy="26" rx="2.8" ry="4.5" fill="#55ffaa" opacity="0.7" filter="url(#glow)" transform="rotate(-30 24 26)"/>
+  <ellipse cx="24" cy="26" rx="1.3" ry="2.2" fill="#bbffdd" transform="rotate(-30 24 26)"/>
+  <ellipse cx="76" cy="26" rx="2.8" ry="4.5" fill="#cc66ff" opacity="0.7" filter="url(#glow)" transform="rotate(30 76 26)"/>
+  <ellipse cx="76" cy="26" rx="1.3" ry="2.2" fill="#eebbff" transform="rotate(30 76 26)"/>
+</svg>

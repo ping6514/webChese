@@ -73,25 +73,6 @@ function makeAdaptivePollingAdapter(
   }
 }
 
-// Realtime + adaptive-polling hybrid
-function makeHybridAdapter(
-  roomId: string,
-  getLocalVersion: () => number,
-  getIsWaitingForOpponent: () => boolean,
-): SyncAdapter {
-  const rt = makeRealtimeAdapter(roomId, getLocalVersion)
-  const poll = makeAdaptivePollingAdapter(getIsWaitingForOpponent)
-  return {
-    start(onTick) {
-      rt.start(onTick)
-      poll.start(onTick)
-    },
-    stop() {
-      rt.stop()
-      poll.stop()
-    },
-  }
-}
 
 // ─── Connection store ──────────────────────────────────────────────────────
 
@@ -107,6 +88,7 @@ export const useConnection = defineStore('connection', {
     secret: null as string | null,
     syncMode: 'realtime' as SyncMode,
     localVersion: -1,
+    _myActionVersion: -1,          // version written by MY last sendAction (to suppress duplicate pollEvents)
     gameState: null as GameState | null,
     lastEvents: [] as unknown[],
     pollEvents: [] as unknown[],   // events from opponent (via polling)
@@ -226,6 +208,7 @@ export const useConnection = defineStore('connection', {
           }
         }
         this.lastEvents = data.events ?? []
+        this._myActionVersion = data.version
         this.localVersion = data.version
         await this._fetchState()
         return { ok: true }
@@ -277,7 +260,7 @@ export const useConnection = defineStore('connection', {
         const cleanState = { ...data.state }
         delete (cleanState as any)._lastEvents
         this.gameState = cleanState
-        this.pollEvents = this._suppressPollEvents ? [] : rawEvents
+        this.pollEvents = (this._suppressPollEvents || data.version === this._myActionVersion) ? [] : rawEvents
         this.localVersion = data.version
         if (data.status === 'playing') this.status = 'playing'
         if (data.status === 'finished') this.status = 'idle'
@@ -342,9 +325,12 @@ export const useConnection = defineStore('connection', {
       if (!this.roomId) return
       const isWaiting = () =>
         !!this.gameState && this.side !== null && this.gameState.turn.side !== this.side
+      // realtime 模式：只用 Realtime，不加 polling。
+      // polling 會在 sendAction 後重新拉到玩家自己的 _lastEvents，導致 pollEvents 被重複處理。
+      // lifecycle handlers（focus/visibility/online）仍作為保底補同步。
       const adapter: SyncAdapter =
         this.syncMode === 'realtime'
-          ? makeHybridAdapter(this.roomId, () => this.localVersion, isWaiting)
+          ? makeRealtimeAdapter(this.roomId, () => this.localVersion)
           : makeAdaptivePollingAdapter(isWaiting)
       adapter.start(() => this._fetchState())
       activeAdapter = adapter
