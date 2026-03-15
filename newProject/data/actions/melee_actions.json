@@ -1,0 +1,78 @@
+[
+  {
+    "_comment": "--- 單體近戰 ---",
+    "id": "single_melee",
+    "name": "單體近戰",
+    "shape": "single",
+    "range": 1,
+    "targetFilter": "enemy",
+    "heightRule": "any"
+  },
+  {
+    "id": "single_melee_reach",
+    "name": "延伸近戰",
+    "shape": "single",
+    "range": 2,
+    "targetFilter": "enemy",
+    "heightRule": "any",
+    "_note": "長柄武器（矛、薙刀）；中間格可無單位"
+  },
+
+  { "_comment": "--- 扇形 / 範圍近戰 ---" },
+  {
+    "id": "frontal_sweep",
+    "name": "前方扇掃",
+    "shape": "cone",
+    "range": 1,
+    "angle": 90,
+    "targetFilter": "enemy",
+    "_note": "劍型武器基本動作：正前方 + 左右前斜共 3 格"
+  },
+  {
+    "id": "frontal_wide_sweep",
+    "name": "寬幅扇掃",
+    "shape": "cone",
+    "range": 1,
+    "angle": 180,
+    "targetFilter": "enemy",
+    "_note": "180° 前方半圓，5 格；高等戰士武器"
+  },
+
+  { "_comment": "--- 直線穿透 ---" },
+  {
+    "id": "line_pierce",
+    "name": "直線穿刺",
+    "shape": "line",
+    "range": 3,
+    "pierce": true,
+    "targetFilter": "enemy",
+    "_note": "槍型；穿過中間敵人打到後方"
+  },
+  {
+    "id": "line_no_pierce",
+    "name": "直線衝擊",
+    "shape": "line",
+    "range": 2,
+    "pierce": false,
+    "targetFilter": "enemy",
+    "_note": "短矛/刺擊；第一個命中目標後停止"
+  },
+
+  { "_comment": "--- 自身爆發（burst）---" },
+  {
+    "id": "burst_small",
+    "name": "小範圍爆發",
+    "shape": "burst",
+    "radius": 1,
+    "targetFilter": "enemy",
+    "_note": "以施法者為圓心，半徑 1 格（8 格方向）"
+  },
+  {
+    "id": "burst_medium",
+    "name": "中範圍爆發",
+    "shape": "burst",
+    "radius": 2,
+    "targetFilter": "enemy",
+    "_note": "以施法者為圓心，半徑 2 格；Boss 技能常用"
+  }
+]

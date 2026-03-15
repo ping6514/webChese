@@ -1,0 +1,10 @@
+[
+  { "id": "slash",  "slot": 1, "name": "劈砍", "category": "physical", "damageType": "slash" },
+  { "id": "crush",  "slot": 1, "name": "碎裂", "category": "physical", "damageType": "crush" },
+  { "id": "pierce", "slot": 1, "name": "穿刺", "category": "physical", "damageType": "pierce" },
+  { "id": "water",  "slot": 1, "name": "水",   "category": "magical",  "damageType": "water" },
+  { "id": "fire",   "slot": 1, "name": "火",   "category": "magical",  "damageType": "fire" },
+  { "id": "wood",   "slot": 1, "name": "木",   "category": "magical",  "damageType": "wood" },
+  { "id": "light",  "slot": 1, "name": "光",   "category": "magical",  "damageType": "light" },
+  { "id": "dark",   "slot": 1, "name": "暗",   "category": "magical",  "damageType": "dark" }
+]

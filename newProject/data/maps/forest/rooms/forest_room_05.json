@@ -1,0 +1,58 @@
+{
+  "id": "forest_room_05",
+  "name": "密林伏擊",
+  "theme": "forest",
+  "width": 16, "height": 16,
+  "tags": ["dense", "ambush", "trial", "mid_late"],
+  "grid": [
+    "################",
+    "#TTTTT......T.S#",
+    "#TTTTT......T..#",
+    "#TT............#",
+    "#TT....####....#",
+    "#......#.......#",
+    "#......#...TT..#",
+    "#......#...TT..#",
+    "#......####....#",
+    "#..............#",
+    "#.TT...........#",
+    "#.TT...........#",
+    "#..............#",
+    "#U.............#",
+    "#U.............#",
+    "################"
+  ],
+  "chunkZones": [
+    {
+      "id": "chunk_zone_a",
+      "topLeft": { "x": 8, "y": 2 },
+      "size": { "width": 3, "height": 2 },
+      "allowedChunks": ["forest_tree_cluster", "forest_thicket", "empty_placeholder"],
+      "pickCount": 1
+    },
+    {
+      "id": "chunk_zone_b",
+      "topLeft": { "x": 2, "y": 8 },
+      "size": { "width": 3, "height": 2 },
+      "allowedChunks": ["rock_cluster", "forest_fallen_log", "empty_placeholder"],
+      "pickCount": 1
+    }
+  ],
+  "propZones": [
+    {
+      "cells": [{"x":9,"y":9},{"x":10,"y":10},{"x":11,"y":3}],
+      "props": [
+        { "type": "chest",    "weight": 50 },
+        { "type": "empty",    "weight": 50 }
+      ],
+      "maxPlacements": 1
+    }
+  ],
+  "spawnZones": [
+    { "id": "player_entry",  "cells": [{"x":1,"y":13},{"x":2,"y":13},{"x":1,"y":14}] },
+    { "id": "enemy_zone_a",  "cells": [{"x":11,"y":1},{"x":12,"y":1},{"x":13,"y":2}] },
+    { "id": "enemy_zone_b",  "cells": [{"x":1,"y":4},{"x":2,"y":5},{"x":1,"y":5}] },
+    { "id": "enemy_zone_c",  "cells": [{"x":9,"y":5},{"x":10,"y":6},{"x":9,"y":7}] },
+    { "id": "exit",          "cells": [{"x":13,"y":1},{"x":14,"y":1},{"x":14,"y":2}] }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "id": "forest_wolf",
+  "name": "灰狼",
+  "theme": "forest",
+  "tier": "normal",
+  "archetype": "agi",
+  "ai": "chase",
+  "stats": {
+    "str": { "base": 8,  "floorScale": 0.6 },
+    "agi": { "base": 18, "floorScale": 1.2 },
+    "int": { "base": 2,  "floorScale": 0.2 },
+    "lck": { "base": 5,  "floorScale": 0.4 }
+  },
+  "resources": {
+    "hp": { "base": 40, "strMult": 1.5 },
+    "sp": { "base": 30, "agiMult": 1 },
+    "mp": { "base": 0 }
+  },
+  "moveRange": 4,
+  "speed": 16,
+
+  "weapon": {
+    "id": "wolf_fang",
+    "name": "野狼利牙",
+    "note": "不可被玩家持有；攻擊判定與 mode_charge 相同",
+    "actionId": "single_melee",
+    "hitMode": { "type": "instant" },
+    "statScaling": "AGI",
+    "atkBase": 0.3,
+    "actionTags": ["物理", "即發"],
+    "slot2": "mode_charge",
+    "slot1": "slash",
+    "slot3Pool": ["trait_swift", "trait_brute"],
+    "slot4": null,
+    "slot5Pool": ["enchant_slow", "enchant_bleed"]
+  },
+
+  "equipment": {
+    "note": "怪物裝備提供被動詞條效果，邏輯與玩家防具相同，只是部件名稱換成生物體部位",
+    "chest":  {
+      "id": "wolf_hide",
+      "name": "野狼皮",
+      "slot": "chest",
+      "affixPool": ["ar-def-slash-01", "ar-resist-pierce-01", "ar-hp-01"]
+    },
+    "gloves": {
+      "id": "wolf_claw",
+      "name": "野狼爪",
+      "slot": "gloves",
+      "affixPool": ["ar-glove-slash-01", "ar-crit-chance-01", "ar-sp-on-hit-01"]
+    },
+    "boots":  {
+      "id": "wolf_legs",
+      "name": "野狼腿",
+      "slot": "boots",
+      "affixPool": ["ar-boot-range-01", "ar-boot-move-01", "ar-forest-terrain-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 2, "max": 6 },
+    "equipDropChance": 0.15,
+    "dropPool": ["wolf_hide", "wolf_claw", "wolf_legs"]
+  }
+}

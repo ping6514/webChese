@@ -1,0 +1,106 @@
+{
+  "id": "forest_guardian",
+  "name": "森林守護者",
+  "theme": "forest",
+  "tier": "boss",
+  "archetype": "balanced",
+  "ai": "boss",
+  "stats": {
+    "str": { "base": 25, "floorScale": 1.5 },
+    "agi": { "base": 20, "floorScale": 1.2 },
+    "int": { "base": 10, "floorScale": 0.6 },
+    "lck": { "base": 10, "floorScale": 0.6 }
+  },
+  "resources": {
+    "hp": { "base": 180, "strMult": 2.5 },
+    "sp": { "base": 60,  "agiMult": 2 },
+    "mp": { "base": 15,  "intMult": 0.5 }
+  },
+  "moveRange": 4,
+  "speed": 15,
+
+  "weapon": {
+    "id": "guardian_claws",
+    "name": "守護者巨爪",
+    "note": "劈砍＋穿刺複合傷害；mode_charge 蓄力後雙爪連擊，兩個 DamageComponent 各自結算",
+    "actionId": "frontal_sweep",
+    "hitMode": { "type": "instant" },
+    "statScaling": "STR",
+    "atkBase": 0.55,
+    "actionTags": ["物理", "即發"],
+    "slot1": "slash",
+    "slot2": "mode_charge",
+    "slot3": "trait_brute",
+    "slot4": "enchant_bleed",
+    "slot5Pool": ["enchant_bleed", "enchant_slow"]
+  },
+
+  "passiveAbilities": [
+    {
+      "trigger": "on_time",
+      "interval": 2000,
+      "effect": { "type": "recover_hp", "amount": 8 }
+    },
+    {
+      "_note": "進入暴怒：HP 跌破 50% 後速度與攻擊大幅提升",
+      "trigger": "on_below_hp", "threshold": 0.5, "once": true,
+      "effect": {
+        "type": "enter_phase",
+        "phase": "enrage",
+        "speedBonus": 4,
+        "atkMult": 1.4,
+        "visualFx": "rage_aura"
+      }
+    },
+    {
+      "_note": "群狼首領光環：每秒為附近野狼施加力量加成",
+      "trigger": "on_interval_aura",
+      "interval": 1000,
+      "radius": 5,
+      "targetFilter": { "monsterId": "forest_wolf" },
+      "effect": { "type": "buff_allies", "key": "str_plus", "value": 4 }
+    }
+  ],
+
+  "skillPool": [
+    { "id": "pack_call" },
+    { "id": "howl_aoe_slow" },
+    { "id": "guardian_charge" }
+  ],
+
+  "equipment": {
+    "note": "Boss 掉落品質最高；gloves 帶爆擊+穿刺詞條，head 帶隱蔽+抗暗",
+    "head": {
+      "id": "guardian_mane",
+      "name": "守護者鬃毛",
+      "slot": "head",
+      "affixPool": ["ar-forest-stealth-01", "ar-resist-dark-01", "ar-resist-fire-01", "ar-supply-01"]
+    },
+    "chest": {
+      "id": "guardian_hide",
+      "name": "守護者厚皮",
+      "slot": "chest",
+      "affixPool": ["ar-bark-01", "ar-hp-regen-01", "ar-hp-01", "ar-survive-01", "ar-def-slash-01"]
+    },
+    "gloves": {
+      "id": "guardian_claws_item",
+      "name": "守護者利爪",
+      "slot": "gloves",
+      "affixPool": ["ar-crit-chance-01", "ar-glove-slash-01", "ar-sp-on-hit-01", "ar-pierce-amp-01", "ar-glove-crit-01"]
+    },
+    "boots": {
+      "id": "guardian_paws",
+      "name": "守護者肉掌",
+      "slot": "boots",
+      "affixPool": ["ar-boot-range-01", "ar-forest-terrain-01", "ar-boot-terrain-01", "ar-boot-move-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 20, "max": 40 },
+    "equipDropChance": 1.0,
+    "dropPool": ["guardian_mane", "guardian_hide", "guardian_claws_item", "guardian_paws"],
+    "guaranteedDrop": true,
+    "bonusDropCount": 2
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "id": "forest_room_06",
+  "name": "林間戰場",
+  "theme": "forest",
+  "width": 16, "height": 16,
+  "tags": ["arena", "open", "late"],
+  "grid": [
+    "################",
+    "#TT.........T.S#",
+    "#TT.........T..#",
+    "#..............#",
+    "#...########...#",
+    "#...#......#...#",
+    "#...#......#...#",
+    "#...#......#...#",
+    "#...########...#",
+    "#..............#",
+    "#..............#",
+    "#.T..........T.#",
+    "#.T..........T.#",
+    "#U.............#",
+    "#U.............#",
+    "################"
+  ],
+  "chunkZones": [
+    {
+      "id": "chunk_zone_a",
+      "topLeft": { "x": 5, "y": 1 },
+      "size": { "width": 4, "height": 2 },
+      "allowedChunks": ["forest_tree_cluster", "rock_cluster", "empty_placeholder"],
+      "pickCount": 1
+    },
+    {
+      "id": "chunk_zone_b",
+      "topLeft": { "x": 5, "y": 9 },
+      "size": { "width": 4, "height": 2 },
+      "allowedChunks": ["forest_water_patch", "forest_thicket", "empty_placeholder"],
+      "pickCount": 1
+    }
+  ],
+  "propZones": [
+    {
+      "cells": [{"x":6,"y":6},{"x":7,"y":6},{"x":8,"y":6},{"x":3,"y":10},{"x":12,"y":10}],
+      "props": [
+        { "type": "recovery", "weight": 30 },
+        { "type": "chest",    "weight": 30 },
+        { "type": "empty",    "weight": 40 }
+      ],
+      "maxPlacements": 2
+    }
+  ],
+  "spawnZones": [
+    { "id": "player_entry",  "cells": [{"x":1,"y":13},{"x":2,"y":13},{"x":1,"y":14},{"x":2,"y":14}] },
+    { "id": "enemy_zone_a",  "cells": [{"x":11,"y":1},{"x":12,"y":2},{"x":13,"y":1}] },
+    { "id": "enemy_zone_b",  "cells": [{"x":1,"y":3},{"x":2,"y":3},{"x":1,"y":4}] },
+    { "id": "enemy_zone_c",  "cells": [{"x":13,"y":11},{"x":14,"y":11},{"x":14,"y":12}] },
+    { "id": "exit",          "cells": [{"x":13,"y":1},{"x":14,"y":1},{"x":14,"y":2}] }
+  ]
+}

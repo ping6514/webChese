@@ -1,0 +1,82 @@
+{
+  "monsterId": "forest_poison_spider",
+
+  "_comment": "毒蜘蛛：以速度與毒素為核心，normal 在森林層常見；elite 為巨型毒蜘蛛，體型更大、毒更烈",
+
+  "normal": {
+    "statScaleMult": 1.0,
+    "qualityMult": 0.9,
+    "hpMult": 1.0,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 1, "weight": 55 },
+        { "count": 2, "weight": 45 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 75 },
+        { "rarity": "rare",   "weight": 25 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "chest": 0.35, "gloves": 0.50, "boots": 0.30 },
+      "affixCountTable": [
+        { "count": 1, "weight": 80 },
+        { "count": 2, "weight": 20 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 80 },
+        { "rarity": "rare",   "weight": 20 }
+      ]
+    },
+
+    "dropTable": { "goldMult": 0.8, "equipDropChance": 0.12 }
+  },
+
+  "elite": {
+    "_comment": "巨型毒蜘蛛：速度更高，毒性更強，能吐絲網限制移動",
+    "statScaleMult": 1.4,
+    "qualityMult": 1.1,
+    "hpMult": 1.8,
+    "speedBonus": 2,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 2, "weight": 40 },
+        { "count": 3, "weight": 60 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 50 },
+        { "rarity": "rare",   "weight": 45 },
+        { "rarity": "elite",  "weight": 5 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "chest": 0.55, "gloves": 0.70, "boots": 0.50 },
+      "affixCountTable": [
+        { "count": 1, "weight": 25 },
+        { "count": 2, "weight": 65 },
+        { "count": 3, "weight": 10 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 55 },
+        { "rarity": "rare",   "weight": 40 },
+        { "rarity": "elite",  "weight": 5 }
+      ]
+    },
+
+    "skillPool": [
+      { "id": "web_shot" }
+    ],
+    "passiveAbilities": [
+      {
+        "trigger": "on_below_hp", "threshold": 0.4, "once": true,
+        "effect": { "type": "buff_self", "speedBonus": 3, "key": "poison_dps_mult", "value": 1.5 }
+      }
+    ],
+
+    "dropTable": { "goldMult": 2.0, "equipDropChance": 0.40, "guaranteedDrop": true }
+  }
+}

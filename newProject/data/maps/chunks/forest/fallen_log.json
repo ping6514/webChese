@@ -1,0 +1,9 @@
+{
+  "id": "forest_fallen_log",
+  "theme": ["forest"],
+  "size": { "width": 3, "height": 1 },
+  "grid": [
+    "###"
+  ],
+  "_note": "Horizontal wall obstacle simulating a fallen log"
+}

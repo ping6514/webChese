@@ -1,0 +1,51 @@
+{
+  "id": "forest_room_04",
+  "name": "溪流林地",
+  "theme": "forest",
+  "width": 16, "height": 16,
+  "tags": ["water", "trial", "mid"],
+  "grid": [
+    "################",
+    "#.............S#",
+    "#..TT..........#",
+    "#..TT..........#",
+    "#..............#",
+    "#WWWWW.WWWWWWW.#",
+    "#WWWWW.WWWWWWW.#",
+    "#WWWWW.WWWWWWW.#",
+    "#..............#",
+    "#..........TT..#",
+    "#..........TT..#",
+    "#..............#",
+    "#..............#",
+    "#U.............#",
+    "#U.............#",
+    "################"
+  ],
+  "chunkZones": [
+    {
+      "id": "chunk_zone_a",
+      "topLeft": { "x": 7, "y": 1 },
+      "size": { "width": 4, "height": 3 },
+      "allowedChunks": ["forest_tree_cluster", "rock_cluster", "empty_placeholder"],
+      "pickCount": 1
+    }
+  ],
+  "propZones": [
+    {
+      "cells": [{"x":8,"y":4},{"x":9,"y":9},{"x":3,"y":10}],
+      "props": [
+        { "type": "recovery", "weight": 20 },
+        { "type": "chest",    "weight": 40 },
+        { "type": "empty",    "weight": 40 }
+      ],
+      "maxPlacements": 1
+    }
+  ],
+  "spawnZones": [
+    { "id": "player_entry", "cells": [{"x":1,"y":13},{"x":2,"y":13},{"x":1,"y":14}] },
+    { "id": "enemy_zone_a", "cells": [{"x":9,"y":1},{"x":10,"y":1},{"x":11,"y":2}] },
+    { "id": "enemy_zone_b", "cells": [{"x":1,"y":9},{"x":2,"y":9},{"x":1,"y":10}] },
+    { "id": "exit",         "cells": [{"x":13,"y":1},{"x":14,"y":1},{"x":14,"y":2}] }
+  ]
+}

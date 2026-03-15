@@ -1,0 +1,63 @@
+[
+  {
+    "id": "mode_slash",   "slot": 2, "name": "劈砍型",
+    "actionTags": ["物理"],
+    "rangeShape": { "type": "front_row", "width": 3, "depth": 1 },
+    "targetMode": "cell",
+    "castMult": 1.0, "recoveryMult": 1.0
+  },
+  {
+    "id": "mode_thrust",  "slot": 2, "name": "突刺型",
+    "actionTags": ["物理"],
+    "rangeShape": { "type": "line", "length": 4 },
+    "targetMode": "cell",
+    "castMult": 1.0, "recoveryMult": 1.0
+  },
+  {
+    "id": "mode_spin",    "slot": 2, "name": "旋風型",
+    "actionTags": ["物理", "蓄力"],
+    "rangeShape": { "type": "radius", "radius": 1 },
+    "targetMode": "cell",
+    "castMult": 1.4, "recoveryMult": 1.2
+  },
+  {
+    "id": "mode_charge",  "slot": 2, "name": "突進型",
+    "actionTags": ["物理"],
+    "rangeShape": { "type": "line_move_then_radius", "moveRange": 2, "attackRadius": 1 },
+    "targetMode": "cell",
+    "builtinMove": 2,
+    "castMult": 0.8, "recoveryMult": 1.1
+  },
+  {
+    "id": "mode_blast",   "slot": 2, "name": "爆破型",
+    "actionTags": ["法術", "蓄力"],
+    "rangeShape": { "type": "radius", "radius": 1 },
+    "targetMode": "cell",
+    "castMult": 1.6, "recoveryMult": 1.0,
+    "delayedEffect": { "travelTime": 800, "visualType": "projectile" }
+  },
+  {
+    "id": "mode_ray",     "slot": 2, "name": "射線型",
+    "actionTags": ["法術"],
+    "rangeShape": { "type": "line", "length": 5 },
+    "targetMode": "cell",
+    "castMult": 1.2, "recoveryMult": 0.9,
+    "delayedEffect": { "travelTime": 600, "visualType": "ray" }
+  },
+  {
+    "id": "mode_heal",    "slot": 2, "name": "回復法障",
+    "actionTags": ["法術"],
+    "rangeShape": { "type": "radius", "radius": 3 },
+    "targetMode": "unit",
+    "targetFaction": "friendly",
+    "lostTargetBehavior": "cancel_half_cd",
+    "castMult": 1.3, "recoveryMult": 0.8
+  },
+  {
+    "id": "mode_counter", "slot": 2, "name": "防禦反擊型",
+    "actionTags": ["物理", "防禦"],
+    "rangeShape": { "type": "stance_duration", "duration": 6000 },
+    "targetMode": "self",
+    "castMult": 0.6, "recoveryMult": 0.0
+  }
+]

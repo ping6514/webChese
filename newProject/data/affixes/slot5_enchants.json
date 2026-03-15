@@ -1,0 +1,86 @@
+[
+  {
+    "id": "enchant_burn",        "slot": 5, "name": "燒傷",     "rarity": "common",
+    "trigger": "on_hit",
+    "effect": { "type": "dot", "damageType": "fire", "tickDamage": 5, "tickInterval": 300, "duration": 1800 }
+  },
+  {
+    "id": "enchant_slow",        "slot": 5, "name": "減速",     "rarity": "common",
+    "trigger": "on_hit",
+    "effect": { "type": "debuff_move_cast", "moveCastMult": 1.5, "duration": 1500 }
+  },
+  {
+    "id": "enchant_corrode",     "slot": 5, "name": "腐蝕",     "rarity": "rare",
+    "trigger": "on_hit",
+    "effect": { "type": "debuff_defense", "defenseReduction": 0.15, "duration": 2000 }
+  },
+  {
+    "id": "enchant_bleed",       "slot": 5, "name": "出血",     "rarity": "rare",
+    "trigger": "on_hit",
+    "effect": { "type": "dot", "damageType": "slash", "tickDamage": 4, "tickInterval": 400, "duration": 2000 }
+  },
+  {
+    "id": "enchant_leg_lock",    "slot": 5, "name": "腿軟",     "rarity": "common",
+    "trigger": "on_hit",
+    "effect": { "type": "debuff_no_move", "duration": "until_next_action", "queueBehavior": "insert" }
+  },
+  {
+    "id": "enchant_stun",        "slot": 5, "name": "震懾",     "rarity": "elite",
+    "trigger": "on_hit",
+    "effect": { "type": "cancel_action", "queueBehavior": "cancel", "stunDuration": 800 }
+  },
+  {
+    "id": "enchant_thorn",       "slot": 5, "name": "木棘",     "rarity": "common",
+    "trigger": "on_hit",
+    "effect": { "type": "dot", "damageType": "wood", "tickDamage": 3, "tickInterval": 350, "duration": 1400 },
+    "secondaryEffect": { "type": "debuff_move_cast", "moveCastMult": 1.2, "duration": 800 }
+  },
+  {
+    "id": "enchant_crit_lucky",  "slot": 5, "name": "幸運的爆擊", "rarity": "rare",
+    "trigger": "passive",
+    "effect": { "type": "crit_chance_add", "value": 0.15, "lckSlotMult": 0.02 }
+  },
+  {
+    "id": "enchant_crit_power",  "slot": 5, "name": "強化爆擊", "rarity": "elite",
+    "trigger": "passive",
+    "effect": { "type": "crit_damage_add", "value": 0.5 }
+  },
+  {
+    "id": "enchant_lifesteal",   "slot": 5, "name": "吸血",     "rarity": "rare",
+    "trigger": "on_hit",
+    "effect": { "type": "heal_self", "healPercent": 0.10, "resource": "hp" }
+  },
+  {
+    "id": "enchant_sp_on_hit",   "slot": 5, "name": "元氣",     "rarity": "rare",
+    "trigger": "on_hit",
+    "effect": { "type": "recover_self", "amount": 8, "resource": "sp" }
+  },
+  {
+    "id": "enchant_mp_on_kill",  "slot": 5, "name": "獵魔",     "rarity": "rare",
+    "trigger": "on_kill",
+    "effect": { "type": "recover_self", "amount": 15, "resource": "mp" }
+  },
+  {
+    "id": "enchant_retaliate",   "slot": 5, "name": "反骨",     "rarity": "elite",
+    "trigger": "on_hit_taken",
+    "effect": { "type": "buff_self_next_attack", "damageMult": 1.2, "stacks": 1, "maxStacks": 1 }
+  },
+  {
+    "id": "ability_charge_break","slot": 5, "name": "蓄力中斷者", "rarity": "elite",
+    "trigger": "on_hit",
+    "condition": { "targetCasting": true, "targetActionTagContains": "蓄力" },
+    "effect": { "type": "cancel_action", "queueBehavior": "cancel" }
+  },
+  {
+    "id": "ability_spell_silence","slot": 5, "name": "法術沉默", "rarity": "elite",
+    "trigger": "on_hit",
+    "condition": { "targetCasting": true, "targetActionTagContains": "法術" },
+    "effect": { "type": "cancel_action", "queueBehavior": "cancel" },
+    "secondaryEffect": { "type": "debuff_silence", "blockedTags": ["法術"], "duration": 3000 }
+  },
+  {
+    "id": "ability_firm_cast",   "slot": 5, "name": "堅定施法", "rarity": "elite",
+    "trigger": "passive",
+    "effect": { "type": "immune_interrupt", "immuneToTag": "蓄力中斷者" }
+  }
+]

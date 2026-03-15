@@ -1,0 +1,84 @@
+{
+  "monsterId": "forest_vine_beast",
+
+  "_comment": "藤蔓獸：巡邏型坦克，normal 路徑守衛；elite 為古藤獸，纏繞技能更強",
+
+  "normal": {
+    "statScaleMult": 1.0,
+    "qualityMult": 1.0,
+    "hpMult": 1.0,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 1, "weight": 50 },
+        { "count": 2, "weight": 50 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 85 },
+        { "rarity": "rare",   "weight": 15 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "chest": 0.55, "gloves": 0.35, "boots": 0.40 },
+      "affixCountTable": [
+        { "count": 1, "weight": 65 },
+        { "count": 2, "weight": 35 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 85 },
+        { "rarity": "rare",   "weight": 15 }
+      ]
+    },
+
+    "dropTable": { "goldMult": 1.0, "equipDropChance": 0.18 }
+  },
+
+  "elite": {
+    "_comment": "古藤獸：更高HP，被動回復更強，增加主動纏繞技能",
+    "statScaleMult": 1.6,
+    "qualityMult": 1.2,
+    "hpMult": 2.2,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 2, "weight": 50 },
+        { "count": 3, "weight": 50 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 55 },
+        { "rarity": "rare",   "weight": 40 },
+        { "rarity": "elite",  "weight": 5 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "chest": 0.75, "gloves": 0.55, "boots": 0.60 },
+      "affixCountTable": [
+        { "count": 2, "weight": 60 },
+        { "count": 3, "weight": 40 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 50 },
+        { "rarity": "rare",   "weight": 45 },
+        { "rarity": "elite",  "weight": 5 }
+      ]
+    },
+
+    "passiveAbilities": [
+      {
+        "trigger": "on_time", "interval": 2500,
+        "effect": { "type": "recover_hp", "amount": 10 }
+      },
+      {
+        "trigger": "on_below_hp", "threshold": 0.5, "once": true,
+        "effect": { "type": "buff_self", "key": "slash_resist_plus", "value": 0.20 }
+      }
+    ],
+    "skillPool": [
+      { "id": "vine_entangle" }
+    ],
+
+    "dropTable": { "goldMult": 2.5, "equipDropChance": 0.50, "guaranteedDrop": true }
+  }
+}

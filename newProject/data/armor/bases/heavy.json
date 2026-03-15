@@ -1,0 +1,71 @@
+[
+  {
+    "id": "heavy_head",
+    "name": "重甲頭盔",
+    "armorType": "重甲",
+    "slot": "head",
+    "requiredTags": ["重甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 4,
+      "crush_defense_flat": 4
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-resist-slash-01", "ar-resist-pierce-01", "ar-str-01", "ar-lck-01"]
+  },
+  {
+    "id": "heavy_chest",
+    "name": "重甲胸甲",
+    "armorType": "重甲",
+    "slot": "chest",
+    "requiredTags": ["重甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 8,
+      "crush_defense_flat": 6,
+      "hp_plus": 20
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-hp-01", "ar-def-slash-01", "ar-def-fire-01", "ar-survive-01", "ar-sp-01"]
+  },
+  {
+    "id": "heavy_gloves",
+    "name": "重甲手甲",
+    "armorType": "重甲",
+    "slot": "gloves",
+    "requiredTags": ["重甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 2
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-glove-slash-01", "ar-str-01", "ar-glove-crit-01"]
+  },
+  {
+    "id": "heavy_legs",
+    "name": "重甲腿甲",
+    "armorType": "重甲",
+    "slot": "legs",
+    "requiredTags": ["重甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 5,
+      "crush_defense_flat": 4
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-leg-str-01", "ar-leg-bag-01", "ar-hp-01"]
+  },
+  {
+    "id": "heavy_boots",
+    "name": "重甲鐵靴",
+    "armorType": "重甲",
+    "slot": "boots",
+    "requiredTags": ["重甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 2
+    },
+    "affixCount": { "min": 1, "max": 1 },
+    "affixPool": ["ar-boot-range-01", "ar-str-01"]
+  }
+]

@@ -1,0 +1,95 @@
+[
+  {
+    "id": "pack_call",
+    "name": "群狼召喚",
+    "castTime": 2000,
+    "cooldown": 8000,
+    "actionId": "burst_small",
+    "actionOverride": { "radius": 3, "targetFilter": "cell" },
+    "hitMode": { "type": "instant" },
+    "actionTags": ["主動", "召喚"],
+    "aiTrigger": { "condition": "allies_in_range_below", "count": 1, "range": 5 },
+    "effect": {
+      "type": "summon_allies",
+      "monsterId": "forest_wolf",
+      "count": 2
+    }
+  },
+  {
+    "id": "howl_aoe_slow",
+    "name": "嚎鳴震懾",
+    "castTime": 1500,
+    "cooldown": 10000,
+    "actionId": "burst_small",
+    "actionOverride": { "radius": 4, "targetFilter": "enemy" },
+    "hitMode": { "type": "instant" },
+    "actionTags": ["主動", "群體", "減速"],
+    "aiTrigger": { "condition": "enemies_in_range", "count": 1, "range": 4 },
+    "effect": {
+      "type": "apply_debuff",
+      "debuff": "slow",
+      "duration": 3000
+    }
+  },
+  {
+    "_note": "守護者衝鋒：讀條完成後重新判斷直線路徑目標是否仍在線上",
+    "id": "guardian_charge",
+    "name": "守護者衝鋒",
+    "castTime": 1800,
+    "cooldown": 12000,
+    "actionId": "line_pierce",
+    "actionOverride": { "range": 4 },
+    "hitMode": { "type": "check_at_resolve" },
+    "actionTags": ["主動", "物理", "衝鋒"],
+    "aiTrigger": { "condition": "enemies_in_range", "count": 1, "range": 4 },
+    "effect": {
+      "type": "damage",
+      "damageTypeMult": 1.6,
+      "knockback": 1
+    }
+  },
+  {
+    "_note": "古藤獸菁英技能：在目標格放置持久陷阱，踩上後纏繞減速",
+    "id": "vine_entangle",
+    "name": "藤蔓纏繞",
+    "castTime": 1200,
+    "cooldown": 8000,
+    "actionId": "circle_small",
+    "actionOverride": { "radius": 1 },
+    "hitMode": {
+      "type": "persistent_zone",
+      "duration": 5000,
+      "triggerOn": "step_on",
+      "maxTriggers": 2
+    },
+    "actionTags": ["主動", "陷阱", "減速"],
+    "aiTrigger": { "condition": "enemies_in_range", "count": 1, "range": 3 },
+    "effect": {
+      "type": "apply_debuff",
+      "debuff": "entangle",
+      "duration": 2500
+    }
+  },
+  {
+    "_note": "巨型毒蜘蛛菁英技能：遠程吐絲投射物，命中後中毒+行動受限",
+    "id": "web_shot",
+    "name": "吐絲射擊",
+    "castTime": 1000,
+    "cooldown": 6000,
+    "actionId": "ranged_single",
+    "actionOverride": { "range": 4 },
+    "hitMode": {
+      "type": "projectile",
+      "speedCellsPerSec": 6,
+      "piercing": false
+    },
+    "actionTags": ["主動", "遠程", "陷阱"],
+    "aiTrigger": { "condition": "enemies_in_range", "count": 1, "range": 4 },
+    "effect": {
+      "type": "apply_debuff",
+      "debuff": "webbed",
+      "duration": 3000,
+      "additionalEffect": { "type": "apply_poison", "dps": 2, "duration": 4000 }
+    }
+  }
+]

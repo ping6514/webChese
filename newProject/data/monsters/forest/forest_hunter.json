@@ -1,0 +1,79 @@
+{
+  "id": "forest_hunter",
+  "name": "森林獵手",
+  "theme": "forest",
+  "tier": "elite",
+  "archetype": "agi",
+  "ai": "chase",
+  "stats": {
+    "str": { "base": 12, "floorScale": 0.8 },
+    "agi": { "base": 22, "floorScale": 1.4 },
+    "int": { "base": 6,  "floorScale": 0.4 },
+    "lck": { "base": 14, "floorScale": 0.8 }
+  },
+  "resources": {
+    "hp": { "base": 50, "strMult": 1.8 },
+    "sp": { "base": 50, "agiMult": 2 },
+    "mp": { "base": 0 }
+  },
+  "moveRange": 5,
+  "speed": 18,
+
+  "weapon": {
+    "id": "hunter_claw",
+    "name": "獵手利爪",
+    "note": "高爆擊率；隱匿狀態進入戰鬥時首擊觸發伏擊傷害加倍",
+    "actionId": "frontal_sweep",
+    "hitMode": { "type": "instant" },
+    "statScaling": "AGI",
+    "atkBase": 0.40,
+    "actionTags": ["物理", "即發"],
+    "slot1": "slash",
+    "slot2": "mode_charge",
+    "slot3Pool": ["trait_precise", "trait_swift"],
+    "slot4": "enchant_bleed",
+    "slot5Pool": ["enchant_bleed", "enchant_poison"]
+  },
+
+  "passiveAbilities": [
+    {
+      "_note": "伏擊：每次從森林隱匿狀態發動的首擊傷害×2，之後重置",
+      "trigger": "on_ambush_hit",
+      "once": false,
+      "effect": { "type": "bonus_damage_mult", "mult": 2.0, "duration": "one_hit" }
+    },
+    {
+      "_note": "低血量拼死一搏：速度暴增",
+      "trigger": "on_below_hp", "threshold": 0.25, "once": true,
+      "effect": { "type": "buff_self", "speedBonus": 5, "key": "crit_chance_add", "value": 0.15 }
+    }
+  ],
+
+  "equipment": {
+    "note": "精英怪物；掉落品質偏高，head 有林間隱蔽詞條",
+    "head": {
+      "id": "hunter_hood",
+      "name": "獵手兜帽",
+      "slot": "head",
+      "affixPool": ["ar-forest-stealth-01", "ar-resist-pierce-01", "ar-supply-01", "ar-resist-dark-01"]
+    },
+    "chest": {
+      "id": "hunter_pelt",
+      "name": "獵手皮甲",
+      "slot": "chest",
+      "affixPool": ["ar-def-slash-01", "ar-resist-pierce-01", "ar-hp-regen-01", "ar-bark-01"]
+    },
+    "boots": {
+      "id": "swift_paws",
+      "name": "疾行獸腿",
+      "slot": "boots",
+      "affixPool": ["ar-boot-range-01", "ar-forest-terrain-01", "ar-boot-move-01", "ar-boot-terrain-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 6, "max": 14 },
+    "equipDropChance": 0.50,
+    "dropPool": ["hunter_hood", "hunter_pelt", "swift_paws"]
+  }
+}

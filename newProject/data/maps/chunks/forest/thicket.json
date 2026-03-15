@@ -1,0 +1,10 @@
+{
+  "id": "forest_thicket",
+  "theme": ["forest"],
+  "size": { "width": 4, "height": 2 },
+  "grid": [
+    "TTTT",
+    "TTTT"
+  ],
+  "_note": "Dense forest patch; provides concealment but slows movement"
+}

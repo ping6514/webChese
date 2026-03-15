@@ -1,0 +1,11 @@
+{
+  "id": "forest_tree_cluster",
+  "theme": ["forest"],
+  "size": { "width": 3, "height": 3 },
+  "grid": [
+    "TTT",
+    "T.T",
+    "TTT"
+  ],
+  "_legend": { "T": "forest terrain", ".": "floor（中心可走）" }
+}

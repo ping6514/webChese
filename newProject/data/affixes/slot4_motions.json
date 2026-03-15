@@ -1,0 +1,24 @@
+[
+  {
+    "id": "motion_leap",       "slot": 4, "name": "飛越",
+    "rarity": "rare",
+    "effect": { "type": "instant_move_before_cast", "range": 2, "canCrossHeight": true }
+  },
+  {
+    "id": "motion_drift",      "slot": 4, "name": "飄移",
+    "rarity": "common",
+    "effect": { "type": "free_move_before_cast", "range": 1, "canCrossHeight": false }
+  },
+  {
+    "id": "motion_fixed",      "slot": 4, "name": "定點",
+    "rarity": "common",
+    "effect": { "type": "no_move_bonus" },
+    "mods": [{ "type": "cast_mult", "value": 0.8 }]
+  },
+  {
+    "id": "motion_weaken_legs","slot": 4, "name": "腿軟施放",
+    "rarity": "common",
+    "effect": { "type": "self_debuff_after_cast", "debuff": "leg_lock" },
+    "mods": [{ "type": "cast_mult", "value": 0.5 }, { "type": "sp_cost_mult", "value": 0.5 }]
+  }
+]

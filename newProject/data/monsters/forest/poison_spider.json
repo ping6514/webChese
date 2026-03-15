@@ -1,0 +1,65 @@
+{
+  "id": "forest_poison_spider",
+  "name": "毒蜘蛛",
+  "theme": "forest",
+  "tier": "normal",
+  "archetype": "agi",
+  "ai": "chase",
+  "stats": {
+    "str": { "base": 5,  "floorScale": 0.4 },
+    "agi": { "base": 16, "floorScale": 1.0 },
+    "int": { "base": 4,  "floorScale": 0.3 },
+    "lck": { "base": 8,  "floorScale": 0.5 }
+  },
+  "resources": {
+    "hp": { "base": 25, "strMult": 1.0 },
+    "sp": { "base": 25, "agiMult": 1 },
+    "mp": { "base": 0 }
+  },
+  "moveRange": 3,
+  "speed": 14,
+
+  "weapon": {
+    "id": "spider_fang",
+    "name": "毒蜘蛛毒牙",
+    "note": "穿刺傷害，內建毒素附魔",
+    "actionId": "single_melee",
+    "hitMode": { "type": "instant" },
+    "statScaling": "AGI",
+    "atkBase": 0.25,
+    "actionTags": ["物理", "即發"],
+    "slot1": "pierce",
+    "slot2": "trait_swift",
+    "slot3Pool": ["trait_precise", "enchant_bleed"],
+    "slot4": null,
+    "slot5Pool": ["enchant_poison"]
+  },
+
+  "equipment": {
+    "note": "蜘蛛體部詞條偏向穿刺 + 毒素，玩家拾取後可在輕甲/布甲上使用",
+    "chest": {
+      "id": "spider_carapace",
+      "name": "毒蜘蛛甲殼",
+      "slot": "chest",
+      "affixPool": ["ar-def-slash-01", "ar-resist-pierce-01", "ar-hp-regen-01"]
+    },
+    "gloves": {
+      "id": "spider_chelicerae",
+      "name": "毒蜘蛛螯肢",
+      "slot": "gloves",
+      "affixPool": ["ar-poison-01", "ar-crit-chance-01", "ar-glove-crit-01", "ar-pierce-amp-01"]
+    },
+    "boots": {
+      "id": "spider_legs_item",
+      "name": "毒蜘蛛蜘蛛腿",
+      "slot": "boots",
+      "affixPool": ["ar-boot-move-01", "ar-forest-terrain-01", "ar-boot-terrain-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 1, "max": 4 },
+    "equipDropChance": 0.12,
+    "dropPool": ["spider_carapace", "spider_chelicerae", "spider_legs_item"]
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "id": "forest_vine_beast",
+  "name": "藤蔓獸",
+  "theme": "forest",
+  "tier": "normal",
+  "archetype": "str",
+  "ai": "patrol",
+  "stats": {
+    "str": { "base": 14, "floorScale": 1.0 },
+    "agi": { "base": 6,  "floorScale": 0.4 },
+    "int": { "base": 3,  "floorScale": 0.2 },
+    "lck": { "base": 4,  "floorScale": 0.3 }
+  },
+  "resources": {
+    "hp": { "base": 55, "strMult": 2.0 },
+    "sp": { "base": 15, "agiMult": 0.5 },
+    "mp": { "base": 0 }
+  },
+  "moveRange": 2,
+  "speed": 8,
+
+  "weapon": {
+    "id": "vine_whip",
+    "name": "藤蔓鞭擊",
+    "note": "劈砍傷害，射程比普通近戰延伸一格；有機率纏繞目標限制移動",
+    "actionId": "single_melee_reach",
+    "hitMode": { "type": "instant" },
+    "statScaling": "STR",
+    "atkBase": 0.35,
+    "actionTags": ["物理", "即發"],
+    "slot1": "slash",
+    "slot2": "trait_reach",
+    "slot3Pool": ["trait_brute", "enchant_entangle"],
+    "slot4": null,
+    "slot5Pool": ["enchant_bleed", "enchant_entangle"]
+  },
+
+  "passiveAbilities": [
+    {
+      "trigger": "on_time",
+      "interval": 4000,
+      "effect": { "type": "recover_hp", "amount": 5 }
+    }
+  ],
+
+  "equipment": {
+    "note": "植物系外皮，防禦導向；玩家裝備後適合坦克路線，boots 免疫森林地形懲罰",
+    "chest": {
+      "id": "bark_hide",
+      "name": "藤蔓獸樹皮",
+      "slot": "chest",
+      "affixPool": ["ar-bark-01", "ar-def-slash-01", "ar-hp-regen-01", "ar-hp-01"]
+    },
+    "gloves": {
+      "id": "vine_limbs",
+      "name": "藤蔓肢",
+      "slot": "gloves",
+      "affixPool": ["ar-entangle-01", "ar-glove-slash-01", "ar-glove-crit-01"]
+    },
+    "boots": {
+      "id": "vine_roots",
+      "name": "藤根腿",
+      "slot": "boots",
+      "affixPool": ["ar-forest-terrain-01", "ar-boot-terrain-01", "ar-boot-move-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 2, "max": 5 },
+    "equipDropChance": 0.18,
+    "dropPool": ["bark_hide", "vine_limbs", "vine_roots"]
+  }
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "light_head",
+    "name": "輕甲頭盔",
+    "armorType": "輕甲",
+    "slot": "head",
+    "requiredTags": ["輕甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 2,
+      "pierce_defense_flat": 2
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-resist-slash-01", "ar-resist-fire-01", "ar-supply-01", "ar-lck-01", "ar-agi-01"]
+  },
+  {
+    "id": "light_chest",
+    "name": "輕甲皮甲",
+    "armorType": "輕甲",
+    "slot": "chest",
+    "requiredTags": ["輕甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 3,
+      "hp_plus": 10
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-hp-01", "ar-def-slash-01", "ar-sp-01", "ar-survive-01"]
+  },
+  {
+    "id": "light_gloves",
+    "name": "輕甲手套",
+    "armorType": "輕甲",
+    "slot": "gloves",
+    "requiredTags": ["輕甲"],
+    "requiredTagCount": 1,
+    "baseStats": {},
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-glove-crit-01", "ar-agi-01", "ar-lck-01"]
+  },
+  {
+    "id": "light_legs",
+    "name": "輕甲護腿",
+    "armorType": "輕甲",
+    "slot": "legs",
+    "requiredTags": ["輕甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "slash_defense_flat": 2
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-leg-bag-01", "ar-agi-01", "ar-lck-01"]
+  },
+  {
+    "id": "light_boots",
+    "name": "輕甲輕靴",
+    "armorType": "輕甲",
+    "slot": "boots",
+    "requiredTags": ["輕甲"],
+    "requiredTagCount": 1,
+    "baseStats": {},
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-boot-move-01", "ar-boot-range-01", "ar-boot-terrain-01", "ar-agi-01"]
+  }
+]

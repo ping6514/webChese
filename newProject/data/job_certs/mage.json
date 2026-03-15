@@ -1,0 +1,29 @@
+{
+  "id": "mage",
+  "name": "法師",
+  "tier": "basic",
+  "tags": ["遠程", "魔法輸出", "法師", "初階職業", "布甲"],
+  "allowedArmorTypes": ["布甲"],
+  "stats": {
+    "str": { "base": 5,  "randomBonus": { "min": 0, "max": 3 } },
+    "int": { "base": 24, "randomBonus": { "min": 0, "max": 8 } },
+    "agi": { "base": 10, "randomBonus": { "min": 0, "max": 4 } },
+    "lck": { "base": 10, "randomBonus": { "min": 0, "max": 6 } }
+  },
+  "resources": {
+    "hp": { "base": 150, "strMult": 1 },
+    "sp": { "base": 20,  "agiMult": 0.5 },
+    "mp": { "base": 50,  "intMult": 3 }
+  },
+  "moveRange": 3,
+  "passives": [
+    {
+      "trigger": "on_floor_clear",
+      "effect": { "type": "recover_mp", "amount": "full" }
+    },
+    {
+      "trigger": "on_kill",
+      "effect": { "type": "recover_mp", "amount": 5 }
+    }
+  ]
+}

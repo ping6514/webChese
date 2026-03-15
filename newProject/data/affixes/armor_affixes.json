@@ -1,0 +1,212 @@
+[
+  { "_comment": "--- 通用屬性（任意部位）---" },
+  {
+    "id": "ar-str-01",    "name": "力量的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "str_plus", "value": 8 }]
+  },
+  {
+    "id": "ar-int-01",    "name": "智慧的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["布甲", "輕甲"],
+    "abilities": [{ "key": "int_plus", "value": 8 }]
+  },
+  {
+    "id": "ar-agi-01",    "name": "敏捷的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "agi_plus", "value": 8 }]
+  },
+  {
+    "id": "ar-lck-01",    "name": "幸運的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["輕甲", "布甲", "重甲"],
+    "abilities": [{ "key": "lck_plus", "value": 6 }]
+  },
+  {
+    "id": "ar-hp-01",     "name": "耐久的",    "rarity": "common",
+    "slot": "chest",      "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "hp_plus", "value": 40 }]
+  },
+  {
+    "id": "ar-sp-01",     "name": "活力的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["重甲", "輕甲"],
+    "abilities": [{ "key": "sp_plus_stat", "value": 20 }]
+  },
+  {
+    "id": "ar-mp-01",     "name": "魔力的",    "rarity": "common",
+    "slot": "any",        "usedTags": ["布甲"],
+    "abilities": [{ "key": "mp_plus_stat", "value": 25 }]
+  },
+
+  { "_comment": "--- 頭盔偏向：抗性（被動，無需 condition）---" },
+  {
+    "id": "ar-resist-slash-01",  "name": "抗劈砍的",  "rarity": "common",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "slash_resist_plus", "value": 0.10 }]
+  },
+  {
+    "id": "ar-resist-fire-01",   "name": "抗火的",    "rarity": "common",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "fire_resist_plus", "value": 0.10 }]
+  },
+  {
+    "id": "ar-resist-pierce-01", "name": "抗穿刺的",  "rarity": "rare",
+    "slot": "head",  "usedTags": ["重甲", "輕甲"],
+    "abilities": [{ "key": "pierce_resist_plus", "value": 0.12 }]
+  },
+
+  { "_comment": "--- 上衣偏向：防禦力 flat（被動，無需 condition）---" },
+  {
+    "id": "ar-def-slash-01",  "name": "劈砍防護的",  "rarity": "common",
+    "slot": "chest", "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "slash_defense_flat", "valueExpr": "dungeonQuality*3" }]
+  },
+  {
+    "id": "ar-def-fire-01",   "name": "火焰防護的",  "rarity": "common",
+    "slot": "chest", "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "fire_defense_flat", "valueExpr": "dungeonQuality*3" }]
+  },
+
+  { "_comment": "--- 手套偏向：傷害增幅（需 condition，避免任意攻擊都觸發）---" },
+  {
+    "id": "ar-glove-crit-01",  "name": "爆擊強化",   "rarity": "rare",
+    "slot": "gloves", "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "crit_damage_mult", "value": 0.3 }]
+  },
+  {
+    "id": "ar-glove-fire-01",  "name": "火焰增幅",   "rarity": "rare",
+    "slot": "gloves", "usedTags": ["布甲"],
+    "abilities": [
+      { "key": "fire_damage_plus", "valueExpr": "dungeonQuality*5", "condition": { "damageType": "fire" } }
+    ]
+  },
+  {
+    "id": "ar-glove-slash-01", "name": "劈砍增幅",   "rarity": "rare",
+    "slot": "gloves", "usedTags": ["重甲"],
+    "abilities": [
+      { "key": "slash_increase", "value": 0.2, "condition": { "damageType": "slash" } }
+    ]
+  },
+
+  { "_comment": "--- 下衣偏向：基礎屬性 + 消耗品格 ---" },
+  {
+    "id": "ar-leg-bag-01",    "name": "補給袋",      "rarity": "rare",
+    "slot": "legs",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "consumable_slot_plus", "value": 1 }]
+  },
+  {
+    "id": "ar-leg-str-01",    "name": "厚實的",      "rarity": "common",
+    "slot": "legs",  "usedTags": ["重甲"],
+    "abilities": [{ "key": "str_plus", "value": 10 }]
+  },
+
+  { "_comment": "--- 鞋子偏向：移動力 + 地形 ---" },
+  {
+    "id": "ar-boot-move-01",  "name": "輕盈的",      "rarity": "common",
+    "slot": "boots", "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "move_cast_reduce", "value": 0.15 }]
+  },
+  {
+    "id": "ar-boot-range-01", "name": "大步的",      "rarity": "rare",
+    "slot": "boots", "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "move_range_plus", "value": 1 }]
+  },
+  {
+    "id": "ar-boot-terrain-01","name": "探路者",     "rarity": "elite",
+    "slot": "boots", "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "terrain_penalty_immune", "terrains": ["mud", "water"] }]
+  },
+
+  { "_comment": "--- 元素抗性擴充 ---" },
+  {
+    "id": "ar-resist-dark-01",   "name": "抗暗的",    "rarity": "rare",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "dark_resist_plus", "value": 0.12 }]
+  },
+  {
+    "id": "ar-resist-wood-01",   "name": "抗木的",    "rarity": "rare",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "wood_resist_plus", "value": 0.12 }]
+  },
+  {
+    "id": "ar-resist-water-01",  "name": "抗水的",    "rarity": "common",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "water_resist_plus", "value": 0.10 }]
+  },
+
+  { "_comment": "--- 物理抗性擴充 ---" },
+  {
+    "id": "ar-bark-01",        "name": "粗皮",      "rarity": "common",
+    "slot": "chest", "usedTags": ["重甲", "輕甲"],
+    "abilities": [
+      { "key": "crush_resist_plus", "value": 0.12 },
+      { "key": "slash_resist_plus", "value": 0.08 }
+    ]
+  },
+
+  { "_comment": "--- 被動觸發型詞條（trigger 格式，裝備後加入監聽池）---" },
+  {
+    "id": "ar-hp-regen-01",   "name": "生機的",   "rarity": "rare",
+    "slot": "chest", "usedTags": ["重甲", "輕甲"],
+    "abilities": [
+      { "trigger": "on_time", "interval": 3000, "effect": { "type": "recover_hp", "amount": 8 } }
+    ]
+  },
+  {
+    "id": "ar-pierce-amp-01",  "name": "貫穿增幅",  "rarity": "rare",
+    "slot": "gloves", "usedTags": ["輕甲"],
+    "abilities": [
+      { "key": "pierce_increase", "value": 0.25, "condition": { "damageType": "pierce" } }
+    ]
+  },
+  {
+    "id": "ar-poison-01",      "name": "毒爪",      "rarity": "rare",
+    "slot": "gloves", "usedTags": ["輕甲", "布甲"],
+    "abilities": [
+      { "trigger": "on_hit", "condition": { "actionTag": "物理" },
+        "effect": { "type": "apply_poison", "dps": 3, "duration": 3000 } }
+    ]
+  },
+  {
+    "id": "ar-entangle-01",    "name": "藤纏",      "rarity": "rare",
+    "slot": "gloves", "usedTags": ["重甲", "輕甲"],
+    "abilities": [
+      { "trigger": "on_hit", "condition": { "actionTag": "物理" },
+        "effect": { "type": "apply_slow", "duration": 2000 } }
+    ]
+  },
+
+  { "_comment": "--- 怪物/環境專用（玩家撿到可用，但出現率僅在對應主題地城）---" },
+  {
+    "id": "ar-forest-terrain-01", "name": "林行者",    "rarity": "rare",
+    "slot": "boots", "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "terrain_penalty_immune", "terrains": ["forest"] }]
+  },
+  {
+    "id": "ar-forest-stealth-01", "name": "林間隱蔽",  "rarity": "elite",
+    "slot": "head",  "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "stealth_in_forest", "value": 1 }]
+  },
+  {
+    "id": "ar-crit-chance-01",    "name": "敏銳的",    "rarity": "rare",
+    "slot": "gloves", "usedTags": ["輕甲", "布甲"],
+    "abilities": [{ "key": "crit_chance_add", "value": 0.06 }]
+  },
+  {
+    "id": "ar-sp-on-hit-01",      "name": "蓄勢的",    "rarity": "rare",
+    "slot": "gloves", "usedTags": ["重甲", "輕甲"],
+    "abilities": [
+      { "key": "sp_on_hit", "value": 5, "condition": { "actionTag": "物理" } }
+    ]
+  },
+
+  { "_comment": "--- 特殊（固定部位）---" },
+  {
+    "id": "ar-survive-01",    "name": "求生意志",    "rarity": "elite",
+    "slot": "chest", "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "loot_carry_plus", "value": 1 }]
+  },
+  {
+    "id": "ar-supply-01",     "name": "補給直覺",    "rarity": "rare",
+    "slot": "head",  "usedTags": ["重甲", "輕甲", "布甲"],
+    "abilities": [{ "key": "supply_floor_rate_plus", "value": 0.15 }]
+  }
+]

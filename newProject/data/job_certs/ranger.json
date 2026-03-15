@@ -1,0 +1,31 @@
+{
+  "id": "ranger",
+  "name": "遊俠",
+  "tier": "basic",
+  "tags": ["近戰", "遠程", "物理輸出", "遊俠", "初階職業", "輕甲"],
+  "allowedArmorTypes": ["輕甲"],
+  "stats": {
+    "str": { "base": 10, "randomBonus": { "min": 0, "max": 5 } },
+    "int": { "base": 8,  "randomBonus": { "min": 0, "max": 4 } },
+    "agi": { "base": 22, "randomBonus": { "min": 0, "max": 8 } },
+    "lck": { "base": 12, "randomBonus": { "min": 0, "max": 6 } }
+  },
+  "resources": {
+    "hp": { "base": 60, "strMult": 1.5 },
+    "sp": { "base": 60, "agiMult": 2 },
+    "mp": { "base": 15, "intMult": 0.5 }
+  },
+  "moveRange": 4,
+  "passives": [
+    {
+      "trigger": "on_time",
+      "interval": 500,
+      "effect": { "type": "recover_sp", "amount": 30 }
+    },
+    {
+      "trigger": "on_hit",
+      "condition": { "actionTag": "物理" },
+      "effect": { "type": "recover_sp", "amount": 8 }
+    }
+  ]
+}

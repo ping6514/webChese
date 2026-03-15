@@ -1,0 +1,38 @@
+[
+  {
+    "id": "trait_brute",   "slot": 3, "name": "全力",
+    "rarity": "common",
+    "mods": [{ "type": "damage_mult", "value": 1.5 }, { "type": "recovery_mult", "value": 1.5 }]
+  },
+  {
+    "id": "trait_swift",   "slot": 3, "name": "快速",
+    "rarity": "common",
+    "mods": [{ "type": "cast_mult", "value": 0.7 }, { "type": "recovery_add", "value": -20 }]
+  },
+  {
+    "id": "trait_wide",    "slot": 3, "name": "廣範圍",
+    "rarity": "common",
+    "mods": [{ "type": "range_add", "value": 1 }]
+  },
+  {
+    "id": "trait_focus",   "slot": 3, "name": "聚焦",
+    "rarity": "common",
+    "mods": [{ "type": "range_add", "value": -1 }, { "type": "center_damage_mult", "value": 2.0 }]
+  },
+  {
+    "id": "trait_charge",  "slot": 3, "name": "蓄力",
+    "rarity": "rare",
+    "addActionTags": ["蓄力"],
+    "mods": [{ "type": "cast_mult", "value": 1.8 }, { "type": "damage_mult", "value": 1.8 }]
+  },
+  {
+    "id": "trait_chain",   "slot": 3, "name": "連鎖",
+    "rarity": "elite",
+    "ability": { "type": "chain_hit", "chainRadius": 1, "chainDamageMult": 0.5, "maxChains": 1 }
+  },
+  {
+    "id": "trait_execute", "slot": 3, "name": "處決",
+    "rarity": "elite",
+    "ability": { "type": "execute_bonus", "hpThreshold": 0.25, "damageMult": 2.0 }
+  }
+]

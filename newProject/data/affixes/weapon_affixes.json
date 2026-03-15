@@ -1,0 +1,98 @@
+[
+  {
+    "id": "wp-fire-01",
+    "name": "火焰的",
+    "rarity": "common",
+    "usedTags": ["法術"],
+    "abilities": [
+      { "key": "fire_base",        "value": 0.5 },
+      { "key": "fire_damage_plus", "valueExpr": "3*dungeonQuality" }
+    ],
+    "costs": { "mp_plus": 8, "cast_time_add": 80 }
+  },
+  {
+    "id": "wp-fire-02",
+    "name": "烈焰的",
+    "rarity": "rare",
+    "usedTags": ["法術"],
+    "abilities": [
+      { "key": "fire_increase",    "value": 0.8 },
+      { "key": "fire_damage_plus", "valueExpr": "8*dungeonQuality" }
+    ],
+    "costs": { "mp_plus": 20, "cast_time_add": 150, "cooldown_time_add": 200 }
+  },
+  {
+    "id": "wp-slash-01",
+    "name": "鋒利的",
+    "rarity": "common",
+    "usedTags": ["物理"],
+    "abilities": [
+      { "key": "slash_increase", "value": 0.3 }
+    ],
+    "costs": { "sp_plus": 5 }
+  },
+  {
+    "id": "wp-slash-02",
+    "name": "裂傷的",
+    "rarity": "rare",
+    "usedTags": ["物理"],
+    "abilities": [
+      { "key": "slash_increase",  "value": 0.6 },
+      { "key": "crit_chance_add", "value": 0.08 }
+    ],
+    "costs": { "sp_plus": 12, "recovery_time_add": 80 }
+  },
+  {
+    "id": "wp-pierce-01",
+    "name": "貫穿的",
+    "rarity": "common",
+    "usedTags": ["物理"],
+    "abilities": [
+      { "key": "pierce_increase", "value": 0.35 }
+    ],
+    "costs": { "sp_plus": 6 }
+  },
+  {
+    "id": "wp-crit-01",
+    "name": "幸運的爆擊",
+    "rarity": "rare",
+    "usedTags": ["物理", "法術"],
+    "abilities": [
+      { "key": "crit_chance_add", "value": 0.15 },
+      { "key": "lck_crit_mult",   "value": 0.02 }
+    ],
+    "costs": { "sp_plus": 5, "mp_plus": 5 }
+  },
+  {
+    "id": "wp-crit-02",
+    "name": "強化爆擊的",
+    "rarity": "elite",
+    "usedTags": ["物理", "法術"],
+    "abilities": [
+      { "key": "crit_damage_mult", "value": 0.5 }
+    ],
+    "costs": { "cooldown_time_add": 200 }
+  },
+  {
+    "id": "wp-heal-01",
+    "name": "慈悲的",
+    "rarity": "rare",
+    "usedTags": ["法術"],
+    "abilities": [
+      { "key": "heal_increase",  "value": 0.5 },
+      { "key": "heal_flat_plus", "valueExpr": "10*dungeonQuality" }
+    ],
+    "costs": { "mp_plus": 15, "cast_time_add": 100 }
+  },
+  {
+    "id": "wp-multi-01",
+    "name": "火焰劍的",
+    "rarity": "rare",
+    "usedTags": ["物理"],
+    "abilities": [
+      { "key": "slash_increase",   "value": 0.5 },
+      { "key": "fire_damage_plus", "valueExpr": "5*dungeonQuality", "condition": { "damageType": "slash" } }
+    ],
+    "costs": { "mp_plus": 55, "recovery_time_add": 100, "cooldown_time_add": 200 }
+  }
+]

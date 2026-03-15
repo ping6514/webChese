@@ -1,0 +1,67 @@
+[
+  {
+    "_comment": "--- 遠程單體 ---",
+    "id": "ranged_single",
+    "name": "遠程指向",
+    "shape": "ranged_single",
+    "range": 6,
+    "isProjectile": true,
+    "requiresLineOfSight": true,
+    "targetFilter": "enemy",
+    "_note": "弓型武器基本動作；視線遮擋時無法使用"
+  },
+  {
+    "id": "ranged_single_nlos",
+    "name": "無視視線遠程",
+    "shape": "ranged_single",
+    "range": 5,
+    "isProjectile": false,
+    "requiresLineOfSight": false,
+    "targetFilter": "enemy",
+    "_note": "法術單體指向；不受障礙物遮擋（魔法穿透）"
+  },
+
+  { "_comment": "--- 遠程落地圓形 ---" },
+  {
+    "id": "ranged_aoe_small",
+    "name": "遠程小範圍落地",
+    "shape": "ranged_circle",
+    "range": 5,
+    "radius": 1,
+    "isProjectile": true,
+    "requiresLineOfSight": false,
+    "targetFilter": "enemy",
+    "_note": "以目標格為圓心爆炸；落點不需視線（拋物線）"
+  },
+  {
+    "id": "ranged_aoe_medium",
+    "name": "遠程中範圍落地",
+    "shape": "ranged_circle",
+    "range": 4,
+    "radius": 2,
+    "isProjectile": true,
+    "requiresLineOfSight": false,
+    "targetFilter": "enemy",
+    "_note": "法師範圍法術；範圍換距離"
+  },
+
+  { "_comment": "--- 以目標格為圓心（近中距）---" },
+  {
+    "id": "circle_small",
+    "name": "落地圓形（小）",
+    "shape": "circle",
+    "range": 3,
+    "radius": 1,
+    "targetFilter": "enemy",
+    "_note": "指定地點為圓心，半徑 1；近程地面法術"
+  },
+  {
+    "id": "circle_large",
+    "name": "落地圓形（大）",
+    "shape": "circle",
+    "range": 3,
+    "radius": 2,
+    "targetFilter": "enemy",
+    "_note": "大範圍地面法術；Boss 招牌技"
+  }
+]

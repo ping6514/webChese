@@ -1,0 +1,9 @@
+{
+  "id": "pillar_pair",
+  "theme": ["common"],
+  "size": { "width": 4, "height": 1 },
+  "grid": [
+    "#..#"
+  ],
+  "_legend": { "#": "wall（單格柱子）", ".": "floor" }
+}

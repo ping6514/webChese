@@ -1,0 +1,39 @@
+{
+  "monsterId": "forest_hunter",
+
+  "_comment": "森林獵手：精英等級，僅以 elite 模式生成；在中後段地城層（floor 4+）出現",
+
+  "elite": {
+    "statScaleMult": 1.0,
+    "qualityMult": 1.2,
+    "hpMult": 1.0,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 2, "weight": 35 },
+        { "count": 3, "weight": 65 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 45 },
+        { "rarity": "rare",   "weight": 45 },
+        { "rarity": "elite",  "weight": 10 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "head": 0.50, "chest": 0.60, "boots": 0.60 },
+      "affixCountTable": [
+        { "count": 1, "weight": 20 },
+        { "count": 2, "weight": 60 },
+        { "count": 3, "weight": 20 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 45 },
+        { "rarity": "rare",   "weight": 45 },
+        { "rarity": "elite",  "weight": 10 }
+      ]
+    },
+
+    "dropTable": { "goldMult": 2.8, "equipDropChance": 0.50, "guaranteedDrop": true }
+  }
+}

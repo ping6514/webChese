@@ -1,0 +1,58 @@
+{
+  "id": "forest_room_03",
+  "name": "L型林徑",
+  "theme": "forest",
+  "width": 16, "height": 16,
+  "tags": ["l_shape", "mid"],
+  "grid": [
+    "################",
+    "#.........T..S.#",
+    "#.........T....#",
+    "#.........TT...#",
+    "#.........TT...#",
+    "#########......#",
+    "#########......#",
+    "#########......#",
+    "#########......#",
+    "#..............#",
+    "#..............#",
+    "#...TT.........#",
+    "#...TT.........#",
+    "#U.............#",
+    "#U.............#",
+    "################"
+  ],
+  "chunkZones": [
+    {
+      "id": "chunk_zone_a",
+      "topLeft": { "x": 2, "y": 9 },
+      "size": { "width": 4, "height": 2 },
+      "allowedChunks": ["forest_thicket", "forest_water_patch", "empty_placeholder"],
+      "pickCount": 1
+    },
+    {
+      "id": "chunk_zone_b",
+      "topLeft": { "x": 10, "y": 6 },
+      "size": { "width": 3, "height": 2 },
+      "allowedChunks": ["rock_cluster", "pillar_pair", "empty_placeholder"],
+      "pickCount": 1
+    }
+  ],
+  "propZones": [
+    {
+      "cells": [{"x":7,"y":2},{"x":8,"y":3},{"x":4,"y":10}],
+      "props": [
+        { "type": "recovery", "weight": 25 },
+        { "type": "chest",    "weight": 30 },
+        { "type": "empty",    "weight": 45 }
+      ],
+      "maxPlacements": 1
+    }
+  ],
+  "spawnZones": [
+    { "id": "player_entry", "cells": [{"x":1,"y":13},{"x":1,"y":14},{"x":2,"y":14}] },
+    { "id": "enemy_zone_a", "cells": [{"x":11,"y":1},{"x":12,"y":2},{"x":13,"y":1}] },
+    { "id": "enemy_zone_b", "cells": [{"x":10,"y":6},{"x":11,"y":7},{"x":12,"y":6}] },
+    { "id": "exit",         "cells": [{"x":12,"y":1},{"x":13,"y":1},{"x":13,"y":2}] }
+  ]
+}

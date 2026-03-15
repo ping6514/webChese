@@ -1,0 +1,7 @@
+{
+  "id": "empty_placeholder",
+  "theme": ["common"],
+  "size": { "width": 1, "height": 1 },
+  "grid": ["."],
+  "_note": "No-op chunk; use when a chunk zone should remain unmodified"
+}

@@ -5,7 +5,8 @@ app/dist/
 
 # Dependencies
 app/node_modules/
-
+newProject/frontend/node_modules
+newProject/frontend/dist
 # Local env files
 app/.env
 app/.env.*
@@ -19,3 +20,4 @@ pnpm-debug.log*
 # IDE
 .vscode/
 .idea/
+

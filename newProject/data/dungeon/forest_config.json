@@ -1,0 +1,181 @@
+{
+  "theme": "forest",
+  "bossPool": ["forest_guardian"],
+  "totalFloors": 10,
+  "_note": "safe path = fewer/weaker enemies; trial path = more/harder enemies, better drops",
+  "floorConfigs": [
+    {
+      "floor": 1,
+      "safe": {
+        "roomPool": ["forest_room_01", "forest_room_02"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 2 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_03"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 3 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_wolf", "tier": "normal", "count": 1 }
+        ]
+      }
+    },
+    {
+      "floor": 2,
+      "safe": {
+        "roomPool": ["forest_room_01", "forest_room_02"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_wolf", "tier": "normal", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_03", "forest_room_04"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 3 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 2 }
+        ]
+      }
+    },
+    {
+      "floor": 3,
+      "safe": {
+        "roomPool": ["forest_room_02", "forest_room_03"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_04", "forest_room_05"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 3 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_wolf", "tier": "normal", "count": 1 }
+        ]
+      }
+    },
+    {
+      "floor": 4,
+      "safe": {
+        "roomPool": ["forest_room_03", "forest_room_04"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_05"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 3 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 2 }
+        ]
+      }
+    },
+    {
+      "floor": 5,
+      "safe": {
+        "roomPool": ["forest_room_03", "forest_room_04"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_05", "forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_poison_spider", "tier": "elite", "count": 1 }
+        ]
+      }
+    },
+    {
+      "floor": 6,
+      "safe": {
+        "roomPool": ["forest_room_04", "forest_room_05"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 2 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_05", "forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "elite", "count": 2 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_poison_spider", "tier": "elite", "count": 2 }
+        ]
+      }
+    },
+    {
+      "floor": 7,
+      "safe": {
+        "roomPool": ["forest_room_05", "forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_wolf", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_vine_beast", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_poison_spider", "tier": "normal", "count": 2 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_hunter", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_wolf", "tier": "elite", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_vine_beast", "tier": "elite", "count": 1 }
+        ]
+      }
+    },
+    {
+      "floor": 8,
+      "safe": {
+        "roomPool": ["forest_room_05", "forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_hunter", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_wolf", "tier": "elite", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_vine_beast", "tier": "normal", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_ancient_treant", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_hunter", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_wolf", "tier": "elite", "count": 2 }
+        ]
+      }
+    },
+    {
+      "floor": 9,
+      "safe": {
+        "roomPool": ["forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_ancient_treant", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_hunter", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_wolf", "tier": "elite", "count": 1 }
+        ]
+      },
+      "trial": {
+        "roomPool": ["forest_room_06"],
+        "encounters": [
+          { "zoneId": "enemy_zone_a", "spawnerId": "forest_ancient_treant", "tier": "elite", "count": 1 },
+          { "zoneId": "enemy_zone_b", "spawnerId": "forest_hunter", "tier": "elite", "count": 2 },
+          { "zoneId": "enemy_zone_c", "spawnerId": "forest_wolf", "tier": "elite", "count": 2 }
+        ]
+      }
+    },
+    {
+      "floor": 10,
+      "boss": {
+        "roomPool": ["forest_guardian_arena"],
+        "isBossRoom": true,
+        "encounters": [
+          { "zoneId": "boss_spawn", "spawnerId": "forest_guardian", "tier": "boss", "count": 1 }
+        ]
+      }
+    }
+  ]
+}

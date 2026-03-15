@@ -1,0 +1,39 @@
+{
+  "monsterId": "forest_ancient_treant",
+
+  "_comment": "古樹精：精英守衛型，僅以 elite 模式生成；常駐要道或古蹟房間，floor 5+ 出現",
+
+  "elite": {
+    "statScaleMult": 1.0,
+    "qualityMult": 1.3,
+    "hpMult": 1.0,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 2, "weight": 40 },
+        { "count": 3, "weight": 60 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 40 },
+        { "rarity": "rare",   "weight": 50 },
+        { "rarity": "elite",  "weight": 10 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "head": 0.45, "chest": 0.70, "boots": 0.45 },
+      "affixCountTable": [
+        { "count": 1, "weight": 15 },
+        { "count": 2, "weight": 55 },
+        { "count": 3, "weight": 30 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 40 },
+        { "rarity": "rare",   "weight": 50 },
+        { "rarity": "elite",  "weight": 10 }
+      ]
+    },
+
+    "dropTable": { "goldMult": 3.0, "equipDropChance": 0.55, "guaranteedDrop": true }
+  }
+}

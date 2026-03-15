@@ -1,0 +1,11 @@
+{
+  "id": "forest_water_patch",
+  "theme": ["forest"],
+  "size": { "width": 3, "height": 3 },
+  "grid": [
+    "WWW",
+    "W.W",
+    "..."
+  ],
+  "_legend": { "W": "water terrain", ".": "floor" }
+}

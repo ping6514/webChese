@@ -1,0 +1,84 @@
+{
+  "id": "forest_ancient_treant",
+  "name": "古樹精",
+  "theme": "forest",
+  "tier": "elite",
+  "archetype": "str",
+  "ai": "guard",
+  "stats": {
+    "str": { "base": 20, "floorScale": 1.2 },
+    "agi": { "base": 4,  "floorScale": 0.2 },
+    "int": { "base": 8,  "floorScale": 0.5 },
+    "lck": { "base": 4,  "floorScale": 0.3 }
+  },
+  "resources": {
+    "hp": { "base": 100, "strMult": 2.5 },
+    "sp": { "base": 10,  "agiMult": 0.5 },
+    "mp": { "base": 10,  "intMult": 0.5 }
+  },
+  "moveRange": 2,
+  "speed": 6,
+
+  "weapon": {
+    "id": "ancient_branch",
+    "name": "古木枝幹",
+    "note": "重型衝擊；有機率擊退目標一格，連帶擊落後排敵人",
+    "actionId": "single_melee_reach",
+    "hitMode": { "type": "instant" },
+    "statScaling": "STR",
+    "atkBase": 0.50,
+    "actionTags": ["物理", "即發"],
+    "slot1": "crush",
+    "slot2": "trait_brute",
+    "slot3Pool": ["trait_reach", "enchant_knockback"],
+    "slot4": null,
+    "slot5Pool": ["enchant_stun", "enchant_knockback"]
+  },
+
+  "passiveAbilities": [
+    {
+      "trigger": "on_time",
+      "interval": 3000,
+      "effect": { "type": "recover_hp", "amount": 12 }
+    },
+    {
+      "_note": "血量跌破50%後，斬擊抗性大幅提升（古樹根系暴露，但纖維更密）",
+      "trigger": "on_below_hp", "threshold": 0.5, "once": true,
+      "effect": {
+        "type": "apply_buff",
+        "buffs": [
+          { "key": "slash_resist_plus", "value": 0.20 },
+          { "key": "crush_resist_plus", "value": 0.10 }
+        ]
+      }
+    }
+  ],
+
+  "equipment": {
+    "note": "古樹精裝備偏向元素抗性 + 極厚防禦，對火焰屬性弱（不反映在詞條，是特性）",
+    "head": {
+      "id": "ancient_crown",
+      "name": "古樹冠",
+      "slot": "head",
+      "affixPool": ["ar-resist-dark-01", "ar-resist-water-01", "ar-resist-wood-01", "ar-supply-01"]
+    },
+    "chest": {
+      "id": "ancient_bark",
+      "name": "古樹皮",
+      "slot": "chest",
+      "affixPool": ["ar-bark-01", "ar-def-slash-01", "ar-hp-regen-01", "ar-hp-01"]
+    },
+    "boots": {
+      "id": "root_feet",
+      "name": "根系腳掌",
+      "slot": "boots",
+      "affixPool": ["ar-boot-terrain-01", "ar-forest-terrain-01", "ar-boot-range-01"]
+    }
+  },
+
+  "dropTable": {
+    "gold": { "min": 8, "max": 18 },
+    "equipDropChance": 0.55,
+    "dropPool": ["ancient_crown", "ancient_bark", "root_feet"]
+  }
+}

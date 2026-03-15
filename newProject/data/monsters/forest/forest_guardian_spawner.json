@@ -1,0 +1,43 @@
+{
+  "monsterId": "forest_guardian",
+
+  "_comment": "森林守護者：森林地城 Boss，僅出現於第 10 層（最終層）Boss 房",
+
+  "boss": {
+    "statScaleMult": 1.0,
+    "qualityMult": 1.5,
+    "hpMult": 1.0,
+
+    "weapon": {
+      "affixCountTable": [
+        { "count": 3, "weight": 100 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 15 },
+        { "rarity": "rare",   "weight": 60 },
+        { "rarity": "elite",  "weight": 25 }
+      ]
+    },
+
+    "equipment": {
+      "slotDropChance": { "head": 1.0, "chest": 1.0, "gloves": 1.0, "boots": 1.0 },
+      "affixCountTable": [
+        { "count": 2, "weight": 30 },
+        { "count": 3, "weight": 50 },
+        { "count": 4, "weight": 20 }
+      ],
+      "affixRarityTable": [
+        { "rarity": "common", "weight": 15 },
+        { "rarity": "rare",   "weight": 60 },
+        { "rarity": "elite",  "weight": 25 }
+      ]
+    },
+
+    "dropTable": {
+      "goldMult": 6.0,
+      "equipDropChance": 1.0,
+      "guaranteedDrop": true,
+      "bonusDropCount": 2
+    }
+  }
+}

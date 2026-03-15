@@ -1,0 +1,32 @@
+{
+  "id": "warrior",
+  "name": "戰士",
+  "tier": "basic",
+  "tags": ["近戰", "物理輸出", "戰士", "初階職業", "重甲"],
+  "allowedArmorTypes": ["重甲"],
+  "stats": {
+    "str": { "base": 20, "randomBonus": { "min": 0, "max": 8 } },
+    "int": { "base": 5,  "randomBonus": { "min": 0, "max": 3 } },
+    "agi": { "base": 10, "randomBonus": { "min": 0, "max": 5 } },
+    "lck": { "base": 8,  "randomBonus": { "min": 0, "max": 4 } }
+  },
+  "resources": {
+    "hp": { "base": 80, "strMult": 2 },
+    "sp": { "base": 40, "agiMult": 1 },
+    "mp": { "base": 10, "intMult": 0.5 }
+  },
+  "moveRange": 3,
+  "passives": [
+    {
+      "_note": "鐵血：STR 每點額外提供 2 倍 HP 加成（在 resolveUnit 時套用，非觸發型）",
+      "type": "stat_scale_hp",
+      "statKey": "str",
+      "mult": 2
+    },
+    {
+      "trigger": "on_time",
+      "interval": 400,
+      "effect": { "type": "recover_sp", "amount": 10 }
+    }
+  ]
+}

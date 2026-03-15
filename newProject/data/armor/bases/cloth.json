@@ -1,0 +1,64 @@
+[
+  {
+    "id": "cloth_head",
+    "name": "布甲法冠",
+    "armorType": "布甲",
+    "slot": "head",
+    "requiredTags": ["布甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "mp_plus_stat": 10
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-resist-fire-01", "ar-resist-pierce-01", "ar-supply-01", "ar-int-01", "ar-lck-01"]
+  },
+  {
+    "id": "cloth_chest",
+    "name": "布甲法袍",
+    "armorType": "布甲",
+    "slot": "chest",
+    "requiredTags": ["布甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "mp_plus_stat": 20,
+      "hp_plus": 10
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-hp-01", "ar-def-fire-01", "ar-mp-01", "ar-survive-01"]
+  },
+  {
+    "id": "cloth_gloves",
+    "name": "布甲法手",
+    "armorType": "布甲",
+    "slot": "gloves",
+    "requiredTags": ["布甲"],
+    "requiredTagCount": 1,
+    "baseStats": {},
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-glove-crit-01", "ar-glove-fire-01", "ar-int-01", "ar-lck-01"]
+  },
+  {
+    "id": "cloth_legs",
+    "name": "布甲法裙",
+    "armorType": "布甲",
+    "slot": "legs",
+    "requiredTags": ["布甲"],
+    "requiredTagCount": 1,
+    "baseStats": {
+      "mp_plus_stat": 10
+    },
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-leg-bag-01", "ar-int-01", "ar-lck-01", "ar-mp-01"]
+  },
+  {
+    "id": "cloth_boots",
+    "name": "布甲法靴",
+    "armorType": "布甲",
+    "slot": "boots",
+    "requiredTags": ["布甲"],
+    "requiredTagCount": 1,
+    "baseStats": {},
+    "affixCount": { "min": 1, "max": 2 },
+    "affixPool": ["ar-boot-move-01", "ar-boot-terrain-01", "ar-lck-01", "ar-int-01"]
+  }
+]

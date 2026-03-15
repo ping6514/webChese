@@ -42,7 +42,32 @@
       "Bash(/tmp/engine_types.txt:*)",
       "Bash(__NEW_LINE_dd0c951e7a1dac2d__ echo:*)",
       "Read(//tmp/**)",
-      "Bash(grep -r \"AURA_DAMAGE_BONUS\\\\|BLOOD_SACRIFICE\\\\|COUNTER\\\\|DEATH_COUNTER\\\\|EXTRA_SHOT\\\\|KILL_GOLD_GAIN\\\\|KILL_MANA_GAIN\\\\|ON_DEATH_FIXED_DAMAGE\\\\|SACRIFICE_SHOT_BUFF\\\\|TARGET_DEF_MINUS\" /d/workspace/webChese/app/src/engine/*.ts)"
+      "Bash(grep -r \"AURA_DAMAGE_BONUS\\\\|BLOOD_SACRIFICE\\\\|COUNTER\\\\|DEATH_COUNTER\\\\|EXTRA_SHOT\\\\|KILL_GOLD_GAIN\\\\|KILL_MANA_GAIN\\\\|ON_DEATH_FIXED_DAMAGE\\\\|SACRIFICE_SHOT_BUFF\\\\|TARGET_DEF_MINUS\" /d/workspace/webChese/app/src/engine/*.ts)",
+      "Bash(while read:*)",
+      "Bash(do python3:*)",
+      "Bash(done)",
+      "Bash(npx tsx:*)",
+      "Bash(for f:*)",
+      "Bash(do npx:*)",
+      "Bash(npx tsc:*)",
+      "Bash(wc -l engine/*.ts engine/tests/*.ts)",
+      "Bash(ls *.json)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Read(//mnt/d/workspace/webChese/**)",
+      "Bash(do echo:*)",
+      "Bash(npx vitest:*)",
+      "Bash(grep -n \"armor\\\\|resolveArmor\\\\|armor.ts\" /d/workspace/webChese/newProject/engine/*.ts)",
+      "Bash(node -e \"const d=JSON.parse\\(require\\(''''fs''''\\).readFileSync\\(''''/dev/stdin'''',''''utf8''''\\)\\); const keys=new Set\\(\\); d.filter\\(x=>x.abilities\\).forEach\\(x=>x.abilities.forEach\\(a=>keys.add\\(a.key\\)\\)\\); console.log\\([...keys].sort\\(\\).join\\(''''\\\\n''''\\)\\)\")",
+      "Bash(echo 'newProject has no frontend yet' find /d/workspace/webChese/newProject -name *.json)",
+      "Bash(xargs grep:*)",
+      "Bash(grep \"\"id\"\" /d/workspace/webChese/newProject/data/monsters/forest/wolf*.json /d/workspace/webChese/newProject/data/monsters/forest/poison*.json /d/workspace/webChese/newProject/data/monsters/forest/vine*.json /d/workspace/webChese/newProject/data/monsters/forest/forest_hunter.json)",
+      "Bash(npm install:*)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(''''objective:'''', d.get\\(''''objective''''\\)\\); print\\(''''exits:'''', [c for row in d.get\\(''''cells'''',[]\\) for c in row if c.get\\(''''type''''\\)==''''exit''''][:5]\\)\")",
+      "Bash(npm test:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(node --loader ts-node/esm ../engine/tests/combat_loop_test.ts)",
+      "Bash(find d:/workspace/webChese/newProject/frontend/src/data -name *.json)",
+      "Bash(cat d:/workspace/webChese/data/weapons/bases/*.json)"
     ]
   }
 }

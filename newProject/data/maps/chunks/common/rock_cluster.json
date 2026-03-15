@@ -1,0 +1,10 @@
+{
+  "id": "rock_cluster",
+  "theme": ["common"],
+  "size": { "width": 3, "height": 2 },
+  "grid": [
+    "#.#",
+    "..."
+  ],
+  "_legend": { "#": "wall", ".": "floor" }
+}

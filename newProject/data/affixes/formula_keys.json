@@ -1,0 +1,93 @@
+{
+  "_comment": "武器傷害算式的命名欄位。詞條 ability 的 key 對應這裡的欄位名，引擎加總後代入算式。所有 key 統一使用底線命名。",
+
+  "damageFormula": {
+    "_comment": "物理最終傷害 = (base_multiplier + Σ [type]_increase) × dungeonQuality × scalingStat",
+    "base_multiplier":    "武器動作基本倍率（在武器基底定義，詞條不可修改）",
+    "slash_increase":     "劈砍傷害倍率加成（相加後乘入算式）",
+    "crush_increase":     "碎裂傷害倍率加成",
+    "pierce_increase":    "穿刺傷害倍率加成",
+
+    "_comment2": "元素附加傷害 = (elem_base + Σ elem_increase) × (INT × intMult) + Σ elem_damage_plus",
+    "fire_base":          "火焰元素基本係數（動作提供）",
+    "fire_increase":      "火焰傷害倍率加成（相加後乘入算式）",
+    "fire_damage_plus":   "火焰傷害固定加值",
+    "water_base":         "水元素基本係數",
+    "water_increase":     "水元素傷害倍率加成",
+    "water_damage_plus":  "水元素傷害固定加值",
+    "wood_base":          "木元素基本係數",
+    "wood_increase":      "木元素傷害倍率加成",
+    "wood_damage_plus":   "木元素傷害固定加值",
+    "light_base":         "光元素基本係數",
+    "light_increase":     "光元素傷害倍率加成",
+    "light_damage_plus":  "光元素傷害固定加值",
+    "dark_base":          "暗元素基本係數",
+    "dark_increase":      "暗元素傷害倍率加成",
+    "dark_damage_plus":   "暗元素傷害固定加值"
+  },
+
+  "costFormula": {
+    "_comment": "成本欄位只對號入座：武器不使用 sp 則 sp_plus 不生效",
+    "sp_cost":            "武器基礎 SP 消耗（武器基底定義）",
+    "sp_plus":            "詞條追加 SP 消耗",
+    "mp_cost":            "武器基礎 MP 消耗（武器基底定義）",
+    "mp_plus":            "詞條追加 MP 消耗",
+    "cast_time_base":     "基礎讀條時間（武器基底定義）",
+    "cast_time_add":      "詞條追加讀條時間（ms）",
+    "recovery_time_base": "基礎硬直時間（武器基底定義）",
+    "recovery_time_add":  "詞條追加硬直時間（ms）",
+    "cooldown_time_base": "基礎冷卻時間（武器基底定義）",
+    "cooldown_time_add":  "詞條追加冷卻時間（ms）"
+  },
+
+  "critFormula": {
+    "_comment": "暴擊率 = min(95%, base_crit + Σ crit_chance_add + LCK × Σ lck_crit_mult)",
+    "base_crit":          "動作基本暴擊率（武器基底定義，0 = 無暴擊）",
+    "crit_chance_add":    "詞條追加暴擊率（固定%）",
+    "lck_crit_mult":      "每點 LCK 提供的暴擊率（%）",
+    "crit_damage_mult":   "暴擊傷害倍率加成（疊加進基本 1.5× 後相乘）",
+    "crit_affects_fire":  ">0 時火焰組件也參與爆擊判定",
+    "crit_affects_water": ">0 時水元素組件也參與爆擊判定",
+    "crit_affects_all":   ">0 時所有附加組件都參與爆擊判定"
+  },
+
+  "healFormula": {
+    "_comment": "回復量 = (heal_base + Σ heal_increase) × dungeonQuality × INT + Σ heal_flat_plus",
+    "heal_base":          "回復動作基本係數",
+    "heal_increase":      "回復倍率加成",
+    "heal_flat_plus":     "固定回復量"
+  },
+
+  "defensiveFormula": {
+    "_comment": "防守詞條，由裝備提供，被動永久生效，不需 condition",
+    "slash_resist_plus":  "劈砍抗性% 加成",
+    "crush_resist_plus":  "碎裂抗性% 加成",
+    "pierce_resist_plus": "穿刺抗性% 加成",
+    "fire_resist_plus":   "火焰抗性% 加成",
+    "water_resist_plus":  "水抗性% 加成",
+    "wood_resist_plus":   "木抗性% 加成",
+    "light_resist_plus":  "光抗性% 加成",
+    "dark_resist_plus":   "暗抗性% 加成",
+    "slash_defense_flat": "劈砍傷害減免（flat，扣減原始傷害）",
+    "fire_defense_flat":  "火焰傷害減免（flat）"
+  },
+
+  "resourceFormula": {
+    "hp_plus":            "最大 HP 加成（flat）",
+    "sp_plus_stat":       "最大 SP 加成（flat）",
+    "mp_plus_stat":       "最大 MP 加成（flat）",
+    "str_plus":           "STR 屬性加成",
+    "agi_plus":           "AGI 屬性加成",
+    "int_plus":           "INT 屬性加成",
+    "lck_plus":           "LCK 屬性加成"
+  },
+
+  "utilityFormula": {
+    "move_range_plus":        "移動格數加成",
+    "move_cast_reduce":       "移動中讀條時間縮短比例",
+    "terrain_penalty_immune": "免疫指定地形移動懲罰",
+    "consumable_slot_plus":   "消耗品格額外欄位數",
+    "loot_carry_plus":        "逃跑時可多帶走的物品數",
+    "supply_floor_rate_plus": "補給層出現率加成"
+  }
+}
