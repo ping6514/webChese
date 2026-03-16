@@ -2,14 +2,18 @@
 
 # Vite / Vue build outputs
 app/dist/
+app2/dist/
 
 # Dependencies
 app/node_modules/
+app2/node_modules/
 newProject/frontend/node_modules
 newProject/frontend/dist
 # Local env files
 app/.env
 app/.env.*
+app2/.env
+app2/.env.*
 
 # Logs
 npm-debug.log*

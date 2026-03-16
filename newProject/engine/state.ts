@@ -5,6 +5,11 @@
  * 無任何 DOM / 框架依賴。
  */
 
+import type {
+  LoadoutResolution,
+  WeaponMatchResult,
+} from './schema'
+
 // ─── 座標 ────────────────────────────────────────────────────────────────────
 
 export type Pos = { x: number; y: number }
@@ -125,6 +130,8 @@ export type ResolvedWeapon = {
   enchant: string | null
   /** 已附加詞條的 id 清單（保留供 FormulaKeySet 展開）*/
   appliedAffixIds: string[]
+  /** 新職業證匹配結果（舊流程可省略）*/
+  matchResult?: WeaponMatchResult
 }
 
 // ─── HitMode ─────────────────────────────────────────────────────────────────
@@ -199,6 +206,14 @@ export type Unit = {
   jobId?: string
   /** 玩家持有的職業證個體 ID（對應 JobCertInstance.instanceId）*/
   jobCertInstanceId?: string
+  /** 新版職業證 id */
+  certId?: string
+  /** 已裝備基因 id */
+  equippedGeneIds?: string[]
+  /** 已裝備工具 id */
+  equippedToolIds?: string[]
+  /** 新版 loadout resolve 結果 */
+  resolvedLoadout?: LoadoutResolution
 
   // ── 怪物專用 ──
   ai?: 'chase' | 'patrol' | 'guard' | 'boss'

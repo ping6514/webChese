@@ -21,6 +21,14 @@ import type { WeaponBaseData, AffixDefData, AppliedAffixInput } from './weapons'
 import type { FrozenArmor } from './item'
 import type { ArmorAffixDef } from './armor'
 import { resolveArmorStats } from './armor'
+import { resolveLoadout } from './resolveLoadout'
+import type {
+  CertDef,
+  GeneDef,
+  LoadoutResolution,
+  ToolDef,
+  WeaponDef,
+} from './schema'
 
 // ─── JobCertDef 型別（對應 job_certs/*.json）─────────────────────────────────
 
@@ -141,6 +149,20 @@ export type CreatePlayerParams = {
   initialArmor?: FrozenArmor[]
   /** 解析防具詞條用的定義表（initialArmor 有效時必須提供）*/
   armorAffixDefs?: ArmorAffixDef[]
+  /** 新版職業證資料（可與舊 jobCertDef 並存，逐步遷移）*/
+  certDef?: CertDef
+  /** 新版武器資料（供 resolveLoadout 使用）*/
+  loadoutWeapons?: WeaponDef[]
+  /** 新版基因資料（供 resolveLoadout 使用）*/
+  loadoutGenes?: GeneDef[]
+  /** 新版工具資料（供 resolveLoadout 使用）*/
+  loadoutTools?: ToolDef[]
+  /** 已裝備基因 id（只做記錄與 resolvedLoadout 輔助）*/
+  equippedGeneIds?: string[]
+  /** 已裝備工具 id（只做記錄與 resolvedLoadout 輔助）*/
+  equippedToolIds?: string[]
+  /** 外部已先 resolve 完成的 loadout；若提供則優先使用 */
+  resolvedLoadout?: LoadoutResolution
 }
 
 // ─── createPlayerUnit：從模板 + 個體建立 Unit ─────────────────────────────────
@@ -155,6 +177,13 @@ export function createPlayerUnit(params: CreatePlayerParams): Unit {
     id, jobCertDef: def, pos, jobCertInstance, rng = Math.random,
     weaponSlots, allAffixDefs = {}, dungeonQuality = 1.0,
     initialArmor = [], armorAffixDefs = [],
+    certDef,
+    loadoutWeapons = [],
+    loadoutGenes = [],
+    loadoutTools = [],
+    equippedGeneIds = [],
+    equippedToolIds = [],
+    resolvedLoadout,
   } = params
 
   const stats: RolledStats = jobCertInstance
@@ -216,6 +245,20 @@ export function createPlayerUnit(params: CreatePlayerParams): Unit {
     slots[2] ? resolveWeapon(slots[2].base, allAffixDefs, slots[2].applied, slots[2].idHash ?? null, dungeonQuality) : null,
   ] as [import('./state').ResolvedWeapon | null, import('./state').ResolvedWeapon | null, import('./state').ResolvedWeapon | null]
 
+  const nextResolvedLoadout = resolvedLoadout
+    ?? (certDef
+      ? resolveLoadout(
+          {
+            cert: certDef,
+            equippedGeneIds,
+            equippedToolIds,
+          },
+          loadoutWeapons,
+          loadoutGenes,
+          loadoutTools,
+        )
+      : undefined)
+
   return {
     id,
     kind: 'player',
@@ -236,6 +279,10 @@ export function createPlayerUnit(params: CreatePlayerParams): Unit {
     statusEffects: [],
     jobId: def.id,
     jobCertInstanceId: jobCertInstance?.instanceId,
+    certId: certDef?.id,
+    equippedGeneIds,
+    equippedToolIds,
+    resolvedLoadout: nextResolvedLoadout,
   }
 }
 
