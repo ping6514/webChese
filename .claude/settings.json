@@ -67,7 +67,12 @@
       "Bash(npx ts-node:*)",
       "Bash(node --loader ts-node/esm ../engine/tests/combat_loop_test.ts)",
       "Bash(find d:/workspace/webChese/newProject/frontend/src/data -name *.json)",
-      "Bash(cat d:/workspace/webChese/data/weapons/bases/*.json)"
+      "Bash(cat d:/workspace/webChese/data/weapons/bases/*.json)",
+      "Bash(./node_modules/.bin/tsc -p tsconfig.app.json --noEmit)",
+      "Bash(node node_modules/typescript/bin/tsc -p tsconfig.app.json --noEmit)",
+      "Bash(ls d:/workspace/webChese/app2/src/*.d.ts)",
+      "Bash(node node_modules/@vue/language-core/node_modules/../../../.bin/vue-tsc -p tsconfig.app.json --noEmit)",
+      "Bash(node node_modules/vue-tsc/bin/vue-tsc.js -p tsconfig.app.json --noEmit)"
     ]
   }
 }

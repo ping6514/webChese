@@ -3,17 +3,34 @@
     <header class="hero">
       <div>
         <p class="eyebrow">Monster Girl Tactical MVP</p>
-        <h1>Build Sandbox</h1>
+        <h1>開發沙盒</h1>
         <p class="subtitle">
-          這裡開始承接新的職業證、武器匹配、基因 synergy 與工具系統。現在畫面直接使用
-          `resolveLoadout()` 顯示第一版結果。
+          職業證 / 武器匹配 / 基因 Synergy / 工具 + 六角格戰場原型
         </p>
       </div>
-      <div class="hero-badge">
-        <span>{{ resolution.certId }}</span>
-        <strong>{{ selectedCert.name }}</strong>
+      <div class="tab-switcher">
+        <button
+          v-for="tab in TABS"
+          :key="tab.id"
+          :class="['tab-btn', currentTab === tab.id && 'tab-btn--active']"
+          @click="currentTab = tab.id"
+        >{{ tab.label }}</button>
       </div>
     </header>
+
+    <!-- 六角格原型 -->
+    <section v-if="currentTab === 'hex'" class="panel panel--full">
+      <HexBoard />
+    </section>
+
+    <!-- 編成沙盒（原有內容） -->
+    <template v-if="currentTab === 'build'">
+      <div class="hero-badge-row">
+        <div class="hero-badge">
+          <span>{{ resolution.certId }}</span>
+          <strong>{{ selectedCert.name }}</strong>
+        </div>
+      </div>
 
     <section class="panel-grid panel-grid--top">
       <article class="panel">
@@ -153,6 +170,7 @@
         </div>
       </article>
     </section>
+    </template> <!-- end build tab -->
   </main>
 </template>
 
@@ -166,6 +184,14 @@ import {
   demoWeapons,
 } from './game/mockData'
 import { resolveLoadout } from './game/resolveLoadout'
+import HexBoard from './components/HexBoard.vue'
+
+const TABS = [
+  { id: 'hex',   label: '六角格原型' },
+  { id: 'build', label: '編成沙盒' },
+] as const
+type TabId = typeof TABS[number]['id']
+const currentTab = ref<TabId>('hex')
 
 const fallbackCert = demoCerts[0] as CertDef
 const fallbackWeaponA = demoWeapons[0] as WeaponDef
