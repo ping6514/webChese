@@ -48,6 +48,20 @@ export type DamageDealtEvent = {
   pos: HexPos
 }
 
+export type AttackEvadedEvent = {
+  type: 'ATTACK_EVADED'
+  sourceId: string
+  targetId: string
+  pos: HexPos
+}
+
+export type AttackMissedEvent = {
+  type: 'ATTACK_MISSED'
+  sourceId: string
+  targetId: string
+  pos: HexPos
+}
+
 export type HealEvent = {
   type: 'HEAL'
   unitId: string
@@ -128,6 +142,20 @@ export type UnitDiedEvent = {
   pos: HexPos
 }
 
+export type ReviveScheduledEvent = {
+  type: 'REVIVE_SCHEDULED'
+  unitId: string
+  reviveAtTick: number
+  pos: HexPos
+}
+
+export type UnitRevivedEvent = {
+  type: 'UNIT_REVIVED'
+  unitId: string
+  hp: number
+  pos: HexPos
+}
+
 // ─── 戰鬥結果 ─────────────────────────────────────────────────────────────────
 
 export type BattleEndEvent = {
@@ -142,6 +170,8 @@ export type Event =
   | UnitMovedEvent
   | CastStartedEvent
   | DamageDealtEvent
+  | AttackEvadedEvent
+  | AttackMissedEvent
   | HealEvent
   | DotTickEvent
   | InterruptEvent
@@ -150,4 +180,6 @@ export type Event =
   | StatusRemovedEvent
   | SleepWakeEvent
   | UnitDiedEvent
+  | ReviveScheduledEvent
+  | UnitRevivedEvent
   | BattleEndEvent

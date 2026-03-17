@@ -73,6 +73,19 @@ export type BuildupData = {
   baseThreshold: number
 }
 
+export type RevivePendingState = {
+  /** 是否仍有可用復活次數 */
+  enabled: boolean
+  /** 剩餘可觸發次數，MVP 先以 0/1 為主 */
+  charges: number
+  /** 何時允許復活（以 timeline.tick 比較）*/
+  reviveAtTick: number | null
+  /** 復活血量比例，例如 0.3 = 30% maxHp */
+  reviveHpRatio: number
+  /** 尋找復活格的半徑，0 = 只允許原地 */
+  searchRadius: number
+}
+
 // ─── 單位 ─────────────────────────────────────────────────────────────────────
 
 export type UnitTeam = 'player' | 'enemy'
@@ -100,6 +113,10 @@ export type CombatUnit = {
   interrupt: number
 
   isDead: boolean
+  /** 死亡後可保留位置供 UI 表現，但邏輯上不再佔格 */
+  blocksCell: boolean
+  /** 每戰一次類型的延遲復活預留欄位 */
+  revivePending?: RevivePendingState | null
 
   // ── 異常積蓄 ──
   /** 各異常的積蓄資料 */

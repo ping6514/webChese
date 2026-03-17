@@ -23,6 +23,14 @@
       <HexBoard />
     </section>
 
+    <section v-if="currentTab === 'attack'" class="panel panel--full">
+      <AttackTestSandbox />
+    </section>
+
+    <section v-if="currentTab === 'battle'" class="panel panel--full">
+      <BattlePlayground />
+    </section>
+
     <!-- 編成沙盒（原有內容） -->
     <template v-if="currentTab === 'build'">
       <div class="hero-badge-row">
@@ -185,9 +193,13 @@ import {
 } from './game/mockData'
 import { resolveLoadout } from './game/resolveLoadout'
 import HexBoard from './components/HexBoard.vue'
+import AttackTestSandbox from './components/AttackTestSandbox.vue'
+import BattlePlayground from './components/BattlePlayground.vue'
 
 const TABS = [
   { id: 'hex',   label: '六角格原型' },
+  { id: 'attack', label: '攻擊判定測試' },
+  { id: 'battle', label: '最小戰鬥頁' },
   { id: 'build', label: '編成沙盒' },
 ] as const
 type TabId = typeof TABS[number]['id']

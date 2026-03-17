@@ -10,6 +10,8 @@ export type RaceTag =
   | 'has_wings'
   | 'gel_body'
   | 'has_horns'
+  | 'has_shell'
+  | 'has_venom'
   | 'forest_apex'
 
 export type WeaponStyleTag =
@@ -33,12 +35,23 @@ export type DamageType =
   | 'slash'
   | 'pierce'
   | 'impact'
+  | 'arcane'
+
+export type ElementType =
+  | 'none'
   | 'fire'
   | 'ice'
   | 'lightning'
   | 'wind'
   | 'light'
   | 'shadow'
+
+export type AttackClass =
+  | 'melee'
+  | 'projectile'
+  | 'zone'
+  | 'breath'
+  | 'arcane_cast'
 
 export type ScalingStat = 'STR' | 'AGI' | 'INT'
 
@@ -62,6 +75,48 @@ export type StatusId =
   | 'slow'
   | 'guard_break'
 
+export type FacingSector =
+  | 'front_core'
+  | 'front_flank'
+  | 'side'
+  | 'rear'
+  | 'rear_core'
+
+export type AreaPattern =
+  | 'front_1'
+  | 'front_arc_3'
+  | 'line_2'
+  | 'radius_1'
+  | 'cross_1'
+
+export type AreaKind =
+  | 'directed_attack'
+  | 'ground_hazard'
+
+export type AreaCell = {
+  q: number
+  r: number
+}
+
+export type DirectedAttackArea = {
+  kind: 'directed_attack'
+  origin: AreaCell
+  facing: number
+  pattern: AreaPattern
+  warningCells: AreaCell[]
+}
+
+export type GroundHazardArea = {
+  kind: 'ground_hazard'
+  center: AreaCell
+  pattern: AreaPattern
+  warningCells: AreaCell[]
+  durationMs?: number
+  tickMs?: number
+}
+
+export type DamageArea = DirectedAttackArea | GroundHazardArea
+
 export type CertStats = {
   hp: number
   move: number
@@ -82,12 +137,24 @@ export type EffectModifierSet = {
   slashDamageMult?: number
   pierceDamageMult?: number
   impactDamageMult?: number
+  arcaneDamageMult?: number
   zoneDamageMult?: number
   castMult?: number
   recoveryMult?: number
   protectValueMult?: number
-  frontDamageReduction?: number
+  frontCoreDamageReduction?: number
+  frontFlankDamageReduction?: number
   projectileDamageReduction?: number
+  slashResist?: number
+  pierceResist?: number
+  impactResist?: number
+  arcaneResist?: number
+  fireResist?: number
+  iceResist?: number
+  lightningResist?: number
+  windResist?: number
+  lightResist?: number
+  shadowResist?: number
   burnResist?: number
   bindResist?: number
   shockResist?: number
@@ -97,14 +164,21 @@ export type EffectModifierSet = {
   onBackHitDamageBonus?: number
   zoneDurationAdd?: number
   exposeSlashOnHitChance?: number
+  exposePierceOnHitChance?: number
   exposeImpactOnHitChance?: number
   interruptBonusVs?: InterruptTag[]
   removeStatuses?: StatusId[]
   applyStatus?: StatusId
   extraStatuses?: StatusId[]
+  evadeNextHit?: boolean
+  evadeNextProjectile?: boolean
+  negateNextDamage?: boolean
+  reduceNextHitBy?: number
+  interceptProjectileChance?: number
   shieldValue?: number
   teamDamageBuff?: number
   durationActions?: number
+  area?: 'small' | 'medium' | 'large'
 }
 
 export type CertDef = {
@@ -141,7 +215,8 @@ export type WeaponDef = {
   familyHint?: CertFamily
   weaponType: string
   damageType: DamageType
-  elementType: DamageType | 'none'
+  elementType: ElementType
+  attackClass: AttackClass
   statScaling: ScalingStat
   actionTags: WeaponStyleTag[]
   requiredTags: RaceTag[]
