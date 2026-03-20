@@ -3,9 +3,10 @@
     "id": "item_lingxue_holy_grail",
     "name": "靈血聖杯",
     "costGold": 2,
+    "limitPerTurn": 1,
     "timing": "buy",
     "image": "/assets/cards/item/item_lingxue_holy_grail.jpg",
-    "text": "【購買】修復：選擇 1 個己方單位（含帥），恢復 4 點 HP（不超過上限）。",
+    "text": "【購買】修復：選擇 1 個己方單位（含帥），恢復 4 點 HP（不超過上限）。每回合同名限用一次。",
     "copies": 5,
     "abilities": [{ "type": "HEAL_UNIT", "amount": 4, "target": { "type": "ALLY_UNIT" }, "capToMaxHp": true }]
   },
@@ -63,11 +64,11 @@
     "limitPerTurn": 1,
     "timing": "necro",
     "image": "/assets/cards/item/item_soul_infusion.jpg",
-    "text": "【死靈】爆發：立即獲得 +1 次「死靈術」動作，且本次執行「附魔」時成本 -1 財力。每回合同名限用一次。",
+    "text": "【死靈】爆發：立即獲得 +1 次「死靈術」動作，且本次執行「附魔」時成本 -2 財力。每回合同名限用一次。",
     "copies": 2,
     "abilities": [
       { "type": "GAIN_NECRO_ACTION", "amount": 1 },
-      { "type": "ENCHANT_GOLD_DISCOUNT", "amount": 1, "scope": "NEXT_ENCHANT" }
+      { "type": "ENCHANT_GOLD_DISCOUNT", "amount": 2, "scope": "NEXT_ENCHANT" }
     ]
   },
   {
@@ -90,7 +91,7 @@
     "image": "/assets/cards/item/item_nether_seal.jpg",
     "text": "【戰鬥】控制：選擇 1 個非帥的敵方單位，使其本回合無法執行移動與射擊動作。每回合同名限用一次。",
     "copies": 2,
-    "abilities": [{ "type": "DISABLE_UNIT_ACTIONS", "target": { "type": "ENEMY_UNIT" }, "until": "TURN_END", "disable": { "move": true, "shoot": true } }]
+    "abilities": [{ "type": "DISABLE_UNIT_ACTIONS", "target": { "type": "ENEMY_UNIT", "excludeKing": true }, "until": "TURN_END", "disable": { "move": true, "shoot": true } }]
   },
   {
     "id": "item_cage_plunder",

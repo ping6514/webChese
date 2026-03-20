@@ -42,6 +42,10 @@ export default defineComponent({
       type: Array as PropType<string[]>,
       default: () => [],
     },
+    highlightCorpsePosKeys: {
+      type: Array as PropType<string[]>,
+      default: () => [],
+    },
     enchantDragSoulId: {
       type: String as PropType<string | null>,
       default: null,
@@ -266,6 +270,8 @@ export default defineComponent({
 
     const highlightUnitSet = computed(() => new Set(props.highlightUnitIds))
 
+    const highlightCorpsePosSet = computed(() => new Set(props.highlightCorpsePosKeys))
+
     const fxAttackSet = computed(() => new Set(props.fxAttackUnitIds))
     const fxHitSet = computed(() => new Set(props.fxHitUnitIds))
     const fxKilledSet = computed(() => new Set(props.fxKilledUnitIds))
@@ -343,6 +349,7 @@ export default defineComponent({
         'cell-legal': legalMoveSet.value.has(key),
         'cell-shootable': !!u && shootableTargetSet.value.has(u.id),
         'cell-enchantable': !!u && highlightUnitSet.value.has(u.id),
+        'cell-corpse-targetable': highlightCorpsePosSet.value.has(key),
         'cell-invalid-hoverable': !!cellInvalidReason(x, y),
 
         'cell-preview-pierce': pierceMark != null,

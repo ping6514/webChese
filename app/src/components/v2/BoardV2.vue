@@ -161,6 +161,17 @@ const sacrificeOverlayVisible = computed(() =>
   ui.interactionMode.kind === 'idle'
 )
 
+// ── Corpse targetable positions ───────────────────────────────────────────────
+const corpseTargetablePosKeys = computed(() => {
+  if (ui.interactionMode.kind !== 'use_item_target_corpse') return []
+  const out: string[] = []
+  for (const [posKey, corpses] of Object.entries(state.value.corpsesByPos)) {
+    const hasFriendlyCorpse = corpses.some((c) => c.ownerSide === state.value.turn.side)
+    if (hasFriendlyCorpse) out.push(posKey)
+  }
+  return out
+})
+
 // ── Chain-eligible enemies for shoot preview ───────────────────────────────────
 const shootChainEligibleEnemyIds = computed(() => {
   if (!shootPreview.value) return []
@@ -425,6 +436,7 @@ defineExpose({ onUseItem })
           ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds :
           []
         "
+        :highlight-corpse-pos-keys="corpseTargetablePosKeys"
         :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
         :preview-pierce-marks="shootPreviewPierceMarks"
         :preview-splash-pos-keys="[]"

@@ -798,6 +798,11 @@ export default defineComponent({
   background: rgba(114, 46, 209, 0.14);
 }
 
+.cell-corpse-targetable {
+  border-color: rgba(114, 46, 209, 0.9);
+  background: rgba(114, 46, 209, 0.14);
+}
+
 .cell:focus-visible {
   outline: 2px solid #91caff;
   outline-offset: 2px;
