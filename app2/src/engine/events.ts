@@ -88,6 +88,24 @@ export type InterruptEvent = {
   pos: HexPos
 }
 
+// ─── 保護/攔截 ────────────────────────────────────────────────────────────────
+
+export type ProjectileInterceptedEvent = {
+  type: 'PROJECTILE_INTERCEPTED'
+  sourceId: string
+  originalTargetId: string
+  interceptorId: string
+  pos: HexPos
+}
+
+export type ProtectTriggeredEvent = {
+  type: 'PROTECT_TRIGGERED'
+  protectorId: string
+  protectedId: string
+  protectType: 'intercept_projectile' | 'body_block'
+  pos: HexPos
+}
+
 // ─── 異常積蓄 ─────────────────────────────────────────────────────────────────
 
 /** 每次攻擊附加積蓄量時發出（供 UI 顯示積蓄條變化）*/
@@ -175,6 +193,8 @@ export type Event =
   | HealEvent
   | DotTickEvent
   | InterruptEvent
+  | ProjectileInterceptedEvent
+  | ProtectTriggeredEvent
   | BuildupAddedEvent
   | StatusTriggeredEvent
   | StatusRemovedEvent

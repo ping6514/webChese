@@ -3,7 +3,11 @@ import type { GameState } from './state'
 import type { BattleAction } from './actions'
 import { consumeATB } from './atb'
 import { applyResolvedDamage, resolveAttackDamage } from './damage'
-import { HEX_DIRECTIONS, hexDistance, hexKey } from '../game/hex'
+import { hexDistance, hexKey, HEX_DIRECTIONS } from '../game/hex'
+// TODO: 後續整合投射物/打斷/保護系統
+// import { traceProjectilePath } from './projectile'
+// import { attemptInterrupt } from './interrupt'
+// import { resolveProtection } from './protect'
 
 export type ReduceResult = {
   newState: GameState
@@ -109,24 +113,40 @@ function reduceAttack(
   action: Extract<BattleAction, { type: 'ATTACK' }>,
 ): ReduceResult {
   const attacker = state.units[action.attackerId]
-  const target = state.units[action.targetId]
-
-  if (!attacker || !target) {
+  if (!attacker || attacker.isDead) {
     return { newState: state, events: [] }
   }
 
-  if (attacker.isDead || target.isDead) {
-    return { newState: state, events: [] }
-  }
+  let current = state
+  const allEvents: Event[] = []
+  let finalTargetIds = [...action.targetIds]
 
-  const resolved = resolveAttackDamage(attacker, target, action.profile, action.defense)
-  const damageResult = applyResolvedDamage(state, resolved)
-  const recoveryMs = action.recoveryMs ?? 0
-  const nextState = consumeATB(damageResult.newState, attacker.id, recoveryMs)
+  // TODO: 投射物路徑追蹤（需要修正型別）
+  // TODO: 保護/攔截判定（需要修正型別）
+  // TODO: 打斷判定（需要修正型別）
+
+  // 傷害計算
+  for (const targetId of finalTargetIds) {
+    const target = current.units[targetId]
+    if (!target || target.isDead) continue
+
+    const resolved = resolveAttackDamage(attacker, target, action.profile, action.defense)
+    const damageResult = applyResolvedDamage(current, resolved)
+    current = damageResult.newState
+    allEvents.push(...damageResult.events)
+
+    // TODO: 狀態應用（攻擊後）
+    if (action.profile.applyStatuses && action.profile.applyStatuses.length > 0) {
+      const applyChance = action.profile.applyStatusChance ?? 1.0
+      if (Math.random() < applyChance) {
+        // 預留：實作狀態應用邏輯
+      }
+    }
+  }
 
   return {
-    newState: nextState,
-    events: damageResult.events,
+    newState: consumeATB(current, attacker.id, action.recoveryMs ?? 0),
+    events: allEvents,
   }
 }
 

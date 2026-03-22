@@ -1,6 +1,6 @@
-export type CertFamily = 'fang' | 'membrane' | 'weave'
+export type BloodlineFamily = 'fang' | 'membrane' | 'weave'
 
-export type CertTier = 1 | 2 | 3
+export type BloodlineTier = 1 | 2 | 3
 
 export type CombatRole = 'striker' | 'protector' | 'controller' | 'boss'
 
@@ -117,7 +117,7 @@ export type GroundHazardArea = {
 
 export type DamageArea = DirectedAttackArea | GroundHazardArea
 
-export type CertStats = {
+export type BloodlineStats = {
   hp: number
   move: number
   str: number
@@ -181,14 +181,14 @@ export type EffectModifierSet = {
   area?: 'small' | 'medium' | 'large'
 }
 
-export type CertDef = {
+export type BloodlineDef = {
   id: string
   name: string
-  family: CertFamily
-  tier: CertTier
+  family: BloodlineFamily
+  tier: BloodlineTier
   raceTags: RaceTag[]
   combatRole: CombatRole
-  baseStats: CertStats
+  baseStats: BloodlineStats
   weaponSlots: number
   exclusiveGeneOptions: string[]
   genericGeneSlots: number
@@ -212,7 +212,8 @@ export type WeaponModeEffect = {
 export type WeaponDef = {
   id: string
   name: string
-  familyHint?: CertFamily
+  description?: string
+  familyHint?: BloodlineFamily
   weaponType: string
   damageType: DamageType
   elementType: ElementType
@@ -220,7 +221,7 @@ export type WeaponDef = {
   statScaling: ScalingStat
   actionTags: WeaponStyleTag[]
   requiredTags: RaceTag[]
-  preferredFamilies: CertFamily[]
+  preferredFamilies: BloodlineFamily[]
   preferredTags: RaceTag[]
   baseCast: number
   baseRecovery: number
@@ -235,9 +236,10 @@ export type WeaponDef = {
 export type GeneDef = {
   id: string
   name: string
+  description?: string
   geneType: GeneType
-  ownerCertId?: string
-  compatibleFamilies: CertFamily[]
+  ownerBloodlineId?: string
+  compatibleFamilies: BloodlineFamily[]
   baseEffect: EffectModifierSet
   synergyEffect: EffectModifierSet | null
   notes?: string
@@ -246,6 +248,7 @@ export type GeneDef = {
 export type ToolDef = {
   id: string
   name: string
+  description?: string
   toolType: ToolType
   charges: number
   timing: 'combat' | 'run'
@@ -254,7 +257,7 @@ export type ToolDef = {
 }
 
 export type LoadoutContext = {
-  cert: CertDef
+  bloodline: BloodlineDef
   equippedGeneIds: string[]
   equippedToolIds: string[]
 }
@@ -277,7 +280,7 @@ export type ResolvedGeneEffect = {
 }
 
 export type LoadoutResolution = {
-  certId: string
+  bloodlineId: string
   resolvedWeapons: Array<{
     weaponId: string
     match: WeaponMatchResult

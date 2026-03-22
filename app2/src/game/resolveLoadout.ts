@@ -1,5 +1,5 @@
 import type {
-  CertDef,
+  BloodlineDef,
   EffectModifierSet,
   GeneDef,
   LoadoutContext,
@@ -82,8 +82,8 @@ function mergeWeaponModeEffects(base: WeaponModeEffect, extra: WeaponModeEffect)
   }
 }
 
-function collectMatchedTags(cert: CertDef, preferredTags: RaceTag[]): RaceTag[] {
-  return preferredTags.filter((tag) => cert.raceTags.includes(tag))
+function collectMatchedTags(bloodline: BloodlineDef, preferredTags: RaceTag[]): RaceTag[] {
+  return preferredTags.filter((tag) => bloodline.raceTags.includes(tag))
 }
 
 function buildBaseWeaponMode(def: WeaponDef): WeaponModeEffect {
@@ -99,10 +99,10 @@ function buildBaseWeaponMode(def: WeaponDef): WeaponModeEffect {
   }
 }
 
-export function resolveWeaponMatch(cert: CertDef, weapon: WeaponDef): WeaponMatchResult {
-  const missingRequiredTags = weapon.requiredTags.filter((tag) => !cert.raceTags.includes(tag))
-  const matchedFamily = weapon.preferredFamilies.includes(cert.family)
-  const matchedTags = collectMatchedTags(cert, weapon.preferredTags)
+export function resolveWeaponMatch(bloodline: BloodlineDef, weapon: WeaponDef): WeaponMatchResult {
+  const missingRequiredTags = weapon.requiredTags.filter((tag) => !bloodline.raceTags.includes(tag))
+  const matchedFamily = weapon.preferredFamilies.includes(bloodline.family)
+  const matchedTags = collectMatchedTags(bloodline, weapon.preferredTags)
   const baseEffect = buildBaseWeaponMode(weapon)
 
   const isPerfectMatch =
@@ -129,8 +129,8 @@ export function resolveWeaponMatch(cert: CertDef, weapon: WeaponDef): WeaponMatc
   }
 }
 
-export function resolveGeneEffect(cert: CertDef, gene: GeneDef): ResolvedGeneEffect {
-  const synergyApplied = gene.compatibleFamilies.includes(cert.family) && !!gene.synergyEffect
+export function resolveGeneEffect(bloodline: BloodlineDef, gene: GeneDef): ResolvedGeneEffect {
+  const synergyApplied = gene.compatibleFamilies.includes(bloodline.family) && !!gene.synergyEffect
   const finalEffect = synergyApplied
     ? mergeEffectModifierSets(gene.baseEffect, gene.synergyEffect)
     : { ...gene.baseEffect }
@@ -145,8 +145,8 @@ export function resolveGeneEffect(cert: CertDef, gene: GeneDef): ResolvedGeneEff
   }
 }
 
-export function resolveGeneEffects(cert: CertDef, genes: GeneDef[]): ResolvedGeneEffect[] {
-  return genes.map((gene) => resolveGeneEffect(cert, gene))
+export function resolveGeneEffects(bloodline: BloodlineDef, genes: GeneDef[]): ResolvedGeneEffect[] {
+  return genes.map((gene) => resolveGeneEffect(bloodline, gene))
 }
 
 export function resolveLoadout(
@@ -156,12 +156,12 @@ export function resolveLoadout(
   tools: ToolDef[],
 ): LoadoutResolution {
   return {
-    certId: context.cert.id,
+    bloodlineId: context.bloodline.id,
     resolvedWeapons: weapons.map((weapon) => ({
       weaponId: weapon.id,
-      match: resolveWeaponMatch(context.cert, weapon),
+      match: resolveWeaponMatch(context.bloodline, weapon),
     })),
-    resolvedGenes: resolveGeneEffects(context.cert, genes),
+    resolvedGenes: resolveGeneEffects(context.bloodline, genes),
     resolvedTools: tools,
   }
 }

@@ -436,7 +436,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 30, damageType: 'slash', elementType: 'none', attackClass: 'melee' },
       defense: { frontCoreDamageReduction: 0.3 },
       recoveryMs: 18,
@@ -457,7 +457,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_flank',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 30, damageType: 'slash', elementType: 'none', attackClass: 'melee' },
       defense: { frontFlankDamageReduction: 0.15 },
       recoveryMs: 18,
@@ -478,7 +478,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_back',
+      targetIds: ['e_back'],
       profile: { baseDamage: 30, damageType: 'pierce', elementType: 'none', attackClass: 'melee', canBackstab: true },
       recoveryMs: 18,
     },
@@ -732,7 +732,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 26, damageType: 'arcane', elementType: 'fire', attackClass: 'arcane_cast', elementDamageRatio: 0.4 },
       defense: { arcaneResist: 0.1, fireResist: 0.25 },
       recoveryMs: 20,
@@ -752,7 +752,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 40, damageType: 'impact', elementType: 'none', attackClass: 'melee' },
       defense: { negateNextDamage: true },
       recoveryMs: 18,
@@ -774,7 +774,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 35, damageType: 'slash', elementType: 'none', attackClass: 'melee' },
       defense: { evadeNextHit: true },
       recoveryMs: 18,
@@ -796,7 +796,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 35, damageType: 'slash', elementType: 'none', attackClass: 'melee', alwaysMiss: true },
       recoveryMs: 18,
     },
@@ -816,7 +816,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 28, damageType: 'pierce', elementType: 'none', attackClass: 'melee', alwaysMiss: true },
       recoveryMs: 18,
     },
@@ -838,7 +838,7 @@ const TEST_CASES: TestCase[] = [
     action: {
       type: 'ATTACK',
       attackerId: 'p_attacker',
-      targetId: 'e_target',
+      targetIds: ['e_target'],
       profile: { baseDamage: 30, damageType: 'slash', elementType: 'wind', attackClass: 'melee', elementDamageRatio: 0.2 },
       recoveryMs: 18,
     },
@@ -987,7 +987,7 @@ function summarize(action: BattleAction, events: Event[]) {
   }
 
   const attacker = state.value.units[action.attackerId]
-  const target = state.value.units[action.targetId]
+  const target = state.value.units[action.targetIds[0]!]
   const damageEvent = events.find((event) => event.type === 'DAMAGE_DEALT')
   lastSummary.value = {
     valid: !!damageEvent,

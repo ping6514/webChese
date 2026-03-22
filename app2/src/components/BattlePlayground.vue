@@ -761,7 +761,7 @@ function resolvePendingAttack() {
   commitAction({
     type: 'ATTACK',
     attackerId: pending.attackerId,
-    targetId: primaryTarget.id,
+    targetIds: victims.map((v) => v.id),
     profile: {
       baseDamage: attacker.damage,
       damageType: 'slash',
@@ -801,7 +801,7 @@ function startAttackWindupByDirection(attacker: CombatUnit, facing: FacingDir, t
   lastAction.value = {
     type: 'ATTACK',
     attackerId: attacker.id,
-    targetId: targetId ?? '',
+    targetIds: targetId ? [targetId] : [],
     profile: {
       baseDamage: attacker.damage,
       damageType: 'slash',

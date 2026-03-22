@@ -1,11 +1,11 @@
 import type {
-  CertDef,
+  BloodlineDef,
   GeneDef,
   ToolDef,
   WeaponDef,
 } from './schema'
 
-export const demoCerts: CertDef[] = [
+export const demoBloodlines: BloodlineDef[] = [
   {
   id: 'cert_wolf_guard',
   name: '狼衛證',
@@ -50,37 +50,54 @@ export const demoCerts: CertDef[] = [
     weaponStyleTags: ['shot', 'blast'],
     notes: '偏後排與場控。',
   },
+  {
+    id: 'cert_slime_gel',
+    name: '凝膠史萊姆證',
+    family: 'weave',
+    tier: 1,
+    raceTags: ['gel_body'],
+    combatRole: 'striker',
+    baseStats: {
+      hp: 120,
+      move: 3,
+      str: 8,
+      agi: 7,
+      int: 8,
+    },
+    weaponSlots: 1,
+    exclusiveGeneOptions: ['gene_gel_absorb'],
+    genericGeneSlots: 1,
+    toolSlots: 1,
+    specializedInterruptTags: ['projectile_cast'],
+    weaponStyleTags: ['shot', 'bind'],
+    notes: '平衡型，擅長吸收與黏著。',
+  },
 ]
 
-export const demoCert = demoCerts[0]
+export const demoBloodline = demoBloodlines[0]
 
 export const demoWeapons: WeaponDef[] = [
   {
     id: 'weapon_fang_halberd',
     name: '獵牙戟',
+    description: '牙刃家族的重型長柄武器，適合前排守護與反打',
     familyHint: 'fang',
-    weaponType: 'halberd',
-    damageType: 'slash',
-    elementType: 'none',
-    attackClass: 'melee',
-    statScaling: 'STR',
-    actionTags: ['guard', 'interrupt_heavy'],
     requiredTags: ['has_tail'],
-    preferredFamilies: ['fang'],
-    preferredTags: ['has_claws'],
-    baseCast: 0,
-    baseRecovery: 18,
+    damageType: 'pierce',
+    elementType: 'physical',
     baseDamage: 32,
-    baseInterrupt: 18,
+    statScaling: 'STR',
     baseMode: {
       damageMult: 1,
-      enableProtectNeighbor: false,
-      extraInterruptTags: ['heavy_cast'],
+      tempoMod: 0,
+      castMult: 1,
+      interruptValue: 0,
     },
     perfectMatchMode: {
       damageMult: 1.2,
-      enableProtectNeighbor: true,
-      extraStatuses: ['guarded'],
+      tempoMod: -4,
+      castMult: 0.92,
+      interruptValue: 6,
     },
     slotProfile: {
       tempo: 1,
@@ -89,8 +106,41 @@ export const demoWeapons: WeaponDef[] = [
     },
   },
   {
+    id: 'weapon_gel_sling',
+    name: '凝膠投石索',
+    description: '史萊姆專用的黏性投射武器，可束縛敵人',
+    familyHint: 'weave',
+    weaponType: 'sling',
+    damageType: 'pierce',
+    elementType: 'shadow',
+    attackClass: 'projectile',
+    statScaling: 'AGI',
+    actionTags: ['bind', 'shot'],
+    requiredTags: ['gel_body'],
+    preferredFamilies: ['weave'],
+    preferredTags: [],
+    baseCast: 5,
+    baseRecovery: 18,
+    baseDamage: 22,
+    baseInterrupt: 8,
+    baseMode: {
+      damageMult: 1,
+      enablePush: false,
+    },
+    perfectMatchMode: {
+      damageMult: 1.15,
+      extraStatuses: ['bind'],
+    },
+    slotProfile: {
+      tempo: 1,
+      tactical: 1,
+      enchant: 0,
+    },
+  },
+  {
     id: 'weapon_web_lance',
     name: '蛛縛槍',
+    description: '編織家族的投射長槍，能束縛敵人並造成穿刺傷害',
     familyHint: 'weave',
     weaponType: 'lance',
     damageType: 'pierce',
@@ -123,6 +173,7 @@ export const demoWeapons: WeaponDef[] = [
   {
     id: 'weapon_moth_dust_fan',
     name: '鱗粉儀扇',
+    description: '膜翼家族的奧術扇，散布鱗粉造成範圍控制',
     familyHint: 'membrane',
     weaponType: 'fan',
     damageType: 'arcane',
@@ -158,8 +209,9 @@ export const demoGenes: GeneDef[] = [
   {
     id: 'gene_pack_guard',
     name: '群獵護核',
+    description: '狼群的守護本能，提升生命值與保護能力',
     geneType: 'exclusive',
-    ownerCertId: 'cert_wolf_guard',
+    ownerBloodlineId: 'cert_wolf_guard',
     compatibleFamilies: ['fang'],
     baseEffect: {
       hpMult: 0.12,
@@ -174,6 +226,7 @@ export const demoGenes: GeneDef[] = [
   {
     id: 'gene_pierce_focus',
     name: '穿刺導向',
+    description: '強化穿刺攻擊的傷害與打斷能力',
     geneType: 'generic',
     compatibleFamilies: ['fang', 'weave'],
     baseEffect: {
@@ -186,8 +239,9 @@ export const demoGenes: GeneDef[] = [
   {
     id: 'gene_dust_prayer',
     name: '磷粉禱式',
+    description: '蛾翼司祭的神聖儀式，加速施法並延長區域效果',
     geneType: 'exclusive',
-    ownerCertId: 'cert_moth_oracle',
+    ownerBloodlineId: 'cert_moth_oracle',
     compatibleFamilies: ['membrane'],
     baseEffect: {
       castMult: -0.08,
@@ -198,12 +252,29 @@ export const demoGenes: GeneDef[] = [
       teamDamageBuff: 0.08,
     },
   },
+  {
+    id: 'gene_gel_absorb',
+    name: '凝膠吸收',
+    description: '史萊姆的吸收能力，受到傷害時恢復生命並減速敵人',
+    geneType: 'exclusive',
+    ownerBloodlineId: 'cert_slime_gel',
+    compatibleFamilies: ['weave'],
+    baseEffect: {
+      hpMult: 0.1,
+      damageReduction: 0.05,
+    },
+    synergyEffect: {
+      healOnHit: 3,
+      counterSlow: true,
+    },
+  },
 ]
 
 export const demoTools: ToolDef[] = [
   {
     id: 'tool_howl_banner',
     name: '狼嚎戰旗',
+    description: '激勵全隊士氣，提升團隊傷害',
     toolType: 'tempo',
     charges: 2,
     timing: 'combat',
@@ -215,6 +286,7 @@ export const demoTools: ToolDef[] = [
   {
     id: 'tool_bark_shield',
     name: '樹皮護幕',
+    description: '提供護盾並移除燃燒狀態',
     toolType: 'defense',
     charges: 1,
     timing: 'combat',
@@ -226,12 +298,26 @@ export const demoTools: ToolDef[] = [
   {
     id: 'tool_dust_lantern',
     name: '粉燈浮標',
+    description: '延長區域效果持續時間並施加緩速',
     toolType: 'utility',
     charges: 2,
     timing: 'combat',
     effectSummary: {
       zoneDurationAdd: 1,
       applyStatus: 'slow',
+    },
+  },
+  {
+    id: 'tool_gel_core',
+    name: '凝膠核心',
+    description: '史萊姆的再生核心，恢復生命並提供短暫護盾',
+    toolType: 'defense',
+    charges: 1,
+    timing: 'combat',
+    effectSummary: {
+      healValue: 20,
+      shieldValue: 15,
+      durationActions: 1,
     },
   },
 ]

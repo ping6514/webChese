@@ -94,7 +94,7 @@ export type CombatUnit = {
   id: string
   name: string
   team: UnitTeam
-  certId: string
+  bloodlineId: string
 
   // ── 位置與朝向 ──
   pos: HexPos
@@ -213,10 +213,10 @@ export const FREEZE_SPEED_MULT = 0.4
 export const FREEZE_DURATION_MS = 4000
 
 /**
- * 職業預設積蓄值抗性
+ * 血統預設積蓄值抗性
  * 數值 = 每次積蓄輸入被減少的比例（0.2 = 收到 80% 的積蓄）
  */
-export const CERT_BUILDUP_RESIST: Record<string, Partial<Record<StatusId, number>>> = {
+export const BLOODLINE_BUILDUP_RESIST: Record<string, Partial<Record<StatusId, number>>> = {
   // 牙刃系 — 高機動，麻痺抗性強（避免動作中被鎖住）
   cert_fang_moonwolf:   { burn: 0.10, poison: 0.05, paralyze: 0.25, sleep: 0.10, freeze: 0.15 },
   cert_fang_huntmoon:   { burn: 0.10, poison: 0.05, paralyze: 0.30, sleep: 0.10, freeze: 0.15 },
@@ -234,8 +234,8 @@ export const CERT_BUILDUP_RESIST: Record<string, Partial<Record<StatusId, number
 }
 
 /** 工廠函數：建立空白積蓄資料（供 createUnit 使用）*/
-export function createBuildupData(certId: string): Record<StatusId, BuildupData> {
-  const resist = CERT_BUILDUP_RESIST[certId] ?? {}
+export function createBuildupData(bloodlineId: string): Record<StatusId, BuildupData> {
+  const resist = BLOODLINE_BUILDUP_RESIST[bloodlineId] ?? {}
   const statuses: StatusId[] = ['burn', 'poison', 'paralyze', 'sleep', 'freeze']
   const result = {} as Record<StatusId, BuildupData>
   for (const sid of statuses) {

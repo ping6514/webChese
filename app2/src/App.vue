@@ -18,6 +18,22 @@
       </div>
     </header>
 
+    <section v-if="currentTab === 'team'" class="panel panel--full">
+      <TeamBuilder />
+    </section>
+
+    <section v-if="currentTab === 'sim'" class="panel panel--full">
+      <BattleSimulator />
+    </section>
+
+    <section v-if="currentTab === 'teambattle'" class="panel panel--full">
+      <TeamBattleSimulator />
+    </section>
+
+    <section v-if="currentTab === 'enhanced'" class="panel panel--full">
+      <EnhancedBattleSimulator />
+    </section>
+
     <!-- 六角格原型 -->
     <section v-if="currentTab === 'hex'" class="panel panel--full">
       <HexBoard />
@@ -35,30 +51,30 @@
     <template v-if="currentTab === 'build'">
       <div class="hero-badge-row">
         <div class="hero-badge">
-          <span>{{ resolution.certId }}</span>
-          <strong>{{ selectedCert.name }}</strong>
+          <span>{{ resolution.bloodlineId }}</span>
+          <strong>{{ selectedBloodline.name }}</strong>
         </div>
       </div>
 
     <section class="panel-grid panel-grid--top">
       <article class="panel">
-        <h2>職業證</h2>
+        <h2>血統卡</h2>
         <div class="stat-stack">
-          <div class="key-value"><span>名稱</span><strong>{{ selectedCert.name }}</strong></div>
-          <div class="key-value"><span>家族</span><strong>{{ selectedCert.family }}</strong></div>
-          <div class="key-value"><span>定位</span><strong>{{ selectedCert.combatRole }}</strong></div>
-          <div class="key-value"><span>種族標籤</span><strong>{{ selectedCert.raceTags.join(' / ') }}</strong></div>
+          <div class="key-value"><span>名稱</span><strong>{{ selectedBloodline.name }}</strong></div>
+          <div class="key-value"><span>家族</span><strong>{{ selectedBloodline.family }}</strong></div>
+          <div class="key-value"><span>定位</span><strong>{{ selectedBloodline.combatRole }}</strong></div>
+          <div class="key-value"><span>種族標籤</span><strong>{{ selectedBloodline.raceTags.join(' / ') }}</strong></div>
         </div>
       </article>
 
       <article class="panel">
-        <h2>證件基礎數值</h2>
+        <h2>血統基礎數值</h2>
         <div class="chip-row">
-          <span class="chip">HP {{ selectedCert.baseStats.hp }}</span>
-          <span class="chip">Move {{ selectedCert.baseStats.move }}</span>
-          <span class="chip">STR {{ selectedCert.baseStats.str }}</span>
-          <span class="chip">AGI {{ selectedCert.baseStats.agi }}</span>
-          <span class="chip">INT {{ selectedCert.baseStats.int }}</span>
+          <span class="chip">HP {{ selectedBloodline.baseStats.hp }}</span>
+          <span class="chip">Move {{ selectedBloodline.baseStats.move }}</span>
+          <span class="chip">STR {{ selectedBloodline.baseStats.str }}</span>
+          <span class="chip">AGI {{ selectedBloodline.baseStats.agi }}</span>
+          <span class="chip">INT {{ selectedBloodline.baseStats.int }}</span>
         </div>
       </article>
     </section>
@@ -68,9 +84,9 @@
         <h2>編成控制</h2>
         <div class="control-grid">
           <label class="field">
-            <span>職業證</span>
-            <select v-model="selectedCertId">
-              <option v-for="cert in demoCerts" :key="cert.id" :value="cert.id">{{ cert.name }}</option>
+            <span>血統卡</span>
+            <select v-model="selectedBloodlineId">
+              <option v-for="bloodline in demoBloodlines" :key="bloodline.id" :value="bloodline.id">{{ bloodline.name }}</option>
             </select>
           </label>
 
@@ -110,7 +126,7 @@
           <div class="key-value"><span>武器數</span><strong>{{ selectedWeapons.length }}</strong></div>
           <div class="key-value"><span>基因數</span><strong>{{ selectedGenes.length }}</strong></div>
           <div class="key-value"><span>工具數</span><strong>{{ selectedTools.length }}</strong></div>
-          <div class="key-value"><span>專屬基因候選</span><strong>{{ selectedCert.exclusiveGeneOptions.join(' / ') || 'none' }}</strong></div>
+          <div class="key-value"><span>專屬基因候選</span><strong>{{ selectedBloodline.exclusiveGeneOptions.join(' / ') || 'none' }}</strong></div>
         </div>
       </article>
     </section>
@@ -184,9 +200,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import type { CertDef, GeneDef, ToolDef, WeaponDef } from './game/schema'
+import type { BloodlineDef, GeneDef, ToolDef, WeaponDef } from './game/schema'
 import {
-  demoCerts,
+  demoBloodlines,
   demoGenes,
   demoTools,
   demoWeapons,
@@ -195,17 +211,25 @@ import { resolveLoadout } from './game/resolveLoadout'
 import HexBoard from './components/HexBoard.vue'
 import AttackTestSandbox from './components/AttackTestSandbox.vue'
 import BattlePlayground from './components/BattlePlayground.vue'
+import BattleSimulator from './components/BattleSimulator.vue'
+import TeamBuilder from './components/TeamBuilder.vue'
+import TeamBattleSimulator from './components/TeamBattleSimulator.vue'
+import EnhancedBattleSimulator from './components/EnhancedBattleSimulator.vue'
 
 const TABS = [
-  { id: 'hex',   label: '六角格原型' },
-  { id: 'attack', label: '攻擊判定測試' },
-  { id: 'battle', label: '最小戰鬥頁' },
-  { id: 'build', label: '編成沙盒' },
+  { id: 'team',       label: '隊伍編成' },
+  { id: 'enhanced',   label: '⚔️ 增強版戰鬥' },
+  { id: 'teambattle', label: '🎮 隊伍戰鬥模擬' },
+  { id: 'sim',        label: 'ATB模擬' },
+  { id: 'hex',        label: '六角格原型' },
+  { id: 'attack',     label: '攻擊判定測試' },
+  { id: 'battle',     label: '最小戰鬥頁' },
+  { id: 'build',      label: '舊編成沙盒' },
 ] as const
 type TabId = typeof TABS[number]['id']
-const currentTab = ref<TabId>('hex')
+const currentTab = ref<TabId>('team')
 
-const fallbackCert = demoCerts[0] as CertDef
+const fallbackBloodline = demoBloodlines[0] as BloodlineDef
 const fallbackWeaponA = demoWeapons[0] as WeaponDef
 const fallbackWeaponB = (demoWeapons[1] ?? demoWeapons[0]) as WeaponDef
 const fallbackGeneA = demoGenes[0] as GeneDef
@@ -213,21 +237,21 @@ const fallbackGeneB = (demoGenes[1] ?? demoGenes[0]) as GeneDef
 const fallbackToolA = demoTools[0] as ToolDef
 const fallbackToolB = (demoTools[1] ?? demoTools[0]) as ToolDef
 
-const selectedCertId = ref(fallbackCert.id)
+const selectedBloodlineId = ref(fallbackBloodline.id)
 const selectedWeaponIdA = ref(fallbackWeaponA.id)
 const selectedWeaponIdB = ref(fallbackWeaponB.id)
 const selectedGeneIds = ref<string[]>([fallbackGeneA.id, fallbackGeneB.id])
 const selectedToolIds = ref<string[]>([fallbackToolA.id, fallbackToolB.id])
 
-const selectedCert = computed<CertDef>(() =>
-  demoCerts.find((cert) => cert.id === selectedCertId.value) ?? fallbackCert,
+const selectedBloodline = computed<BloodlineDef>(() =>
+  demoBloodlines.find((bloodline) => bloodline.id === selectedBloodlineId.value) ?? fallbackBloodline,
 )
 
 const availableGenes = computed<GeneDef[]>(() =>
-  demoGenes.filter((gene) => !gene.ownerCertId || gene.ownerCertId === selectedCert.value.id),
+  demoGenes.filter((gene) => !gene.ownerBloodlineId || gene.ownerBloodlineId === selectedBloodline.value.id),
 )
 
-watch(selectedCertId, () => {
+watch(selectedBloodlineId, () => {
   selectedGeneIds.value = selectedGeneIds.value.filter((id) =>
     availableGenes.value.some((gene) => gene.id === id),
   )
@@ -257,7 +281,7 @@ const selectedTools = computed<ToolDef[]>(() => {
 
 const resolution = computed(() => resolveLoadout(
   {
-    cert: selectedCert.value,
+    bloodline: selectedBloodline.value,
     equippedGeneIds: selectedGeneIds.value,
     equippedToolIds: selectedToolIds.value,
   },

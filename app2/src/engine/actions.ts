@@ -1,10 +1,10 @@
-import type { AttackClass, DamageType, ElementType } from '../game/schema'
+import type { AttackClass, DamageType, ElementType, InterruptTag, StatusId } from '../game/schema'
 import type { FacingDir, HexPos } from './state'
 
 export type AttackAction = {
   type: 'ATTACK'
   attackerId: string
-  targetId: string
+  targetIds: string[]
   profile: {
     baseDamage: number
     damageType: DamageType
@@ -14,6 +14,19 @@ export type AttackAction = {
     canBackstab?: boolean
     guaranteedBackstab?: boolean
     alwaysMiss?: boolean
+    // 投射物相關
+    projectileId?: string
+    piercing?: boolean
+    maxPierceTargets?: number
+    // 打斷相關
+    interruptValue?: number
+    interruptTags?: InterruptTag[]
+    // 施法相關
+    castingTag?: InterruptTag
+    castRemaining?: number
+    // 狀態應用
+    applyStatuses?: StatusId[]
+    applyStatusChance?: number
   }
   defense?: {
     frontCoreDamageReduction?: number
