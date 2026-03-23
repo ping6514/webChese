@@ -72,7 +72,13 @@
       "Bash(node node_modules/typescript/bin/tsc -p tsconfig.app.json --noEmit)",
       "Bash(ls d:/workspace/webChese/app2/src/*.d.ts)",
       "Bash(node node_modules/@vue/language-core/node_modules/../../../.bin/vue-tsc -p tsconfig.app.json --noEmit)",
-      "Bash(node node_modules/vue-tsc/bin/vue-tsc.js -p tsconfig.app.json --noEmit)"
+      "Bash(node node_modules/vue-tsc/bin/vue-tsc.js -p tsconfig.app.json --noEmit)",
+      "Bash(wc -l /d/workspace/webChese/app3/docs/*.md)",
+      "Bash(ls -la \"d:\\\\workspace\\\\webChese\\\\app3\\\\src\"\" 2>&1 || echo \"Directory not found \")",
+      "Bash(npm run:*)",
+      "Bash(find /d/workspace/webChese/app3/src -type f -name *.test.ts -o -name *.spec.ts)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(wc -l /d/workspace/webChese/app3/src/views/*.vue /d/workspace/webChese/app3/src/components/*.vue)"
     ]
   }
 }

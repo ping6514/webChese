@@ -1,7 +1,7 @@
 // 事件卡資料
 // 基於 Tags 系統和效果關鍵詞設計
 
-import type { EventCard } from '../../types'
+import type { EventCard } from '../../app3/src/types'
 
 export const allEvents: EventCard[] = [
   // ==================== 召喚類 ====================

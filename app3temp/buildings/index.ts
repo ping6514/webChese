@@ -1,7 +1,7 @@
 // 建築卡資料
 // 特色：獨立堅韌度、代價系統、放置條件、地利效果、破壞效果
 
-import type { BuildingCard } from '../../types'
+import type { BuildingCard } from '../../app3/src/types'
 
 export const allBuildings: BuildingCard[] = [
   // ==================== 防禦型 ====================

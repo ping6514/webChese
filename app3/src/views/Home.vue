@@ -10,6 +10,10 @@ function goToCards() {
 function goToRules() {
   router.push('/rules')
 }
+
+function goToWatch() {
+  router.push('/watch')
+}
 </script>
 
 <template>
@@ -24,6 +28,9 @@ function goToRules() {
         </button>
         <button class="btn btn-secondary" @click="goToRules">
           📖 遊戲規則
+        </button>
+        <button class="btn btn-watch" @click="goToWatch">
+          👁️ 觀戰模式
         </button>
       </div>
     </div>
@@ -133,6 +140,19 @@ function goToRules() {
 
 .btn-secondary:hover {
   background: rgba(255,255,255,0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+}
+
+.btn-watch {
+  background: rgba(255, 200, 50, 0.25);
+  color: white;
+  border: 2px solid rgba(255, 200, 50, 0.8);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-watch:hover {
+  background: rgba(255, 200, 50, 0.4);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.2);
 }

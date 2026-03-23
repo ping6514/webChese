@@ -12,7 +12,8 @@ export const allLegions = [
     },
     passive: {
       name: '龍威',
-      description: '裝備時：區域內敵首領對敵-1'
+      description: '裝備時：區域內敵首領對敵-1',
+      effect: { type: 'enemy_attack_debuff', value: 1 }
     },
     activeSkill: {
       name: '龍息',
@@ -134,7 +135,8 @@ export const allLegions = [
     },
     passive: {
       name: '魔法陣',
-      description: '裝備時：區域內敵首領對敵-1'
+      description: '裝備時：區域內敵首領對敵-1',
+      effect: { type: 'enemy_attack_debuff', value: 1 }
     },
     tags: ['指揮官', '魔女']
   },

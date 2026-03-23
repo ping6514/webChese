@@ -1,7 +1,7 @@
 // 戰術卡資料
 // 特色：面朝下安裝、觸發時機反應、消耗品
 
-import type { TacticalCard } from '../../types'
+import type { TacticalCard } from '../../app3/src/types'
 
 export const allTacticals: TacticalCard[] = [
   // ==================== 防禦型 ====================

@@ -1,7 +1,7 @@
 // 海族軍團卡
 // 特色：治療、水流、協助力、冰霜
 
-import type { LegionCard } from '../../types'
+import type { LegionCard } from '../../app3/src/types'
 
 export const aquaticLegions: LegionCard[] = [
   // ==================== 普通軍團 ====================

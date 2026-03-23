@@ -1,7 +1,7 @@
 // 哈比族首領卡
 // 特色：高機動、空中優勢、移動後對敵加成
 
-import type { LeaderCard } from '../../types'
+import type { LeaderCard } from '../../app3/src/types'
 
 export const harpyLeaders: LeaderCard[] = [
   // 1. 破壞者 - 風暴哈比·蓋爾

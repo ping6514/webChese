@@ -52,7 +52,8 @@ export const allLeaders = [
     baseRecovery: 0,
     passive: {
       name: '狂暴衝鋒',
-      description: '移動後對敵+2（本回合）'
+      description: '移動後對敵+2（本回合）',
+      effect: { type: 'attack_bonus_after_move', value: 2 }
     },
     skill: {
       name: '破城之角',
@@ -73,7 +74,8 @@ export const allLeaders = [
     baseRecovery: 1,
     passive: {
       name: '空中優勢',
-      description: '移動時不受敵人阻擋'
+      description: '移動時不受敵人阻擋',
+      effect: { type: 'ignore_fortification' }
     },
     skill: {
       name: '俯衝突襲',
@@ -94,7 +96,8 @@ export const allLeaders = [
     baseRecovery: 1,
     passive: {
       name: '快速機動',
-      description: '移動後可以再次移動（一回合一次）'
+      description: '移動後可以再次移動（一回合一次）',
+      effect: { type: 'double_move' }
     },
     skill: {
       name: '踐踏衝鋒',
@@ -115,7 +118,8 @@ export const allLeaders = [
     baseRecovery: 1,
     passive: {
       name: '獵殺本能',
-      description: '對敵擊暈敵首領時，抽1張牌'
+      description: '對敵擊暈敵首領時，抽1張牌',
+      effect: { type: 'on_ko_or_stun_draw', value: 1 }
     },
     skill: {
       name: '月光狂襲',
@@ -178,7 +182,8 @@ export const allLeaders = [
     baseRecovery: 2,
     passive: {
       name: '因果輪迴',
-      description: '擊暈或擊殺一個敵方首領時抽一張卡'
+      description: '擊暈或擊殺一個敵方首領時抽一張卡',
+      effect: { type: 'on_ko_or_stun_draw', value: 1 }
     },
     skill: {
       name: '妖狐法陣',
