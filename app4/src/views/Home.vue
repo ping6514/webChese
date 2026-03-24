@@ -63,26 +63,26 @@ function startPVEAs(humanPlayer: 'p1' | 'p2') {
 
 <style scoped>
 .home { max-width: 800px; margin: 0 auto; padding: 2rem; text-align: center; }
-h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: #e8c97a; }
-.subtitle { color: #aaa; margin-bottom: 2rem; }
-.card-select { background: #16213e; border-radius: 12px; padding: 1.5rem; text-align: left; }
-h2 { color: #e8c97a; margin-bottom: 1rem; }
+h1 { font-size: 2.5rem; margin-bottom: 0.5rem; color: #b8820a; }
+.subtitle { color: #7a6a58; margin-bottom: 2rem; }
+.card-select { background: #ede8dc; border: 1px solid #c0b5a5; border-radius: 12px; padding: 1.5rem; text-align: left; }
+h2 { color: #b8820a; margin-bottom: 1rem; }
 .class-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.8rem; }
-.cls-label { width: 3rem; font-weight: bold; color: #aaa; }
+.cls-label { width: 3rem; font-weight: bold; color: #7a6a58; }
 .card-btn {
-  padding: 0.4rem 0.8rem; border: 1px solid #333; border-radius: 6px;
-  background: #1a1a2e; color: #eee; cursor: pointer; transition: all 0.2s;
+  padding: 0.4rem 0.8rem; border: 1px solid #c0b5a5; border-radius: 6px;
+  background: #f5f0e8; color: #2a1f14; cursor: pointer; transition: all 0.2s;
 }
-.card-btn:hover { border-color: #e8c97a; }
-.card-btn.selected { background: #e8c97a; color: #1a1a2e; border-color: #e8c97a; }
+.card-btn:hover { border-color: #b8820a; }
+.card-btn.selected { background: #b8820a; color: #fff; border-color: #b8820a; }
 .actions { margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; }
 .start-btn {
-  padding: 0.7rem 1.5rem; background: #e8c97a; color: #1a1a2e;
+  padding: 0.7rem 1.5rem; background: #b8820a; color: #fff;
   border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: bold;
 }
-.start-btn:hover { background: #f0d88a; }
+.start-btn:hover { background: #c8920a; }
 .pve-actions { margin-top: 0.5rem; align-items: center; }
-.pve-label { color: #9ad4d6; font-size: 0.9rem; white-space: nowrap; }
-.pve-btn { background: #1a4a1a; border: 2px solid #4caf50; color: #eee; }
-.pve-btn:hover { background: #256325; }
+.pve-label { color: #1a8090; font-size: 0.9rem; white-space: nowrap; }
+.pve-btn { background: #f5f0e8; border: 2px solid #1a7040; color: #1a7040; }
+.pve-btn:hover { background: #e0edd8; }
 </style>

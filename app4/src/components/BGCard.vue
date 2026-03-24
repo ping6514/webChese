@@ -45,37 +45,37 @@ const tooltipText = computed(() => {
 
 <style scoped>
 .bg-card {
-  width: 90px; min-height: 120px; background: #0f3460; border-radius: 8px;
-  padding: 0.5rem; cursor: pointer; position: relative; border: 2px solid transparent;
-  transition: all 0.2s; user-select: none;
+  width: 90px; min-height: 120px; background: #ddd5c8; border-radius: 8px;
+  padding: 0.5rem; cursor: pointer; position: relative; border: 2px solid #c0b5a5;
+  transition: all 0.2s; user-select: none; color: #2a1f14;
 }
-.bg-card:hover { transform: translateY(-2px); border-color: #9ad4d6; }
-.bg-card.is-acting { border-color: #e8c97a; box-shadow: 0 0 12px rgba(232, 201, 122, 0.5); }
-.bg-card.is-selectable { border-color: #00ff99; box-shadow: 0 0 10px rgba(0,255,153,0.5); cursor: pointer; animation: pulse 1s infinite alternate; }
-@keyframes pulse { from { box-shadow: 0 0 6px rgba(0,255,153,0.4); } to { box-shadow: 0 0 16px rgba(0,255,153,0.8); } }
-.bg-card.owner-p2 { background: #3d0030; }
+.bg-card:hover { transform: translateY(-2px); border-color: #1a8090; }
+.bg-card.is-acting { border-color: #b8820a; box-shadow: 0 0 10px rgba(184,130,10,0.4); }
+.bg-card.is-selectable { border-color: #007a50; box-shadow: 0 0 10px rgba(0,122,80,0.4); cursor: pointer; animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { box-shadow: 0 0 4px rgba(0,122,80,0.3); } to { box-shadow: 0 0 12px rgba(0,122,80,0.7); } }
+.bg-card.owner-p2 { background: #e8d4d8; border-color: #d0b0b8; }
 .bg-card.state-stunned { transform: rotate(90deg); opacity: 0.8; }
-.bg-card.state-ko { transform: rotate(180deg); opacity: 0.6; }
+.bg-card.state-ko { transform: rotate(180deg); opacity: 0.5; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; }
 .name { font-size: 0.75rem; font-weight: bold; }
-.class-badge { font-size: 0.65rem; padding: 1px 4px; border-radius: 3px; }
+.class-badge { font-size: 0.65rem; padding: 1px 4px; border-radius: 3px; color: #fff; }
 .cls-BOM { background: #8b4513; }
-.cls-ATK { background: #8b0000; }
-.cls-SHT { background: #005f8b; }
-.cls-BLC { background: #2d5a27; }
+.cls-ATK { background: #8b1010; }
+.cls-SHT { background: #1055a0; }
+.cls-BLC { background: #2d6a27; }
 .hp-bar {
-  height: 8px; background: #333; border-radius: 4px; position: relative; margin-bottom: 0.3rem; overflow: hidden;
+  height: 8px; background: #c0b5a5; border-radius: 4px; position: relative; margin-bottom: 0.3rem; overflow: hidden;
 }
-.hp-fill { height: 100%; background: #4caf50; border-radius: 4px; transition: width 0.3s; }
+.hp-fill { height: 100%; background: #2a8a30; border-radius: 4px; transition: width 0.3s; }
 .hp-text {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: 0.6rem; color: #fff; white-space: nowrap;
+  font-size: 0.6rem; color: #fff; white-space: nowrap; text-shadow: 0 0 3px rgba(0,0,0,0.6);
 }
 .stats { display: flex; gap: 0.3rem; font-size: 0.7rem; }
-.stat { padding: 1px 3px; background: #1a1a2e; border-radius: 3px; }
+.stat { padding: 1px 3px; background: #f5f0e8; border-radius: 3px; border: 1px solid #c0b5a5; }
 .state-badge {
   position: absolute; top: 2px; right: 2px; font-size: 0.6rem;
-  background: #ff6b35; padding: 1px 4px; border-radius: 3px;
+  background: #c04000; color: #fff; padding: 1px 4px; border-radius: 3px;
 }
 .reaction-indicator { position: absolute; bottom: 2px; right: 4px; font-size: 0.75rem; }
 </style>

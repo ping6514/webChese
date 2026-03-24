@@ -68,13 +68,13 @@ function onBGClick(bg: BGInstance) {
 
 <style scoped>
 .zone-panel {
-  flex: 1; min-height: 180px; background: #16213e; border-radius: 8px;
-  padding: 0.7rem; border: 2px solid transparent; transition: border-color 0.2s;
+  flex: 1; min-height: 180px; background: #ede8dc; border-radius: 8px;
+  padding: 0.7rem; border: 2px solid #c0b5a5; transition: border-color 0.2s;
 }
-.zone-panel.active { border-color: #e8c97a; }
-.zone-p1_base { border-top: 3px solid #6fbfff; }
-.zone-p2_base { border-top: 3px solid #ff8fa0; }
-.zone-plaza { border-top: 3px solid #9ad4d6; }
-.zone-label { font-size: 0.8rem; color: #aaa; margin-bottom: 0.5rem; }
+.zone-panel.active { border-color: #b8820a; }
+.zone-p1_base { border-top: 3px solid #1a5090; }
+.zone-p2_base { border-top: 3px solid #901a3a; }
+.zone-plaza { border-top: 3px solid #1a8090; }
+.zone-label { font-size: 0.8rem; color: #7a6a58; margin-bottom: 0.5rem; }
 .bgs-in-zone { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 </style>

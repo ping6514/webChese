@@ -105,41 +105,41 @@ function goHome() { router.push('/') }
 .game { display: flex; flex-direction: column; min-height: 100vh; gap: 0.5rem; padding: 0.5rem; }
 .topbar {
   display: flex; justify-content: space-between; align-items: center;
-  background: #16213e; border-radius: 8px; padding: 0.7rem 1rem;
+  background: #ede8dc; border: 1px solid #c0b5a5; border-radius: 8px; padding: 0.7rem 1rem;
 }
 .player-info { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.9rem; }
 .player-label { font-weight: bold; font-size: 1.1rem; }
-.walls { color: #e8c97a; }
-.hand-count { color: #aaa; }
+.walls { color: #b8820a; }
+.hand-count { color: #7a6a58; }
 .turn-info { text-align: center; }
 .turn { font-size: 1.2rem; font-weight: bold; }
-.phase { color: #9ad4d6; }
+.phase { color: #1a8090; }
 .current-player { font-size: 0.85rem; }
-.current-player.p1 { color: #6fbfff; }
-.current-player.p2 { color: #ff8fa0; }
+.current-player.p1 { color: #1a5090; }
+.current-player.p2 { color: #901a3a; }
 .field { display: flex; gap: 0.5rem; }
 .brick-row { display: flex; gap: 0.5rem; }
-.action-panel, .hand-panel { background: #16213e; border-radius: 8px; padding: 0.7rem; }
+.action-panel, .hand-panel { background: #ede8dc; border: 1px solid #c0b5a5; border-radius: 8px; padding: 0.7rem; }
 .error-bar {
-  background: #8b0000; color: #fff; padding: 0.5rem 1rem;
+  background: #f0d4d4; color: #7a1010; border: 1px solid #c07070; padding: 0.5rem 1rem;
   border-radius: 6px; font-size: 0.85rem;
 }
 .winner-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  position: fixed; inset: 0; background: rgba(0,0,0,0.5);
   display: flex; align-items: center; justify-content: center; z-index: 100;
 }
 .winner-box {
-  background: #16213e; border: 2px solid #e8c97a; border-radius: 12px;
+  background: #f5f0e8; border: 2px solid #b8820a; border-radius: 12px;
   padding: 2rem 3rem; text-align: center;
 }
-.winner-box h2 { font-size: 2rem; color: #e8c97a; margin-bottom: 1rem; }
+.winner-box h2 { font-size: 2rem; color: #b8820a; margin-bottom: 1rem; }
 .winner-box button {
   margin-top: 1rem; padding: 0.6rem 1.5rem;
-  background: #e8c97a; color: #1a1a2e; border: none; border-radius: 6px;
+  background: #b8820a; color: #fff; border: none; border-radius: 6px;
   cursor: pointer; font-size: 1rem;
 }
 .no-game { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 1rem; }
-.no-game button { padding: 0.6rem 1.5rem; background: #e8c97a; color: #1a1a2e; border: none; border-radius: 6px; cursor: pointer; }
-.bot-thinking { color: #9ad4d6; font-style: italic; padding: 0.5rem; animation: blink 1s infinite; }
+.no-game button { padding: 0.6rem 1.5rem; background: #b8820a; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+.bot-thinking { color: #1a8090; font-style: italic; padding: 0.5rem; animation: blink 1s infinite; }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>

@@ -35,25 +35,25 @@ const moverName = computed(() => {
 
 <style scoped>
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
   display: flex; align-items: center; justify-content: center; z-index: 200;
 }
 .modal-box {
-  background: #16213e; border: 2px solid #ff8fa0; border-radius: 12px;
-  padding: 1.5rem 2rem; min-width: 320px; text-align: center;
+  background: #f5f0e8; border: 2px solid #901a3a; border-radius: 12px;
+  padding: 1.5rem 2rem; min-width: 320px; text-align: center; color: #2a1f14;
 }
-.modal-title { font-size: 1.3rem; color: #ff8fa0; font-weight: bold; margin-bottom: 0.8rem; }
-.modal-desc { color: #ccc; font-size: 0.9rem; margin-bottom: 1.2rem; line-height: 1.6; }
-.mover-name { color: #e8c97a; font-weight: bold; }
+.modal-title { font-size: 1.3rem; color: #901a3a; font-weight: bold; margin-bottom: 0.8rem; }
+.modal-desc { color: #5a4a38; font-size: 0.9rem; margin-bottom: 1.2rem; line-height: 1.6; }
+.mover-name { color: #b8820a; font-weight: bold; }
 .choices { display: flex; gap: 1rem; justify-content: center; }
 .choice-btn {
   padding: 0.7rem 1.2rem; border-radius: 8px; cursor: pointer; font-size: 0.9rem;
   display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-  border: 2px solid transparent; transition: all 0.2s;
+  border: 2px solid transparent; transition: all 0.2s; color: #2a1f14;
 }
-.choice-btn.damage { background: #4a1010; border-color: #8b0000; color: #eee; }
-.choice-btn.damage:hover { background: #6a1515; border-color: #ff4444; }
-.choice-btn.moveback { background: #1a3a1a; border-color: #4caf50; color: #eee; }
-.choice-btn.moveback:hover { background: #256325; border-color: #88ff88; }
+.choice-btn.damage { background: #f0d8d8; border-color: #c07070; }
+.choice-btn.damage:hover { background: #e8c8c8; border-color: #901a1a; }
+.choice-btn.moveback { background: #d8edd8; border-color: #2a8a30; }
+.choice-btn.moveback:hover { background: #c4e0c4; border-color: #1a6020; }
 .sub { font-size: 0.75rem; opacity: 0.7; }
 </style>

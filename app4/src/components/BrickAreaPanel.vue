@@ -35,15 +35,15 @@ function buildingName(id: string) {
 
 <style scoped>
 .brick-area {
-  flex: 1; background: #16213e; border-radius: 6px; padding: 0.5rem;
-  border: 1px solid #333; min-width: 80px;
+  flex: 1; background: #ede8dc; border-radius: 6px; padding: 0.5rem;
+  border: 1px solid #c0b5a5; min-width: 80px;
 }
-.area-label { font-size: 0.7rem; color: #aaa; margin-bottom: 0.4rem; }
+.area-label { font-size: 0.7rem; color: #7a6a58; margin-bottom: 0.4rem; }
 .slots { display: flex; gap: 0.3rem; flex-wrap: wrap; }
 .slot {
-  width: 32px; height: 40px; background: #0f3460; border-radius: 4px;
-  display: flex; align-items: center; justify-content: center; font-size: 0.75rem;
+  width: 32px; height: 40px; background: #d0c8b8; border: 1px solid #b8b0a0; border-radius: 4px;
+  display: flex; align-items: center; justify-content: center; font-size: 0.75rem; color: #2a1f14;
 }
-.slot.building { background: #3a2800; color: #e8c97a; font-size: 0.6rem; text-align: center; }
-.slot.empty { background: #111; color: #444; }
+.slot.building { background: #e8d8b0; border-color: #b8920a; color: #7a5000; font-size: 0.6rem; text-align: center; }
+.slot.empty { background: #f0ead8; color: #b0a090; }
 </style>

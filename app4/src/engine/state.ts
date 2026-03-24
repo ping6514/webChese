@@ -144,11 +144,9 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
   return a
 }
 
-/** 建立預設牌組（約 46 張） */
+/** 建立預設牌組（約 36 張） */
 function makeDefaultDeck(rng: () => number): string[] {
   const cards: string[] = []
-  // 技能牌 ×10
-  for (let i = 0; i < 10; i++) cards.push('skill_card')
   // 反應卡各 2 張
   for (const id of allReactionIds) cards.push(id, id)
   // 事件卡各 2 張
@@ -251,7 +249,7 @@ export function createInitialState(config?: GameConfig): GameState {
   function takeBricks(ps: PlayerState, count: number): BrickSlot[] {
     const slots: BrickSlot[] = []
     for (let i = 0; i < count; i++) {
-      const card = ps.deck.pop() ?? 'skill_card'
+      const card = ps.deck.pop() ?? 'unknown'
       slots.push({ cardId: card, isBuilding: false })
     }
     return slots
@@ -272,7 +270,7 @@ export function createInitialState(config?: GameConfig): GameState {
     bgs,
     players,
     brickAreas,
-    cityWalls: { p1: 15, p2: 15 },
+    cityWalls: { p1: 5, p2: 5 },
     bgActionsUsed: 0,
     bgActionsMax: 2,
     actingBGId: null,

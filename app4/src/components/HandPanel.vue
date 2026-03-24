@@ -23,7 +23,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useGameStore } from '../stores/game'
-import { bgCardById } from '../data/bg-cards'
 import { reactionById } from '../data/reactions'
 import { eventById } from '../data/events'
 import { buildingById } from '../data/buildings'
@@ -40,7 +39,6 @@ const graveyard = computed(() => gs.value.players[cp.value].graveyard)
 const deck = computed(() => gs.value.players[cp.value].deck)
 
 function cardDisplayName(id: string): string {
-  if (id === 'skill_card') return '技能牌'
   return reactionById[id]?.name
     ?? eventById[id]?.name
     ?? buildingById[id]?.name
@@ -48,7 +46,6 @@ function cardDisplayName(id: string): string {
 }
 
 function cardType(id: string): string {
-  if (id === 'skill_card') return 'type-skill'
   if (reactionById[id]) return 'type-reaction'
   if (eventById[id]) return 'type-event'
   if (buildingById[id]) return 'type-building'
@@ -56,7 +53,6 @@ function cardType(id: string): string {
 }
 
 function cardTypeLabel(id: string): string {
-  if (id === 'skill_card') return '技'
   if (reactionById[id]) return '反'
   if (eventById[id]) return '事'
   if (buildingById[id]) return '建'
@@ -64,7 +60,6 @@ function cardTypeLabel(id: string): string {
 }
 
 function cardTooltip(id: string): string {
-  if (id === 'skill_card') return '技能牌：作為技能費用使用'
   return reactionById[id]?.description
     ?? eventById[id]?.description
     ?? buildingById[id]?.description
@@ -201,20 +196,19 @@ function onCardClick(cardId: string) {
 
 <style scoped>
 .hand-panel { }
-.hand-title { font-size: 0.85rem; color: #aaa; margin-bottom: 0.5rem; }
+.hand-title { font-size: 0.85rem; color: #7a6a58; margin-bottom: 0.5rem; }
 .hand-cards { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 60px; }
 .hand-card {
   padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
-  transition: transform 0.15s; border: 1px solid #333; min-width: 60px;
+  transition: transform 0.15s; border: 1px solid #c0b5a5; min-width: 60px; color: #2a1f14;
 }
-.hand-card:hover { transform: translateY(-3px); border-color: #9ad4d6; }
+.hand-card:hover { transform: translateY(-3px); border-color: #1a8090; }
 .card-name { font-size: 0.7rem; text-align: center; }
 .card-type-badge { font-size: 0.6rem; opacity: 0.7; }
-.type-skill { background: #2a2a5a; }
-.type-reaction { background: #1a3a1a; }
-.type-event { background: #3a2800; }
-.type-building { background: #2a1a3a; }
-.type-unknown { background: #333; }
-.graveyard-info { margin-top: 0.4rem; font-size: 0.75rem; color: #666; }
+.type-reaction { background: #d8e8d8; }
+.type-event { background: #e8e0c8; }
+.type-building { background: #e0d8e8; }
+.type-unknown { background: #ddd5c8; }
+.graveyard-info { margin-top: 0.4rem; font-size: 0.75rem; color: #9a8a78; }
 </style>

@@ -167,9 +167,7 @@ function openSkillModal(skillIndex: 0 | 1) {
   if (!skill) return
 
   const handCost = skill.handCost ?? 0
-  const discardCardIds = handCost > 0
-    ? hand.filter(id => id !== 'skill_card').slice(0, handCost)
-    : []
+  const discardCardIds = handCost > 0 ? hand.slice(0, handCost) : []
 
   const enemiesInZone = Object.values(s.bgs)
     .filter(e => e.owner === enemy && e.zone === bg.zone && e.state !== 'ko')
@@ -194,25 +192,25 @@ function surrender() { game.dispatchForCurrentPlayer({ type: 'SURRENDER' }) }
 
 <style scoped>
 .action-panel { }
-.panel-title { font-weight: bold; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
-.phase-badge { font-size: 0.75rem; background: #0f3460; padding: 2px 6px; border-radius: 4px; color: #9ad4d6; }
+.panel-title { font-weight: bold; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #2a1f14; }
+.phase-badge { font-size: 0.75rem; background: #ddd5c8; padding: 2px 6px; border-radius: 4px; color: #1a8090; border: 1px solid #c0b5a5; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-.draw-info, .info, .bg-actions-info { width: 100%; font-size: 0.85rem; color: #aaa; }
-.acting-name { color: #e8c97a; margin-left: 0.5rem; }
+.draw-info, .info, .bg-actions-info { width: 100%; font-size: 0.85rem; color: #7a6a58; }
+.acting-name { color: #b8820a; margin-left: 0.5rem; font-weight: bold; }
 .move-row, .normal-actions, .skills, .clear-targets {
   display: flex; flex-wrap: wrap; gap: 0.4rem; width: 100%; margin-top: 0.2rem;
 }
 button {
-  padding: 0.3rem 0.7rem; background: #0f3460; border: 1px solid #333; color: #eee;
+  padding: 0.3rem 0.7rem; background: #f5f0e8; border: 1px solid #c0b5a5; color: #2a1f14;
   border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background 0.2s;
 }
-button:hover:not(:disabled) { background: #1a5276; border-color: #9ad4d6; }
+button:hover:not(:disabled) { background: #e4ddd0; border-color: #1a8090; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
-.next-btn { background: #1a4a1a; border-color: #4caf50; }
-.next-btn:hover:not(:disabled) { background: #256325; }
-.surrender-btn { background: #4a1010; border-color: #8b0000; margin-top: 0.5rem; }
+.next-btn { background: #d8edd8; border-color: #2a8a30; color: #1a5020; }
+.next-btn:hover:not(:disabled) { background: #c4e0c4; }
+.surrender-btn { background: #f0d8d8; border-color: #c07070; color: #7a1010; margin-top: 0.5rem; }
 select {
-  padding: 0.3rem; background: #0f3460; border: 1px solid #333; color: #eee;
+  padding: 0.3rem; background: #f5f0e8; border: 1px solid #c0b5a5; color: #2a1f14;
   border-radius: 4px; font-size: 0.8rem;
 }
 </style>
