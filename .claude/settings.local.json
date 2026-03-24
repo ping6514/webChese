@@ -4,7 +4,15 @@
       "Bash(cat d:/workspace/webChese/app/src/data/items/*.json)",
       "Bash(npx tsc --noEmit)",
       "Bash(npm run build)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(npx vue-tsc:*)",
+      "Bash(npx vite:*)",
+      "Read(//Users/pingwu/.nvm/versions/node/**)",
+      "Bash(nvm list:*)",
+      "Bash(source ~/.nvm/nvm.sh)",
+      "Bash(nvm use:*)",
+      "Bash(node -e \"import\\(''./src/engine/state.js''\\).catch\\(e => console.log\\(''NOT JS''\\)\\); const {createInitialState} = require\\(''./src/engine/state.ts''\\);\")",
+      "Bash(node --loader tsx/esm src/sim/simulate.ts)"
     ]
   }
 }

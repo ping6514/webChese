@@ -78,7 +78,8 @@
       "Bash(npm run:*)",
       "Bash(find /d/workspace/webChese/app3/src -type f -name *.test.ts -o -name *.spec.ts)",
       "Bash(npx tsx -e \":*)",
-      "Bash(wc -l /d/workspace/webChese/app3/src/views/*.vue /d/workspace/webChese/app3/src/components/*.vue)"
+      "Bash(wc -l /d/workspace/webChese/app3/src/views/*.vue /d/workspace/webChese/app3/src/components/*.vue)",
+      "Bash(node --input-type=module:*)"
     ]
   }
 }
