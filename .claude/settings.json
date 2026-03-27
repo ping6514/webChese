@@ -79,7 +79,9 @@
       "Bash(find /d/workspace/webChese/app3/src -type f -name *.test.ts -o -name *.spec.ts)",
       "Bash(npx tsx -e \":*)",
       "Bash(wc -l /d/workspace/webChese/app3/src/views/*.vue /d/workspace/webChese/app3/src/components/*.vue)",
-      "Bash(node --input-type=module:*)"
+      "Bash(node --input-type=module:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(grep -n \"executeShotPlan\\\\|findPalaceGuard\\\\|PALACE_GUARD\" /Users/pingwu/Desktop/workspace/github/webChese/app/api/rooms/[roomId]/action.ts)"
     ]
   }
 }

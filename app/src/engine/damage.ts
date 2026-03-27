@@ -324,7 +324,7 @@ function computeDamageCore(
           if (scope !== 'self') continue
           const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
           if (Array.isArray(stages)) {
-            const sorted = [...stages].sort((a, b) => a.threshold - b.threshold)
+            const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
             let bestBonus = 0
             for (const s of sorted) {
               if (kingHp <= s.threshold) bestBonus = s.atkBonus
@@ -351,7 +351,7 @@ function computeDamageCore(
         if (scope !== 'global') continue
         const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
         if (!Array.isArray(stages)) continue
-        const sorted = [...stages].sort((a, b) => a.threshold - b.threshold)
+        const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
         let bestBonus = 0
         for (const s of sorted) {
           if (kingHp <= s.threshold) bestBonus = s.atkBonus

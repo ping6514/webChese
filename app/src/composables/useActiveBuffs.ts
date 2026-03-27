@@ -440,7 +440,7 @@ export function useActiveBuffs(state: Ref<GameState>) {
           const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
           const scope = String((ab as any).scope ?? 'self')
           if (stages) {
-            const sorted = [...stages].sort((a, b) => a.threshold - b.threshold)
+            const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
             let bestBonus = 0
             let matchedThreshold = 0
             for (const st of sorted) {

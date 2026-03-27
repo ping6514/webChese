@@ -176,4 +176,57 @@ describe('death oath abilities', () => {
     const dmg1 = res1.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackSoldierId) as any
     expect((dmg1?.amount ?? 0) - (dmg0?.amount ?? 0)).toBe(2)
   })
+
+  test('PALACE_GUARD only protects own king, not opponent king', () => {
+    // P1 (red) 的士附魔鐵誓（有 PALACE_GUARD）
+    // P1 的車攻打 P2 (black) 的帥
+    // 期望：PALACE_GUARD 不應觸發，黑方帥不應減傷
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    s.turn.phase = 'combat'
+    s.turn.side = 'red'
+
+    const redRookId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'rook')!.id
+    const redAdvisorId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'advisor')!.id
+    const blackKingId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'king')!.id
+
+    // P1 的士附魔鐵誓
+    enchantUnit(s, redAdvisorId, 'death_oath_advisor_tieshi')
+
+    // 把紅車移到可攻擊黑帥的位置
+    setUnitPos(s, redRookId, 4, 1)
+    // 清掉中間阻擋的單位
+    for (const u of Object.values(s.units)) {
+      if (u.id === redRookId || u.id === blackKingId || u.id === redAdvisorId) continue
+      if (u.pos.x === 4) setUnitPos(s, u.id, 0, 5)
+    }
+
+    // 不附魔版本（基準傷害）
+    const sWithout = JSON.parse(JSON.stringify(s)) as GameState
+    const advisorWithout = sWithout.units[redAdvisorId]
+    if (advisorWithout) delete (advisorWithout as any).enchant
+
+    const plan0 = buildShotPlan(sWithout, redRookId, blackKingId)
+    expect(plan0.ok).toBe(true)
+    if (!plan0.ok) return
+    const res0 = executeShotPlan(sWithout, plan0.plan)
+    expect(res0.ok).toBe(true)
+    if (!res0.ok) return
+    const dmg0 = res0.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId) as any
+
+    // 附魔版本
+    const plan1 = buildShotPlan(s, redRookId, blackKingId)
+    expect(plan1.ok).toBe(true)
+    if (!plan1.ok) return
+    const res1 = executeShotPlan(s, plan1.plan)
+    expect(res1.ok).toBe(true)
+    if (!res1.ok) return
+    const dmg1 = res1.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId) as any
+
+    // PALACE_GUARD 不應保護黑帥 → 傷害應相同
+    expect(dmg0?.amount).toBe(dmg1?.amount)
+
+    // 確認 PALACE_GUARD 事件沒有被觸發在這次攻擊中
+    const guardTriggered = res1.events.some((e: any) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'PALACE_GUARD')
+    expect(guardTriggered).toBe(false)
+  })
 })
