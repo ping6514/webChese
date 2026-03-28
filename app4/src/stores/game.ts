@@ -33,7 +33,63 @@ export const useGameStore = defineStore('game', () => {
   const error = ref<string | null>(null)
   const selection = ref<SelectionState | null>(null)
   const pveMode = ref(false)
-  const pendingIntimidateChoice = ref<{ triggerBGId: string; movedPlayer: PlayerId } | null>(null)
+  const pendingIntimidateChoice = ref<{ triggerBGId: string; intimidateBGId: string; movedPlayer: PlayerId } | null>(null)
+  const detailBGId = ref<string | null>(null)
+  interface PendingSkill {
+    skillIndex: 0 | 1
+    fromBGId: string | undefined
+    handCost: number
+    selected: string[]          // 棄牌選取（index:cardId）
+    targetBGId: string | null   // null = 待選擇，string = 已選
+    targetOptions: { id: string; name: string }[]  // 可選目標（空陣列 = 不需手動選）
+  }
+  const pendingSkill = ref<PendingSkill | null>(null)
+
+  // ── UI 待確認行動 ───────────────────────────────────
+  type UIPendingType = 'start_bg' | 'move' | 'attack' | 'joint' | 'clear' | 'siege'
+  interface UIPending {
+    type: UIPendingType
+    label: string
+    bgId?: string
+    toZone?: ZoneId
+    targetBGId?: string
+    areaId?: BrickAreaId
+  }
+  const uiPending = ref<UIPending | null>(null)
+  const uiSelectedAllyId = ref<string | null>(null)
+  const effectiveAllyId = computed(() => state.value?.jointAllyId ?? uiSelectedAllyId.value ?? null)
+
+  function setPending(p: UIPending) { uiPending.value = p }
+  function clearPending() { uiPending.value = null }
+  function deselectAlly() { uiSelectedAllyId.value = null }
+
+  function confirmPending() {
+    const p = uiPending.value
+    if (!p) return
+    uiPending.value = null
+    const allyId = (state.value?.jointAllyId ?? uiSelectedAllyId.value) ?? undefined
+    switch (p.type) {
+      case 'start_bg':
+        uiSelectedAllyId.value = null
+        dispatchForCurrentPlayer({ type: 'START_BG_ACTION', bgId: p.bgId! })
+        break
+      case 'move':
+        dispatchForCurrentPlayer({ type: 'MOVE_BG', toZone: p.toZone! })
+        break
+      case 'attack':
+        dispatchForCurrentPlayer({ type: 'DO_ATTACK', targetBGId: p.targetBGId!, allyId })
+        break
+      case 'joint':
+        uiSelectedAllyId.value = p.bgId!
+        break
+      case 'clear':
+        dispatchForCurrentPlayer({ type: 'DO_CLEAR_BRICK', areaId: p.areaId! })
+        break
+      case 'siege':
+        dispatchForCurrentPlayer({ type: 'DO_SIEGE' })
+        break
+    }
+  }
 
   // ── 遊戲初始化 ─────────────────────────────────────
 
@@ -43,6 +99,7 @@ export const useGameStore = defineStore('game', () => {
     eventLog.value = []
     lastEvents.value = []
     error.value = null
+    scheduleAutoDrawIfNeeded()
   }
 
   function startLocalPVP(config?: GameConfig) {
@@ -53,7 +110,6 @@ export const useGameStore = defineStore('game', () => {
   function startPVE(config?: GameConfig, humanAs: PlayerId = 'p1') {
     pveMode.value = true
     startGame(config, humanAs)
-    scheduleBotTurnIfNeeded()
   }
 
   // ── 行動分發 ────────────────────────────────────────
@@ -68,21 +124,35 @@ export const useGameStore = defineStore('game', () => {
     }
     try {
       const result = reduce(state.value, player, action)
+      if (!result.ok) {
+        error.value = result.error
+        return false
+      }
       state.value = result.state
       lastEvents.value = result.events
       eventLog.value.push(...result.events)
       error.value = null
+      uiPending.value = null
+      if (action.type === 'END_BG_ACTION' || action.type === 'NEXT_PHASE') {
+        uiSelectedAllyId.value = null
+      }
       // 檢查威嚇反應觸發
       const intimidate = result.events.find(
         e => e.type === 'reaction_triggered' && (e as { reactionId: string }).reactionId === 'intimidate'
-      ) as (GameEvent & { triggerBGId: string }) | undefined
+      ) as (GameEvent & { triggerBGId: string; bgId: string }) | undefined
       if (intimidate) {
         const isBotAction = pveMode.value && player !== localPlayer.value
         if (!isBotAction) {
-          pendingIntimidateChoice.value = { triggerBGId: intimidate.triggerBGId, movedPlayer: player }
+          pendingIntimidateChoice.value = {
+            triggerBGId: intimidate.triggerBGId,
+            intimidateBGId: intimidate.bgId,
+            movedPlayer: player,
+          }
         }
         // Bot 的威嚇交由 runBotStep 處理（下次循環時解決）
       }
+      scheduleAutoDrawIfNeeded()
+      scheduleAutoNextPhaseFromAction()
       scheduleBotTurnIfNeeded()
       return true
     } catch (e) {
@@ -98,12 +168,63 @@ export const useGameStore = defineStore('game', () => {
     if (!pending || !state.value) return
     pendingIntimidateChoice.value = null
     dispatch(
-      { type: 'RESOLVE_REACTION', choice: { reactionId: 'intimidate', triggerBGId: pending.triggerBGId, intimidateChoice: choice } },
+      { type: 'RESOLVE_REACTION', choice: { reactionId: 'intimidate', triggerBGId: pending.triggerBGId, intimidateBGId: pending.intimidateBGId, intimidateChoice: choice } },
       pending.movedPlayer,
     )
   }
 
   // ── PVE Bot 執行 ──────────────────────────────────────────
+
+  // ── 自動抽排（draw 階段為純過渡動畫，不需玩家操作） ────────────────
+  // ── 行動階段自動結束（行動耗盡或無可行動 BG） ─────────────────
+  function scheduleAutoNextPhaseFromAction() {
+    if (!state.value || state.value.winner) return
+    if (state.value.phase !== 'action') return
+    if (state.value.actingBGId !== null) return  // 有 BG 正在行動，等它結束
+    const s = state.value
+    const p = s.currentPlayer
+    const allUsed = s.bgActionsUsed >= s.bgActionsMax
+    const noneCanAct = !Object.values(s.bgs).some(bg =>
+      canDispatch(s, p, { type: 'START_BG_ACTION', bgId: bg.id }).ok
+    )
+    if (!allUsed && !noneCanAct) return
+    setTimeout(() => {
+      if (!state.value || state.value.phase !== 'action' || state.value.actingBGId !== null) return
+      const r = reduce(state.value, state.value.currentPlayer, { type: 'NEXT_PHASE' })
+      if (!r.ok) return
+      state.value = r.state
+      lastEvents.value = r.events
+      eventLog.value.push(...r.events)
+      scheduleAutoDrawIfNeeded()
+      scheduleBotTurnIfNeeded()
+    }, 600)
+  }
+
+  function scheduleAutoDrawIfNeeded() {
+    if (!state.value || state.value.winner) return
+    if (state.value.phase !== 'draw') return
+    setTimeout(() => runAutoDrawPhase(), 500)
+  }
+
+  function runAutoDrawPhase() {
+    if (!state.value || state.value.phase !== 'draw') return
+    const p = state.value.currentPlayer
+    // 自動抽 2 張
+    for (let i = 0; i < 2; i++) {
+      const r = reduce(state.value, p, { type: 'DRAW_CARD' })
+      if (!r.ok) break
+      state.value = r.state
+      eventLog.value.push(...r.events)
+    }
+    // 推進到主要階段
+    const r = reduce(state.value, p, { type: 'NEXT_PHASE' })
+    if (!r.ok) return
+    state.value = r.state
+    lastEvents.value = r.events
+    eventLog.value.push(...r.events)
+    scheduleBotTurnIfNeeded()
+    scheduleAutoDrawIfNeeded()
+  }
 
   function scheduleBotTurnIfNeeded() {
     if (!pveMode.value || !state.value) return
@@ -131,6 +252,7 @@ export const useGameStore = defineStore('game', () => {
         type: 'RESOLVE_REACTION',
         choice: { reactionId: 'intimidate', triggerBGId: intimidate.triggerBGId, intimidateChoice: choice },
       })
+      if (!result.ok) return
       state.value = result.state
       lastEvents.value = result.events
       eventLog.value.push(...result.events)
@@ -143,11 +265,13 @@ export const useGameStore = defineStore('game', () => {
     const guard = canDispatch(state.value, botPlayer, action)
     if (!guard.ok) {
       const result = reduce(state.value, botPlayer, { type: 'NEXT_PHASE' })
+      if (!result.ok) return
       state.value = result.state
       lastEvents.value = result.events
       eventLog.value.push(...result.events)
     } else {
       const result = reduce(state.value, botPlayer, action)
+      if (!result.ok) return
       state.value = result.state
       lastEvents.value = result.events
       eventLog.value.push(...result.events)
@@ -156,6 +280,8 @@ export const useGameStore = defineStore('game', () => {
     if (state.value && !state.value.winner && state.value.currentPlayer !== localPlayer.value) {
       setTimeout(() => runBotStep(), 200)
     }
+    scheduleAutoDrawIfNeeded()
+    scheduleAutoNextPhaseFromAction()
   }
 
   /** PVP 模式：任意玩家都可操作 */
@@ -231,6 +357,8 @@ export const useGameStore = defineStore('game', () => {
     localPlayer,
     pveMode,
     pendingIntimidateChoice,
+    detailBGId,
+    pendingSkill,
     eventLog,
     lastEvents,
     error,
@@ -255,5 +383,12 @@ export const useGameStore = defineStore('game', () => {
     selectZone,
     selectArea,
     resolveIntimidateChoice,
+    uiPending,
+    uiSelectedAllyId,
+    effectiveAllyId,
+    setPending,
+    clearPending,
+    deselectAlly,
+    confirmPending,
   }
 })

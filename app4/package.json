@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "sim": "npx tsx src/sim/report.ts",
     "sim:quick": "npx tsx src/sim/report.ts 50",
     "train": "npx tsx src/sim/train.ts",
@@ -16,6 +18,7 @@
   "dependencies": {
     "pinia": "^2.2.6",
     "tsx": "^4.21.0",
+    "vitest": "^4.1.2",
     "vue": "^3.5.30",
     "vue-router": "^4.2.5"
   },

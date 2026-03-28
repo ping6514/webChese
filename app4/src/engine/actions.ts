@@ -64,6 +64,7 @@ export type ReactionChoice = {
   reactionId: string
   triggerBGId: string
   // 威嚇反應：A(受傷) 或 B(退回)
+  intimidateBGId?: string       // 持有威嚇卡的守方 BG ID（讓 applyAttack 用正確的 attacker）
   intimidateChoice?: 'take_damage' | 'move_back'
   // 玉石俱焚：選擇目標
   mutualDestroyTargetId?: string

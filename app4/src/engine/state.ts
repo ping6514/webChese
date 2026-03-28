@@ -270,7 +270,7 @@ export function createInitialState(config?: GameConfig): GameState {
     bgs,
     players,
     brickAreas,
-    cityWalls: { p1: 5, p2: 5 },
+    cityWalls: { p1: 4, p2: 4 },
     bgActionsUsed: 0,
     bgActionsMax: 2,
     actingBGId: null,
@@ -306,7 +306,7 @@ export function getBrickArea(state: GameState, areaId: BrickAreaId): BrickArea {
 }
 
 export function hasBricks(state: GameState, areaId: BrickAreaId): boolean {
-  return state.brickAreas[areaId].slots.length > 0
+  return state.brickAreas[areaId].slots.some(s => !s.isBuilding)
 }
 
 /** 敵廣場磚堆是否阻止我方進入敵主堡 */

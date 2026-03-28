@@ -7,6 +7,7 @@ export type BGSkillDef = {
   name: string
   cd: number                  // 冷卻回合數（使用後需等 cd 回合才能再用）
   handCost?: number           // 使用時需捨棄的手牌數（S2=2）
+  needsTarget?: boolean       // 需要玩家手動選擇單體目標 BG（未標記 = 不需選）
   canUseWhenStunned?: boolean
   /** 可反擊：受攻擊時可觸發，閃避傷害並執行技能效果，但有額外成本 */
   counterattack?: {
@@ -105,7 +106,7 @@ export const allBGCards: BGCardDef[] = [
         description: '2回合內（可反擊）對敵+2，協助+1，堅韌+1，執行清磚動作時清磚+1',
       },
       {
-        id: 'dake_s2', name: '死亡重力炸彈', cd: 3, handCost: 2,
+        id: 'dake_s2', name: '死亡重力炸彈', cd: 3, handCost: 2, needsTarget: true,
         description: '（消耗2手牌）1回合後：區域內清磚2 & 攻城1，1回合後：區域內1位敵BG直接KO',
       },
     ],
@@ -136,11 +137,11 @@ export const allBGCards: BGCardDef[] = [
     hp: 3, attack: 2, support: 1,
     skills: [
       {
-        id: 'qiamo_s1', name: '一途', cd: 2,
+        id: 'qiamo_s1', name: '一途', cd: 2, needsTarget: true,
         description: '對區域內1位敵BG對敵2，1回合免疫第1次對敵',
       },
       {
-        id: 'qiamo_s2', name: '忌妒', cd: 2, handCost: 2,
+        id: 'qiamo_s2', name: '忌妒', cd: 2, handCost: 2, needsTarget: true,
         canUseWhenStunned: true,
         counterattack: { extraHandCost: 1 },
         description: '（消耗2手牌）1回合堅韌+2（可反擊），區域內1位敵BG對敵3，區域內清磚1',
@@ -273,7 +274,7 @@ export const allBGCards: BGCardDef[] = [
     hp: 3, attack: 2, support: 3,
     skills: [
       {
-        id: 'aoliwei_s1', name: '追蹤彈開火', cd: 2,
+        id: 'aoliwei_s1', name: '追蹤彈開火', cd: 2, needsTarget: true,
         description: '目標任意區域內1位敵BG：1回合後受到對敵3',
       },
       {

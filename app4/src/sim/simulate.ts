@@ -58,6 +58,7 @@ export function runGame(seed?: number, config?: Omit<GameConfig, 'rngSeed'>): Ga
         const endOk = canDispatch(state, player, { type: 'END_BG_ACTION' })
         if (endOk.ok) {
           const result = reduce(state, player, { type: 'END_BG_ACTION' })
+          if (!result.ok) break
           state = result.state
           actionsThisTurn = 0
           continue
@@ -67,6 +68,7 @@ export function runGame(seed?: number, config?: Omit<GameConfig, 'rngSeed'>): Ga
       const ok = canDispatch(state, player, { type: 'NEXT_PHASE' })
       if (ok.ok) {
         const result = reduce(state, player, { type: 'NEXT_PHASE' })
+        if (!result.ok) break
         state = result.state
       } else {
         break
@@ -86,12 +88,14 @@ export function runGame(seed?: number, config?: Omit<GameConfig, 'rngSeed'>): Ga
       const fallbackOk = canDispatch(state, player, fallback)
       if (!fallbackOk.ok) break
       const result = reduce(state, player, fallback)
+      if (!result.ok) break
       state = result.state
       actionsThisTurn = 0
       continue
     }
 
     const result = reduce(state, player, action)
+    if (!result.ok) break
     state = result.state
 
     // 統計事件

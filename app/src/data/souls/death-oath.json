@@ -201,14 +201,14 @@
       {
         "type": "UNIT_COUNT_ADVANTAGE_AURA",
         "scope": "global",
-        "margin": 2,
+        "margin": 1,
         "defBonus": [
           { "key": "phys", "value": 2 },
           { "key": "magic", "value": 2 }
         ]
       }
     ],
-    "text": "【血祭→連射】射擊前可消耗帥 2 HP，本回合可額外射擊一次（每回合限 1 次）。【盛勢】己方活著的單位數比敵方多 2 以上時，全體己方單位雙防 +2。"
+    "text": "【血祭→連射】射擊前可消耗帥 2 HP，本回合可額外射擊一次（每回合限 1 次）。【盛勢】己方活著的單位數多於敵方時，全體己方單位雙防 +2。"
   },
   {
     "id": "death_oath_elephant_jueyu",
@@ -227,8 +227,8 @@
     },
     "abilities": [
       { "type": "BLOOD_SACRIFICE", "hpCost": 2, "onActivate": { "type": "DAMAGE_BONUS", "amount": 3 } },
-      { "type": "UNIT_COUNT_UNDERDOG_AURA", "scope": "global", "margin": 2, "atkBonus": 2 }
+      { "type": "UNIT_COUNT_UNDERDOG_AURA", "scope": "global", "margin": 1, "atkBonus": 2 }
     ],
-    "text": "【血祭→傷害+3】射擊前可消耗帥 2 HP，本次傷害額外 +3。【逆勢】己方活著的單位數比敵方少 2 以上時，全體己方單位 ATK +2。"
+    "text": "【血祭→傷害+3】射擊前可消耗帥 2 HP，本次傷害額外 +3。【逆勢】己方活著的單位數少於敵方時，全體己方單位 ATK +2。"
   }
 ]

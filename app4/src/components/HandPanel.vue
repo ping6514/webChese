@@ -6,10 +6,18 @@
         v-for="(cardId, i) in hand"
         :key="i"
         class="hand-card"
-        :class="cardType(cardId)"
+        :class="[cardType(cardId), { 'discard-selected': isDiscardSelected(cardId, i), 'discard-mode': !!game.pendingSkill }]"
         :title="cardTooltip(cardId)"
-        @click="onCardClick(cardId)"
+        @click="onCardClick(cardId, i)"
       >
+        <div class="hand-card-art">
+          <img
+            :src="cardImageSrc(cardId)"
+            :alt="cardDisplayName(cardId)"
+            class="hand-card-img"
+            @error="(e) => (e.target as HTMLImageElement).style.display = 'none'"
+          />
+        </div>
         <span class="card-name">{{ cardDisplayName(cardId) }}</span>
         <span class="card-type-badge">{{ cardTypeLabel(cardId) }}</span>
       </div>
@@ -22,6 +30,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+// pendingSkill from store is needed for discard mode
 import { useGameStore } from '../stores/game'
 import { reactionById } from '../data/reactions'
 import { eventById } from '../data/events'
@@ -59,6 +68,13 @@ function cardTypeLabel(id: string): string {
   return '?'
 }
 
+function cardImageSrc(id: string): string {
+  if (reactionById[id]) return `/assets/cards/reaction/${id}.png`
+  if (eventById[id]) return `/assets/cards/event/${id}.png`
+  if (buildingById[id]) return `/assets/cards/building/${id}.png`
+  return ''
+}
+
 function cardTooltip(id: string): string {
   return reactionById[id]?.description
     ?? eventById[id]?.description
@@ -66,7 +82,26 @@ function cardTooltip(id: string): string {
     ?? id
 }
 
-function onCardClick(cardId: string) {
+function isDiscardSelected(cardId: string, index: number): boolean {
+  const ps = game.pendingSkill
+  if (!ps) return false
+  return ps.selected.includes(`${index}:${cardId}`)
+}
+
+function onCardClick(cardId: string, index: number = 0) {
+  // 棄牌選擇模式
+  if (game.pendingSkill) {
+    const ps = game.pendingSkill
+    const key = `${index}:${cardId}`
+    const idx = ps.selected.indexOf(key)
+    if (idx >= 0) {
+      ps.selected.splice(idx, 1)
+    } else if (ps.selected.length < ps.handCost) {
+      ps.selected.push(key)
+    }
+    return
+  }
+
   // PVE模式：Bot回合時不允許人類操作
   if (game.pveMode && cp.value !== game.localPlayer) return
 
@@ -100,11 +135,11 @@ function onCardClick(cardId: string) {
       return
     }
 
-    // 回家 — 選任意非KO BG
+    // 回家 — 只能選我方非KO BG
     if (cardId === 'go_home') {
-      const valid = Object.values(s.bgs).filter(bg => bg.state !== 'ko').map(bg => bg.id)
+      const valid = Object.values(s.bgs).filter(bg => bg.owner === p && bg.state !== 'ko').map(bg => bg.id)
       if (valid.length > 0)
-        game.requestBGSelection('選擇一位非KO的BG（回家：移到我方主堡並恢復正常）', valid, bgId =>
+        game.requestBGSelection('選擇一位我方非KO的BG（回家：移到我方主堡並恢復正常）', valid, bgId =>
           game.dispatchForCurrentPlayer({ type: 'PLAY_EVENT', cardId, params: { targetBGId: bgId } }))
       return
     }
@@ -199,11 +234,19 @@ function onCardClick(cardId: string) {
 .hand-title { font-size: 0.85rem; color: #7a6a58; margin-bottom: 0.5rem; }
 .hand-cards { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 60px; }
 .hand-card {
-  padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer;
+  padding: 0.3rem 0.4rem; border-radius: 6px; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
   transition: transform 0.15s; border: 1px solid #c0b5a5; min-width: 60px; color: #2a1f14;
 }
 .hand-card:hover { transform: translateY(-3px); border-color: #1a8090; }
+.hand-card.discard-mode { cursor: crosshair; }
+.hand-card.discard-mode:hover { border-color: #c04000; }
+.hand-card.discard-selected { border: 2px solid #c04000; background: #f8d8c8; transform: translateY(-4px); box-shadow: 0 0 8px rgba(192,64,0,0.5); }
+.hand-card-art {
+  width: 56px; height: 56px; overflow: hidden; border-radius: 4px;
+  background: #c8bfb0; display: flex; align-items: center; justify-content: center;
+}
+.hand-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .card-name { font-size: 0.7rem; text-align: center; }
 .card-type-badge { font-size: 0.6rem; opacity: 0.7; }
 .type-reaction { background: #d8e8d8; }

@@ -88,7 +88,18 @@
       "Bash(npm list:*)",
       "Bash(rmdir \"api/rooms/[roomId]\")",
       "Bash(rmdir \"api/rooms\")",
-      "Bash(grep -rn \"NEXT_PHASE\\\\|autoTurn\\\\|auto.*phase\\\\|dispatch.*NEXT\" \"d:/workspace/webChese/app/src/\" --include=\"*.{ts,vue}\")"
+      "Bash(grep -rn \"NEXT_PHASE\\\\|autoTurn\\\\|auto.*phase\\\\|dispatch.*NEXT\" \"d:/workspace/webChese/app/src/\" --include=\"*.{ts,vue}\")",
+      "Bash(wc -l /d/workspace/webChese/app4/src/engine/*.ts /d/workspace/webChese/app4/src/data/*.ts)",
+      "Bash(grep -r \"TODO\\\\|FIXME\\\\|XXX\\\\|STUB\\\\|WIP\" /d/workspace/webChese/app4/src --include=*.ts --include=*.vue)",
+      "Bash(wc -l /d/workspace/webChese/app4/src/components/*.vue /d/workspace/webChese/app4/src/views/*.vue)",
+      "Bash(wc -l /d/workspace/webChese/app4/src/engine/*.ts)",
+      "Bash(do wc:*)",
+      "Bash(wc -l /d/workspace/webChese/app4/src/data/*.ts)",
+      "Bash(grep -n \"mobile\\\\|responsive\\\\|breakpoint\" /d/workspace/webChese/app4/src/views/*.vue /d/workspace/webChese/app4/src/components/*.vue)",
+      "Bash(\"d:/workspace/webChese/BG卡片完善計畫.md\":*)",
+      "Bash(grep -r \"splash\\\\|announce\\\\|phase.*text\" /d/workspace/webChese/app/src --include=*.vue --include=*.ts)",
+      "Bash(grep -r \"Transition\\\\|@keyframes\\\\|animation:\" /d/workspace/webChese/app/src/views --include=*.vue)",
+      "Bash(grep -r \"enter-active\\\\|leave-active\\\\|enter-from\\\\|leave-to\" /d/workspace/webChese/app/src --include=*.vue)"
     ]
   }
 }

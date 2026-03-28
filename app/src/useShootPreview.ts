@@ -21,7 +21,17 @@ export function useShootPreview(opts: { getState: () => GameState }) {
 
   const spendGoldForDamage = ref(false)
   const sacrificeHp = ref(false)
-  watch(shootPreview, () => { spendGoldForDamage.value = false; sacrificeHp.value = false })
+  watch(shootPreview, (newVal, oldVal) => {
+    // 只有在開啟新射擊預覽時才重置（攻擊方或主目標改變）
+    // 單純更新 extraTargetUnitId（連鎖/貫穿目標選擇）不重置 toggles
+    const sameSession = newVal && oldVal &&
+      newVal.attackerId === oldVal.attackerId &&
+      newVal.targetUnitId === oldVal.targetUnitId
+    if (!sameSession) {
+      spendGoldForDamage.value = false
+      sacrificeHp.value = false
+    }
+  })
 
   function translateGuardReason(reason: string): string {
     const r = String(reason ?? '')

@@ -5,7 +5,7 @@ import { createInitialState } from '../engine/state'
 import { reduce } from '../engine/reduce'
 import { canDispatch } from '../engine/guards'
 import type { GameState } from '../engine/state'
-import type { Action } from '../engine/types'
+import type { Action } from '../engine/actions'
 import type { PlayerId } from '../engine/types'
 import { botDecide, continueActingBG } from './bot'
 import { DYNAMIC_WEIGHTS } from './botWeights'
@@ -34,10 +34,10 @@ function runGame(seed: number, p1W: BotWeights, p2W: BotWeights): 'p1' | 'p2' | 
     if (actionsThisTurn > MAX_ACTIONS_PER_TURN) {
       if (state.actingBGId) {
         const ok = canDispatch(state, player, { type: 'END_BG_ACTION' })
-        if (ok.ok) { state = reduce(state, player, { type: 'END_BG_ACTION' }).state; actionsThisTurn = 0; continue }
+        if (ok.ok) { const _r = reduce(state, player, { type: 'END_BG_ACTION' }); if (!_r.ok) break; state = _r.state; actionsThisTurn = 0; continue }
       }
       const ok = canDispatch(state, player, { type: 'NEXT_PHASE' })
-      if (ok.ok) { state = reduce(state, player, { type: 'NEXT_PHASE' }).state; actionsThisTurn = 0 }
+      if (ok.ok) { const _r = reduce(state, player, { type: 'NEXT_PHASE' }); if (!_r.ok) break; state = _r.state; actionsThisTurn = 0 }
       else break
       continue
     }
@@ -56,11 +56,11 @@ function runGame(seed: number, p1W: BotWeights, p2W: BotWeights): 'p1' | 'p2' | 
     if (!guard.ok) {
       const fallback: Action = { type: 'NEXT_PHASE' }
       if (!canDispatch(state, player, fallback).ok) break
-      state = reduce(state, player, fallback).state
+      const _rf = reduce(state, player, fallback); if (!_rf.ok) break; state = _rf.state
       actionsThisTurn = 0
       continue
     }
-    state = reduce(state, player, action).state
+    const _ra = reduce(state, player, action); if (!_ra.ok) break; state = _ra.state
     if (state.turn !== prevTurn) actionsThisTurn = 0
   }
 

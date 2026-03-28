@@ -113,14 +113,19 @@ function runTrainingGame(
       if (state.actingBGId) {
         const endOk = canDispatch(state, player, { type: 'END_BG_ACTION' })
         if (endOk.ok) {
-          state = reduce(state, player, { type: 'END_BG_ACTION' }).state
+          const _r = reduce(state, player, { type: 'END_BG_ACTION' })
+          if (!_r.ok) break
+          state = _r.state
           actionsThisTurn = 0
           continue
         }
       }
       const ok = canDispatch(state, player, { type: 'NEXT_PHASE' })
-      if (ok.ok) state = reduce(state, player, { type: 'NEXT_PHASE' }).state
-      else break
+      if (ok.ok) {
+        const _r = reduce(state, player, { type: 'NEXT_PHASE' })
+        if (!_r.ok) break
+        state = _r.state
+      } else break
       actionsThisTurn = 0
       continue
     }
@@ -155,12 +160,16 @@ function runTrainingGame(
     if (!guard.ok) {
       const fallback: Action = { type: 'NEXT_PHASE' }
       if (!canDispatch(state, player, fallback).ok) break
-      state = reduce(state, player, fallback).state
+      const _rf = reduce(state, player, fallback)
+      if (!_rf.ok) break
+      state = _rf.state
       actionsThisTurn = 0
       continue
     }
 
-    state = reduce(state, player, action).state
+    const _ra = reduce(state, player, action)
+    if (!_ra.ok) break
+    state = _ra.state
     if (state.turn !== prevTurn) actionsThisTurn = 0
   }
 

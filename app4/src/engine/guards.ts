@@ -56,7 +56,8 @@ function canPlaceBrick(state: GameState, player: PlayerId, areaId: BrickAreaId):
   // 城牆歸零後主堡磚不可再補（讓敵方可完成攻城）
   if (areaId.endsWith('_base') && state.cityWalls[player] === 0) return fail('城牆已歸零，主堡磚堆無法再補充')
   const area = state.brickAreas[areaId]
-  if (area.slots.length >= area.maxSlots) return fail('磚堆區已滿')
+  const brickCount = area.slots.filter(s => !s.isBuilding).length
+  if (brickCount >= area.maxSlots) return fail('磚堆區已滿')
   const ps = state.players[player]
   if (ps.deck.length === 0 && ps.graveyard.length === 0) return fail('牌組和墓地都沒有牌')
   return OK
@@ -74,7 +75,7 @@ function canPlayBuilding(state: GameState, player: PlayerId, cardId: string, are
   const areaType = areaId.endsWith('plaza') ? 'plaza' : 'base'
   if (!def.placeable.includes(areaType)) return fail(`${def.name} 不能放在此區域`)
   const area = state.brickAreas[areaId]
-  if (area.slots.length >= area.maxSlots) return fail('磚堆區已滿')
+  if (area.slots.some(s => s.isBuilding && s.cardId === cardId)) return fail(`${def.name} 已在此區域，不能重複放置`)
   const hand = state.players[player].hand
   if (!hand.includes(cardId)) return fail('手牌中沒有此建築卡')
   return OK
@@ -131,8 +132,8 @@ function canMoveBG(state: GameState, player: PlayerId, toZone: ZoneId, ignoreBlo
   if (Math.abs(fromIdx - toIdx) > 1) return fail('只能移動到相鄰區域')
   if (fromIdx === toIdx) return OK  // 留在原地
 
-  // 磚堆阻擋（移向敵方主堡時受阻；freeMovePending 無視阻擋）
-  if (!ignoreBlock && !bg.freeMovePending) {
+  // 磚堆阻擋（移向敵方主堡時受阻；靈動的 freeMovePending 不跳過磚堆阻擋）
+  if (!ignoreBlock) {
     const enemy = opponentOf(player)
     const enemyBase = homeZone(enemy)
     if (toZone === enemyBase && bg.zone === 'plaza') {
@@ -159,6 +160,7 @@ function canUseSkill(state: GameState, player: PlayerId, skillIndex: 0 | 1, from
     if (ally.owner !== player) return fail('只能讓自己的 BG 施放技能')
     if (ally.zone !== actingBG.zone) return fail('聯合技能施放者必須與行動 BG 在同一區域')
     if (ally.state === 'ko') return fail('KO 狀態的 BG 無法施放技能')
+    if (ally.actedThisPhase) return fail('此 BG 本回合已行動過，不能作為聯合對象')
     if (ally.usedSkillThisAction) return fail('聯合 BG 本次行動已使用過技能')
     // 若已宣告聯合 ally，必須使用同一個
     if (state.jointAllyId && state.jointAllyId !== fromBGId) return fail('聯合對象已鎖定，不能更換')
@@ -183,6 +185,7 @@ function canDoAttack(state: GameState, player: PlayerId, targetBGId: string, all
   const bgId = state.actingBGId
   if (!bgId) return fail('沒有 BG 正在行動')
   const bg = state.bgs[bgId]
+  if (bg.state === 'stunned') return fail('暈眩狀態的 BG 無法執行對敵')
   if (bg.doneNormalAction) return fail('本次行動已執行過通常動作')
   const target = state.bgs[targetBGId]
   if (!target) return fail('找不到目標 BG')
@@ -191,6 +194,13 @@ function canDoAttack(state: GameState, player: PlayerId, targetBGId: string, all
   if (target.zone !== bg.zone) return fail('目標不在同一區域')
   // 若已透過 USE_SKILL(fromBGId) 宣告聯合 ally，攻擊必須帶上同一個 ally
   if (state.jointAllyId && allyId !== state.jointAllyId) return fail('已宣告聯合對象，此次攻擊必須帶上該聯合 BG')
+  if (allyId) {
+    const ally = state.bgs[allyId]
+    if (!ally || ally.owner !== player) return fail('ally 不屬於你')
+    if (ally.state === 'stunned' || ally.state === 'ko') return fail('暈眩/KO 狀態的 BG 不能作為聯合攻擊隊友')
+    if (ally.actedThisPhase) return fail('此 BG 本回合已行動過，不能作為聯合對象')
+    if (ally.zone !== state.bgs[bgId!]?.zone) return fail('聯合對象必須在同一區域')
+  }
   return OK
 }
 
@@ -200,6 +210,7 @@ function canDoClearBrick(state: GameState, player: PlayerId, areaId: BrickAreaId
   const bgId = state.actingBGId
   if (!bgId) return fail('沒有 BG 正在行動')
   const bg = state.bgs[bgId]
+  if (bg.state === 'stunned') return fail('暈眩狀態的 BG 無法執行清磚')
   if (bg.doneNormalAction) return fail('本次行動已執行過通常動作')
 
   // 只能清除敵方磚堆
@@ -237,6 +248,7 @@ function canDoSiege(state: GameState, player: PlayerId): GuardResult {
   const bgId = state.actingBGId
   if (!bgId) return fail('沒有 BG 正在行動')
   const bg = state.bgs[bgId]
+  if (bg.state === 'stunned') return fail('暈眩狀態的 BG 無法攻城')
   if (bg.doneNormalAction) return fail('本次行動已執行過通常動作')
   if (bg.zone !== frontZone(player)) return fail('只有在敵主堡區才能攻城')
   if (isSiegeBlocked(state, player)) return fail('敵方主堡磚堆阻止攻城')

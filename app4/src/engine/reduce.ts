@@ -20,14 +20,13 @@ import { makeEvent } from './events'
 // 深拷貝（簡單版）
 function clone<T>(x: T): T { return JSON.parse(JSON.stringify(x)) }
 
-export type ReduceResult = {
-  state: GameState
-  events: GameEvent[]
-}
+export type ReduceOk  = { ok: true;  state: GameState; events: GameEvent[] }
+export type ReduceErr = { ok: false; error: string }
+export type ReduceResult = ReduceOk | ReduceErr
 
 export function reduce(state: GameState, player: PlayerId, action: Action): ReduceResult {
   const guard = canDispatch(state, player, action)
-  if (!guard.ok) throw new Error(`非法行動 [${action.type}]: ${guard.reason}`)
+  if (!guard.ok) return { ok: false, error: `非法行動 [${action.type}]: ${guard.reason}` }
 
   const s = clone(state) as GameState
   const events: GameEvent[] = []
@@ -45,6 +44,7 @@ export function reduce(state: GameState, player: PlayerId, action: Action): Redu
       const card = drawCard(s.players[player], rng)
       s.drawActionsUsed++
       if (card) {
+        s.players[player].hand.push(card)
         emit(makeEvent('draw_card', { player, card }))
       }
       break
@@ -304,9 +304,11 @@ export function reduce(state: GameState, player: PlayerId, action: Action): Redu
     case 'RESOLVE_REACTION': {
       const { choice } = action
       if (choice.reactionId === 'intimidate' && choice.intimidateChoice) {
-        const triggerBG = s.bgs[choice.triggerBGId]
+        const triggerBG = s.bgs[choice.triggerBGId]   // 移動的 BG（受害者）
+        const intimidateBG = choice.intimidateBGId ? s.bgs[choice.intimidateBGId] : null  // 持有威嚇卡的 BG（攻擊方）
         if (choice.intimidateChoice === 'take_damage') {
-          applyAttack(s, opponentOf(player), triggerBG, triggerBG, 4, events)
+          // 用威嚇 BG 作為正式 attacker，避免 triggerBG 對自己觸發反擊
+          applyAttack(s, opponentOf(player), intimidateBG ?? triggerBG, triggerBG, 4, events)
         } else {
           // B: 退回移動前的位置（往自方方向退一格）
           const currentZone = triggerBG.zone
@@ -329,20 +331,20 @@ export function reduce(state: GameState, player: PlayerId, action: Action): Redu
   // 檢查勝利條件（已在 DO_SIEGE 中處理，這裡為保底）
   if (!s.winner) checkWinCondition(s)
 
-  return { state: s, events }
+  return { ok: true, state: s, events }
 }
 
 // ── 階段推進 ─────────────────────────────────────
 
-type PhaseSeq = 'draw' | 'main' | 'action' | 'react' | 'end'
+type PhaseSeq = 'draw' | 'main' | 'action' | 'react'
 
 function advancePhase(s: GameState, player: PlayerId, events: GameEvent[]) {
-  const phaseOrder: PhaseSeq[] = ['draw', 'main', 'action', 'react', 'end']
+  const phaseOrder: PhaseSeq[] = ['draw', 'main', 'action', 'react']
 
   const currentIdx = phaseOrder.indexOf(s.phase)
   const next = phaseOrder[currentIdx + 1]
 
-  if (!next || s.phase === 'end') {
+  if (!next || s.phase === 'react') {
     // 交給下一個玩家
     const nextPlayer = opponentOf(player)
     s.currentPlayer = nextPlayer
@@ -541,8 +543,8 @@ function applyAttack(
     return
   }
 
-  if (finalValue > hpBefore) {
-    // 暈眩
+  if (finalValue >= hpBefore) {
+    // 暈眩（傷害 >= 剩餘堅韌則暈眩）
     target.hpCurrent = 0
     triggerStun(s, attacker, target, events)
     // 愛的輪迴：技能造成暈眩時直接 KO
@@ -602,7 +604,7 @@ function tryCounterattack(
 
 function triggerStun(s: GameState, attackerPlayer: PlayerId, target: BGInstance, events: GameEvent[]) {
   target.state = 'stunned'
-  target.recoveryCountdown = 1
+  target.recoveryCountdown = 2  // 2 → owner turn 1: 2→1 (miss full turn); owner turn 2: 1→0 (recover)
 
   // 玉石俱焚反應
   if (target.reactionCard === 'mutual_destruction') {
@@ -1072,11 +1074,12 @@ function applySkillEffect(
       const fromGrave = ps.graveyard.findIndex(id => id === 'mob_group')
       const brickArea = getBrickAreaForZone(bg.zone, player, 'place')
       const area = s.brickAreas[brickArea]
-      if (fromDeck >= 0 && area.slots.length < area.maxSlots) {
+      const noMobYet = !area.slots.some(sl => sl.isBuilding && sl.cardId === 'mob_group')
+      if (noMobYet && fromDeck >= 0) {
         ps.deck.splice(fromDeck, 1)
         area.slots.push({ cardId: 'mob_group', isBuilding: true })
         events.push(makeEvent('skill_effect', { bgId: bg.id, detail: '召喚僕人（牌組）' }))
-      } else if (fromGrave >= 0 && area.slots.length < area.maxSlots) {
+      } else if (noMobYet && fromGrave >= 0) {
         ps.graveyard.splice(fromGrave, 1)
         area.slots.push({ cardId: 'mob_group', isBuilding: true })
         events.push(makeEvent('skill_effect', { bgId: bg.id, detail: '召喚僕人（墓地）' }))
@@ -1233,7 +1236,7 @@ function repairWall(s: GameState, player: PlayerId, amount: number, events: Game
 function addBrickToZone(s: GameState, player: PlayerId, zone: ZoneId, events: GameEvent[]) {
   const areaId = getBrickAreaForZone(zone, player, 'place')
   const area = s.brickAreas[areaId]
-  if (area.slots.length >= area.maxSlots) return
+  if (area.slots.filter(s => !s.isBuilding).length >= area.maxSlots) return
   const ps = s.players[player]
   const rng = makeRNG(s)
   if (ps.deck.length === 0) {
