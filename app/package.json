@@ -19,7 +19,7 @@
     "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
+    "peerjs": "^1.5.5",
     "pinia": "^3.0.3",
     "vue": "^3.5.25",
     "vue-router": "^4.5.1"

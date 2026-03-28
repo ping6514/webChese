@@ -1,361 +1,339 @@
 import { defineStore } from 'pinia'
-import { supabase } from '../lib/supabaseClient'
+import Peer, { type DataConnection } from 'peerjs'
 import type { GameState } from '../engine'
+import { createInitialState, canDispatch, reduce } from '../engine'
 
-let detachLifecycleHandlers: (() => void) | null = null
-let activeAdapter: SyncAdapter | null = null  // kept outside Pinia to avoid reactive wrapping
-
-// ─── SyncAdapter interface ─────────────────────────────────────────────────
-
-type SyncAdapter = {
-  start(onTick: () => void): void
-  stop(): void
-  nudge?(): void   // hint to re-evaluate interval immediately
-}
-
-// Strategy 1: Realtime version ping (tiny payload, low Realtime message cost)
-function makeRealtimeAdapter(roomId: string, getLocalVersion: () => number): SyncAdapter {
-  let channel: ReturnType<typeof supabase.channel> | null = null
-  return {
-    start(onTick) {
-      channel = supabase
-        .channel(`room-${roomId}`)
-        .on(
-          'postgres_changes' as any,
-          { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
-          (payload: any) => {
-            if ((payload.new?.version ?? 0) > getLocalVersion()) onTick()
-          },
-        )
-        .subscribe()
-    },
-    stop() {
-      if (channel) {
-        supabase.removeChannel(channel)
-        channel = null
-      }
-    },
-  }
-}
-
-// Strategy 4: Adaptive polling — fast when waiting for opponent, slow on own turn
-// getIsWaitingForOpponent: () => boolean drives the interval switching
-function makeAdaptivePollingAdapter(
-  getIsWaitingForOpponent: () => boolean,
-  fastMs = 10000,
-  slowMs = 30000,
-): SyncAdapter {
-  let timer: ReturnType<typeof setInterval> | null = null
-  let currentFast = false
-  let onTickFn: (() => void) | null = null
-
-  function reschedule() {
-    const shouldBeFast = getIsWaitingForOpponent()
-    if (shouldBeFast === currentFast && timer !== null) return
-    if (timer) clearInterval(timer)
-    currentFast = shouldBeFast
-    timer = setInterval(() => {
-      onTickFn?.()
-      reschedule() // re-evaluate interval after each tick
-    }, shouldBeFast ? fastMs : slowMs)
-  }
-
-  return {
-    start(onTick) {
-      onTickFn = onTick
-      reschedule()
-    },
-    stop() {
-      if (timer) { clearInterval(timer); timer = null }
-      onTickFn = null
-    },
-    nudge() { reschedule() },
-  }
-}
-
-
-// ─── Connection store ──────────────────────────────────────────────────────
-
-export type SyncMode = 'realtime' | 'polling'
 export type ConnStatus = 'idle' | 'connecting' | 'waiting' | 'playing' | 'error'
+
+// ── Message protocol ───────────────────────────────────────────────────────
+
+type MsgInit   = { type: 'init';  side: 'red' | 'black'; state: GameState; version: number }
+type MsgAck    = { type: 'ack';   state: GameState; events: unknown[]; version: number }
+type MsgPush   = { type: 'push';  state: GameState; events: unknown[]; version: number }
+type MsgError  = { type: 'error'; reason: string; code?: string }
+type MsgAction = { type: 'action'; action: unknown }
+
+type HostMsg = MsgInit | MsgAck | MsgPush | MsgError
+type GuestMsg = MsgAction
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+const ALL_CLANS = ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']
+
+const PEER_CONFIG = {
+  config: {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:global.stun.twilio.com:3478' },
+    ],
+  },
+}
+
+// ── Module-level state (not reactive) ─────────────────────────────────────
+// Kept outside Pinia to avoid Vue reactive wrapping overhead
+
+let _peer: Peer | null = null
+let _conn: DataConnection | null = null
+let _isHost = false
+let _pendingActionResolve: ((r: { ok: boolean; error?: string; code?: string }) => void) | null = null
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function genId(len = 6): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let out = ''
+  for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)]
+  return out
+}
+
+// ── Store ──────────────────────────────────────────────────────────────────
 
 export const useConnection = defineStore('connection', {
   state: () => ({
-    status: 'idle' as ConnStatus,
-    isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
-    roomId: null as string | null,
-    side: null as 'red' | 'black' | null,
-    secret: null as string | null,
-    syncMode: 'realtime' as SyncMode,
-    localVersion: -1,
-    _myActionVersion: -1,          // version written by MY last sendAction (to suppress duplicate pollEvents)
-    gameState: null as GameState | null,
-    lastEvents: [] as unknown[],
-    pollEvents: [] as unknown[],   // events from opponent (via polling)
-    _suppressPollEvents: false,
-    _fetchInFlight: false,
-    _pendingFetch: false,          // a fetch was requested while one was already in-flight
-    isSyncing: false,
+    status:          'idle' as ConnStatus,
+    roomId:          null as string | null,
+    side:            null as 'red' | 'black' | null,
+    gameState:       null as GameState | null,
+    lastEvents:      [] as unknown[],
+    pollEvents:      [] as unknown[],
     isSendingAction: false,
-    errorMsg: null as string | null,
+    isSyncing:       false,
+    errorMsg:        null as string | null,
+    localVersion:    -1,
+    isOffline:       typeof navigator !== 'undefined' ? !navigator.onLine : false,
   }),
 
   actions: {
-    // ── Create a new room ────────────────────────────────────────────────
-    async createRoom(enabledClans: string[] = ['dark_moon', 'styx', 'eternal_night', 'iron_guard', 'gold_merc', 'death_oath']) {
-      this.status = 'connecting'
+    // ── Create room (Host) ──────────────────────────────────────────────────
+    async createRoom(enabledClans: string[] = ALL_CLANS): Promise<string | null> {
+      this._cleanup()
+      this.status   = 'connecting'
       this.errorMsg = null
-      const MAX_RETRIES = 3
-      let lastErr = '建立房間失敗'
-      for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-        if (attempt > 0) await new Promise(r => setTimeout(r, 1200 * attempt))
-        let res: Response
-        try {
-          res = await fetch('/api/rooms/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ enabledClans }),
+      _isHost = true
+
+      const mySide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
+      const firstSide: 'red' | 'black' = Math.random() < 0.5 ? 'red' : 'black'
+      this.side = mySide
+
+      const safeClans = enabledClans.filter(c => ALL_CLANS.includes(c))
+      const initial = createInitialState({
+        rules: { firstSide, enabledClans: safeClans.length ? safeClans : ALL_CLANS } as any,
+      })
+      this.gameState    = initial
+      this.localVersion = 0
+
+      const tryCreate = (id: string): Promise<string | null> =>
+        new Promise((resolve) => {
+          const p = new Peer(id, PEER_CONFIG)
+          _peer = p
+
+          p.on('open', () => {
+            this.roomId = id
+            this.status = 'waiting'
+            this._persist()
+            resolve(id)
           })
-        } catch (e) {
-          lastErr = e instanceof Error ? e.message : '網路錯誤，請檢查連線'
-          continue
-        }
-        if (!res.ok) {
-          const errBody = await res.json().catch(() => ({}))
-          lastErr = errBody.error ?? `伺服器錯誤 (${res.status})`
-          continue
-        }
-        const data = await res.json()
-        this.roomId = data.roomId
-        this.side = data.side
-        this.secret = data.secret
-        this._persist()
-        await this._fetchState()
-        this._startAdapter()
-        this.attachLifecycleHandlers()
-        this.status = 'waiting'
-        return data.roomId as string
-      }
-      this.errorMsg = lastErr
-      this.status = 'error'
-      return null
-    },
 
-    // ── Join an existing room (become black) ────────────────────────────
-    async joinRoom(roomId: string) {
-      this.status = 'connecting'
-      this.errorMsg = null
-      const res = await fetch(`/api/rooms/${roomId}/join`, { method: 'POST' })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Unknown error' }))
-        this.errorMsg = err.error ?? 'Failed to join room'
-        this.status = 'error'
-        return false
-      }
-      const data = await res.json()
-      this.roomId = data.roomId
-      this.side = data.side
-      this.secret = data.secret
-      this._persist()
-      await this._fetchState()
-      this._startAdapter()
-      this.attachLifecycleHandlers()
-      this.status = 'playing'
-      return true
-    },
+          p.on('error', (err: any) => {
+            if (err.type === 'unavailable-id') {
+              p.destroy()
+              tryCreate(genId(6)).then(resolve)
+            } else {
+              this.errorMsg = `建立失敗: ${err.message}`
+              this.status   = 'error'
+              resolve(null)
+            }
+          })
 
-    // ── Reconnect from localStorage ─────────────────────────────────────
-    async reconnect() {
-      const saved = localStorage.getItem('chess_connection')
-      if (!saved) return false
-      const { roomId, side, secret } = JSON.parse(saved) as {
-        roomId: string
-        side: 'red' | 'black'
-        secret: string
-      }
-      this.roomId = roomId
-      this.side = side
-      this.secret = secret
-      await this._fetchState()
-      this._startAdapter()
-      this.attachLifecycleHandlers()
-      return true
-    },
-
-    // ── Send an action to the server ────────────────────────────────────
-    async sendAction(action: unknown) {
-      if (!this.roomId || !this.secret || !this.side) return { ok: false, error: 'Not connected' }
-      if (this.isSendingAction || this.isSyncing) return { ok: false, error: '同步中，請稍候' }
-      // Suppress pollEvents for the entire request window so Realtime can't fire
-      // during the fetch and double-process our own events
-      this._suppressPollEvents = true
-      this.isSendingAction = true
-      try {
-        const res = await fetch(`/api/rooms/${this.roomId}/action`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, secret: this.secret, side: this.side }),
+          // Guest connects
+          p.on('connection', (c) => {
+            _conn = c
+            c.on('open', () => {
+              const guestSide = mySide === 'red' ? 'black' : 'red'
+              c.send({ type: 'init', side: guestSide, state: this.gameState!, version: this.localVersion } as MsgInit)
+              this.status = 'playing'
+            })
+            c.on('data',  (data) => this._onGuestData(data as GuestMsg))
+            c.on('close', () => { this.errorMsg = '對手已斷線' })
+            c.on('error', (err: any) => { this.errorMsg = `連線錯誤: ${err.message}` })
+          })
         })
-        const data = await res.json()
-        if (!res.ok) {
-          // Await resync before returning so _suppressPollEvents is still true
-          // during the fetch — prevents stale pollEvents from being double-processed
-          await this._fetchState()
-          return {
-            ok: false,
-            error: data.error,
-            code: data.code,
-            currentVersion: data.currentVersion,
+
+      return tryCreate(genId(6))
+    },
+
+    // ── Join room (Guest) ───────────────────────────────────────────────────
+    async joinRoom(roomId: string): Promise<boolean> {
+      this._cleanup()
+      this.status   = 'connecting'
+      this.errorMsg = null
+      _isHost = false
+
+      return new Promise((resolve) => {
+        const p = new Peer(PEER_CONFIG as any)
+        _peer = p
+
+        let resolved = false
+
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true
+            this.errorMsg = '連線逾時，請確認房間碼是否正確'
+            this.status   = 'error'
+            resolve(false)
           }
-        }
-        this.lastEvents = data.events ?? []
-        this._myActionVersion = data.version
-        this.localVersion = data.version
-        await this._fetchState()
-        return { ok: true }
-      } finally {
+        }, 15000)
+
+        p.on('open', () => {
+          const c = p.connect(roomId, { reliable: true })
+          _conn = c
+
+          c.on('data', (data) => {
+            const msg = data as HostMsg
+            if (!resolved && msg.type === 'init') {
+              resolved = true
+              clearTimeout(timeout)
+              this.side         = msg.side
+              this.gameState    = msg.state
+              this.localVersion = msg.version
+              this.roomId       = roomId
+              this.status       = 'playing'
+              this._persist()
+              resolve(true)
+            } else {
+              this._onHostData(msg)
+            }
+          })
+
+          c.on('close', () => {
+            if (!resolved) {
+              resolved = true
+              clearTimeout(timeout)
+              this.errorMsg = '房間不存在或已關閉'
+              this.status   = 'error'
+              resolve(false)
+            } else {
+              this.errorMsg = '對手已斷線'
+            }
+          })
+
+          c.on('error', (err: any) => {
+            if (!resolved) {
+              resolved = true
+              clearTimeout(timeout)
+              this.errorMsg = `連線錯誤: ${err.message}`
+              this.status   = 'error'
+              resolve(false)
+            }
+          })
+        })
+
+        p.on('error', (err: any) => {
+          if (!resolved) {
+            resolved = true
+            clearTimeout(timeout)
+            this.errorMsg = `連線錯誤: ${err.message}`
+            this.status   = 'error'
+            resolve(false)
+          }
+        })
+      })
+    },
+
+    // ── Send action ─────────────────────────────────────────────────────────
+    async sendAction(action: unknown): Promise<{ ok: boolean; error?: string; code?: string }> {
+      if (!this.side || !this.gameState) return { ok: false, error: 'Not connected' }
+      if (this.isSendingAction)          return { ok: false, error: '同步中，請稍候' }
+
+      if (_isHost) {
+        return this._hostProcess(action, false)
+      }
+
+      // Guest: send to Host, await ack or error
+      if (!_conn?.open) return { ok: false, error: '連線已斷開' }
+      this.isSendingAction = true
+
+      return new Promise((resolve) => {
+        _pendingActionResolve = resolve
+        _conn!.send({ type: 'action', action } as GuestMsg)
+
+        setTimeout(() => {
+          if (_pendingActionResolve === resolve) {
+            _pendingActionResolve    = null
+            this.isSendingAction     = false
+            resolve({ ok: false, error: '等待回應逾時' })
+          }
+        }, 10000)
+      })
+    },
+
+    // ── Host: validate + reduce, then broadcast ─────────────────────────────
+    _hostProcess(action: unknown, fromGuest: boolean): { ok: boolean; error?: string; code?: string } {
+      const guard = canDispatch(this.gameState!, action as any)
+      if (!guard.ok) {
+        if (fromGuest && _conn?.open)
+          _conn.send({ type: 'error', reason: guard.reason } as MsgError)
+        return { ok: false, error: guard.reason }
+      }
+
+      const result = reduce(this.gameState!, action as any)
+      if (!result.ok) {
+        if (fromGuest && _conn?.open)
+          _conn.send({ type: 'error', reason: result.error } as MsgError)
+        return { ok: false, error: result.error }
+      }
+
+      this.gameState    = result.state
+      this.localVersion++
+
+      if (fromGuest) {
+        // Opponent acted → Host's pollEvents
+        this.pollEvents  = result.events
+        this.lastEvents  = []
+        _conn?.open && _conn.send({
+          type: 'ack', state: result.state, events: result.events, version: this.localVersion,
+        } as MsgAck)
+      } else {
+        // Host's own action
+        this.lastEvents  = result.events
+        this.pollEvents  = []
+        _conn?.open && _conn.send({
+          type: 'push', state: result.state, events: result.events, version: this.localVersion,
+        } as MsgPush)
+      }
+
+      return { ok: true }
+    },
+
+    // ── Guest receives data from Host ───────────────────────────────────────
+    _onHostData(msg: HostMsg) {
+      if (msg.type === 'ack') {
+        this.gameState       = msg.state
+        this.lastEvents      = msg.events   // my action's events
+        this.pollEvents      = []
+        this.localVersion    = msg.version
+        const resolve        = _pendingActionResolve
+        _pendingActionResolve = null
         this.isSendingAction = false
-        this._suppressPollEvents = false
+        resolve?.({ ok: true })
+      } else if (msg.type === 'push') {
+        // Host's own action → Guest's pollEvents
+        this.gameState    = msg.state
+        this.pollEvents   = msg.events
+        this.lastEvents   = []
+        this.localVersion = msg.version
+      } else if (msg.type === 'error') {
+        const resolve        = _pendingActionResolve
+        _pendingActionResolve = null
+        this.isSendingAction = false
+        resolve?.({ ok: false, error: msg.reason, code: msg.code })
       }
     },
 
-    // ── Switch sync mode on the fly ─────────────────────────────────────
-    setSyncMode(mode: SyncMode) {
-      this.syncMode = mode
-      if (this.roomId) {
-        this._stopAdapter()
-        this._startAdapter()
+    // ── Host receives data from Guest ───────────────────────────────────────
+    _onGuestData(msg: GuestMsg) {
+      if (msg.type === 'action') {
+        this._hostProcess(msg.action, true)
       }
     },
 
-    // ── Disconnect ───────────────────────────────────────────────────────
+    // ── Disconnect ──────────────────────────────────────────────────────────
     disconnect() {
-      this._stopAdapter()
-      this.detachLifecycleHandlers()
-      this.status = 'idle'
-      this.isOffline = false
-      this.roomId = null
-      this.side = null
-      this.secret = null
-      this.gameState = null
-      this.localVersion = -1
-      this.isSyncing = false
-      this.isSendingAction = false
+      this._cleanup()
+      this.$reset()
       localStorage.removeItem('chess_connection')
     },
 
-    // ── Internal ─────────────────────────────────────────────────────────
-    async _fetchState() {
-      if (!this.roomId) return
-      if (this._fetchInFlight) {
-        // Don't silently drop: mark pending so we retry after current fetch completes
-        this._pendingFetch = true
-        return
-      }
-      this._fetchInFlight = true
-      this.isSyncing = true
-      try {
-        const url = `/api/rooms/${this.roomId}/state?since=${this.localVersion}`
-        const res = await fetch(url)
-        if (res.status === 304) return // already latest
-        if (!res.ok) return
-        const data = await res.json()
-        // Strip internal _lastEvents from game state; expose via pollEvents instead
-        const rawEvents: unknown[] = (data.state as any)?._lastEvents ?? []
-        const cleanState = { ...data.state }
-        delete (cleanState as any)._lastEvents
-        this.gameState = cleanState
-        this.pollEvents = (this._suppressPollEvents || data.version === this._myActionVersion) ? [] : rawEvents
-        this.localVersion = data.version
-        if (data.status === 'playing') this.status = 'playing'
-        if (data.status === 'finished') this.status = 'idle'
-        // Let adaptive polling re-evaluate fast/slow interval immediately
-        activeAdapter?.nudge?.()
-      } finally {
-        this._fetchInFlight = false
-        this.isSyncing = false
-        // If a fetch was requested while we were in-flight, do it now
-        if (this._pendingFetch) {
-          this._pendingFetch = false
-          this._fetchState()
-        }
-      }
+    // ── Reconnect (P2P 不支援跨頁面重連) ────────────────────────────────────
+    async reconnect(): Promise<boolean> {
+      return false
     },
 
-    async resyncNow(restartAdapter = false) {
-      if (!this.roomId) return
-      if (restartAdapter) this._startAdapter()
-      await this._fetchState()
-    },
+    // ── Lifecycle stubs（P2P 不需要 visibility 重連） ────────────────────────
+    attachLifecycleHandlers() {},
+    detachLifecycleHandlers() {},
 
-    attachLifecycleHandlers() {
-      if (typeof window === 'undefined' || typeof document === 'undefined') return
-      this.detachLifecycleHandlers()
+    // ── resyncNow stub（P2P 不需要主動拉取，兼容舊 UI 呼叫） ────────────────
+    async resyncNow(_restartAdapter?: boolean) {},
 
-      const onVisibility = () => {
-        if (document.hidden) return
-        this.resyncNow(true)
+    // ── Internal ────────────────────────────────────────────────────────────
+    _cleanup() {
+      if (_pendingActionResolve) {
+        _pendingActionResolve({ ok: false, error: '連線已重置' })
+        _pendingActionResolve = null
       }
-      const onFocus = () => { this.resyncNow(false) }
-      const onPageShow = () => { this.resyncNow(true) }
-      const onOnline = () => {
-        this.isOffline = false
-        if (this.errorMsg === '目前已離線，等待網路恢復後自動同步') this.errorMsg = null
-        this.resyncNow(true)
-      }
-      const onOffline = () => {
-        this.isOffline = true
-        this.errorMsg = '目前已離線，等待網路恢復後自動同步'
-      }
-
-      document.addEventListener('visibilitychange', onVisibility)
-      window.addEventListener('focus', onFocus)
-      window.addEventListener('pageshow', onPageShow)
-      window.addEventListener('online', onOnline)
-      window.addEventListener('offline', onOffline)
-
-      detachLifecycleHandlers = () => {
-        document.removeEventListener('visibilitychange', onVisibility)
-        window.removeEventListener('focus', onFocus)
-        window.removeEventListener('pageshow', onPageShow)
-        window.removeEventListener('online', onOnline)
-        window.removeEventListener('offline', onOffline)
-      }
-    },
-
-    detachLifecycleHandlers() {
-      if (detachLifecycleHandlers) {
-        detachLifecycleHandlers()
-        detachLifecycleHandlers = null
-      }
-    },
-
-    _startAdapter() {
-      this._stopAdapter()
-      if (!this.roomId) return
-      const isWaiting = () =>
-        !!this.gameState && this.side !== null && this.gameState.turn.side !== this.side
-      // realtime 模式：只用 Realtime，不加 polling。
-      // polling 會在 sendAction 後重新拉到玩家自己的 _lastEvents，導致 pollEvents 被重複處理。
-      // lifecycle handlers（focus/visibility/online）仍作為保底補同步。
-      const adapter: SyncAdapter =
-        this.syncMode === 'realtime'
-          ? makeRealtimeAdapter(this.roomId, () => this.localVersion)
-          : makeAdaptivePollingAdapter(isWaiting)
-      adapter.start(() => this._fetchState())
-      activeAdapter = adapter
-    },
-
-    _stopAdapter() {
-      activeAdapter?.stop()
-      activeAdapter = null
+      _conn?.close()
+      _peer?.destroy()
+      _conn = null
+      _peer = null
     },
 
     _persist() {
-      if (this.roomId && this.side && this.secret) {
+      if (this.roomId && this.side) {
         localStorage.setItem(
           'chess_connection',
-          JSON.stringify({ roomId: this.roomId, side: this.side, secret: this.secret }),
+          JSON.stringify({ roomId: this.roomId, side: this.side }),
         )
       }
     },

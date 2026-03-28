@@ -59,10 +59,6 @@ function resolveClans(): string[] {
   return pool.slice(0, count)
 }
 
-// Debug: check if env vars are baked in at build time
-const supabaseUrlOk = !!(import.meta.env.VITE_SUPABASE_URL)
-const supabaseKeyOk = !!(import.meta.env.VITE_SUPABASE_ANON_KEY)
-
 // Auto-navigate when opponent joins (create mode: waiting → playing)
 watch(() => conn.status, (s) => {
   if (s === 'playing' && mode.value === 'online') {
@@ -240,16 +236,6 @@ function startGame() {
 
         <!-- 錯誤訊息 -->
         <div v-if="onlineError" class="error-msg">{{ onlineError }}</div>
-
-        <!-- Env 狀態（debug） -->
-        <div class="env-debug">
-          <span :class="supabaseUrlOk ? 'env-ok' : 'env-fail'">
-            {{ supabaseUrlOk ? '✓' : '✗' }} SUPABASE_URL
-          </span>
-          <span :class="supabaseKeyOk ? 'env-ok' : 'env-fail'">
-            {{ supabaseKeyOk ? '✓' : '✗' }} SUPABASE_KEY
-          </span>
-        </div>
       </template>
 
       <!-- ── 本機模式設定 ── -->
@@ -604,16 +590,6 @@ function startGame() {
   letter-spacing: 0.15em;
   margin: -6px 0;
 }
-
-.env-debug {
-  display: flex;
-  gap: 12px;
-  justify-content: center;
-  font-size: 0.7rem;
-  font-family: ui-monospace, monospace;
-}
-.env-ok { color: #80c880; }
-.env-fail { color: #f4a0a0; font-weight: 700; }
 
 .error-msg {
   font-size: 0.8rem;

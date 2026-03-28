@@ -81,7 +81,14 @@
       "Bash(wc -l /d/workspace/webChese/app3/src/views/*.vue /d/workspace/webChese/app3/src/components/*.vue)",
       "Bash(node --input-type=module:*)",
       "Bash(python3 -m json.tool)",
-      "Bash(grep -n \"executeShotPlan\\\\|findPalaceGuard\\\\|PALACE_GUARD\" /Users/pingwu/Desktop/workspace/github/webChese/app/api/rooms/[roomId]/action.ts)"
+      "Bash(grep -n \"executeShotPlan\\\\|findPalaceGuard\\\\|PALACE_GUARD\" /Users/pingwu/Desktop/workspace/github/webChese/app/api/rooms/[roomId]/action.ts)",
+      "Bash(cp \"d:/workspace/webChese/app/api/rooms/[roomId]/join.ts\" \"d:/workspace/webChese/app/_backup_supabase/api/rooms/roomId/\")",
+      "Bash(cp \"d:/workspace/webChese/app/api/rooms/[roomId]/action.ts\" \"d:/workspace/webChese/app/_backup_supabase/api/rooms/roomId/\")",
+      "Bash(cp \"d:/workspace/webChese/app/api/rooms/[roomId]/state.ts\" \"d:/workspace/webChese/app/_backup_supabase/api/rooms/roomId/\")",
+      "Bash(npm list:*)",
+      "Bash(rmdir \"api/rooms/[roomId]\")",
+      "Bash(rmdir \"api/rooms\")",
+      "Bash(grep -rn \"NEXT_PHASE\\\\|autoTurn\\\\|auto.*phase\\\\|dispatch.*NEXT\" \"d:/workspace/webChese/app/src/\" --include=\"*.{ts,vue}\")"
     ]
   }
 }
