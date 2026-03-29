@@ -5,15 +5,6 @@
       <span class="phase-badge">{{ phaseLabel }}</span>
     </div>
 
-    <!-- ── 待確認行動列（所有互動的確認點） ── -->
-    <Transition name="confirm-bar">
-      <div v-if="game.uiPending" class="confirm-bar">
-        <span class="confirm-label">{{ game.uiPending.label }}</span>
-        <button class="confirm-yes" @click="game.confirmPending()">✔ 確認</button>
-        <button class="confirm-no" @click="game.clearPending()">✘ 取消</button>
-      </div>
-    </Transition>
-
     <!-- 補充階段（自動抽排中，過渡動畫） -->
     <div v-if="phase === 'draw'" class="actions draw-auto">
       <div class="draw-anim">
@@ -115,7 +106,6 @@
       <button class="next-btn" @click="nextPhase">結束回合 →</button>
     </div>
 
-    <button class="surrender-btn" @click="surrender">投降</button>
   </div>
 </template>
 
@@ -282,7 +272,6 @@ function endBGAction() { game.dispatchForCurrentPlayer({ type: 'END_BG_ACTION' }
 
 // ── 通用 ─────────────────────────────────────
 function nextPhase() { game.dispatchForCurrentPlayer({ type: 'NEXT_PHASE' }) }
-function surrender() { game.dispatchForCurrentPlayer({ type: 'SURRENDER' }) }
 </script>
 
 <style scoped>
@@ -290,26 +279,6 @@ function surrender() { game.dispatchForCurrentPlayer({ type: 'SURRENDER' }) }
 .panel-title { font-weight: bold; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; color: #2a1f14; }
 .phase-badge { font-size: 0.75rem; background: #ddd5c8; padding: 2px 6px; border-radius: 4px; color: #1a8090; border: 1px solid #c0b5a5; }
 
-/* ── 待確認列 ── */
-.confirm-bar {
-  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
-  background: #fff8e1; border: 2px solid #f0a000; border-radius: 8px;
-  padding: 0.5rem 0.8rem; margin-bottom: 0.5rem;
-}
-.confirm-label { flex: 1; font-size: 0.9rem; font-weight: bold; color: #5a3000; }
-.confirm-yes {
-  background: #2a8a30; color: #fff; border: none; border-radius: 6px;
-  padding: 0.3rem 1rem; cursor: pointer; font-size: 0.85rem; font-weight: bold;
-}
-.confirm-yes:hover { background: #1a7020; }
-.confirm-no {
-  background: #c04040; color: #fff; border: none; border-radius: 6px;
-  padding: 0.3rem 1rem; cursor: pointer; font-size: 0.85rem;
-}
-.confirm-no:hover { background: #a03030; }
-.confirm-bar-enter-active { transition: opacity 0.15s ease, transform 0.15s ease; }
-.confirm-bar-leave-active { transition: opacity 0.2s ease, transform 0.2s ease; }
-.confirm-bar-enter-from, .confirm-bar-leave-to { opacity: 0; transform: translateY(-4px); }
 
 .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .draw-auto { justify-content: center; padding: 0.5rem 0; }
@@ -341,7 +310,6 @@ button:hover:not(:disabled) { background: #e4ddd0; border-color: #1a8090; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 .next-btn { background: #d8edd8; border-color: #2a8a30; color: #1a5020; }
 .next-btn:hover:not(:disabled) { background: #c4e0c4; }
-.surrender-btn { background: #f0d8d8; border-color: #c07070; color: #7a1010; margin-top: 0.5rem; }
 .discard-prompt {
   width: 100%; background: #fff3e0; border: 1px solid #e07000; border-radius: 6px;
   padding: 0.4rem 0.7rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;

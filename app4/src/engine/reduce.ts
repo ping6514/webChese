@@ -177,7 +177,7 @@ export function reduce(state: GameState, player: PlayerId, action: Action): Redu
         bg.attackBonusNextSkill = 0
       }
 
-      applyAttack(s, player, bg, target, attackVal, events)
+      applyAttack(s, player, bg, target, attackVal, events, false, action.defenderSkip)
       bg.doneNormalAction = true
       // 聯合攻擊的支援 BG 本回合不能再行動
       if (ally && ally.owner === player) {
@@ -197,19 +197,21 @@ export function reduce(state: GameState, player: PlayerId, action: Action): Redu
       const slot = area.slots[slotIdx]
 
       let blocked = false
-      // 阻擋反應卡檢查
-      const enemyBGsHere = getEnemyBGsInZone(s, bg.zone, player)
-      for (const eb of enemyBGsHere) {
-        if (eb.reactionCard === 'block' && eb.state !== 'ko') {
-          emit(makeEvent('reaction_triggered', { reactionId: 'block', bgId: eb.id }))
-          blocked = true
-          eb.reactionCard = null
-          const ps = s.players[enemy]
-          ps.graveyard.push('block')
-          const rng = makeRNG(s)
-          const drawn = drawCard(ps, rng)
-          if (drawn) emit(makeEvent('draw_card', { player: enemy, card: drawn }))
-          break
+      // 阻擋反應卡檢查（defenderSkip = 守方選擇不發動）
+      if (!action.defenderSkip) {
+        const enemyBGsHere = getEnemyBGsInZone(s, bg.zone, player)
+        for (const eb of enemyBGsHere) {
+          if (eb.reactionCard === 'block' && eb.state !== 'ko') {
+            emit(makeEvent('reaction_triggered', { reactionId: 'block', bgId: eb.id }))
+            blocked = true
+            eb.reactionCard = null
+            const ps = s.players[enemy]
+            ps.graveyard.push('block')
+            const rng = makeRNG(s)
+            const drawn = drawCard(ps, rng)
+            if (drawn) emit(makeEvent('draw_card', { player: enemy, card: drawn }))
+            break
+          }
         }
       }
 
@@ -464,6 +466,7 @@ function applyAttack(
   rawValue: number,
   events: GameEvent[],
   isCounterContext = false,  // 防止反擊再觸發反擊
+  defenderSkip = false,      // 守方選擇不發動反應卡/反擊技能
 ) {
   if (!target || !attackerBG) return
   if (target.state === 'ko') return
@@ -479,9 +482,9 @@ function applyAttack(
     return
   }
 
-  // on_receive_attack 反應卡（閃避 / 誤導 / 靈動）
+  // on_receive_attack 反應卡（閃避 / 誤導 / 靈動）— defenderSkip 時跳過
   const rcId = target.reactionCard
-  if (rcId === 'dodge' || rcId === 'mislead' || rcId === 'agile') {
+  if (!defenderSkip && (rcId === 'dodge' || rcId === 'mislead' || rcId === 'agile')) {
     target.reactionCard = null
     s.players[target.owner].graveyard.push(rcId)
     events.push(makeEvent('reaction_triggered', { reactionId: rcId, bgId: target.id }))
@@ -512,8 +515,8 @@ function applyAttack(
     }
   }
 
-  // 可反擊技能觸發（守方在傷害計算前宣告反擊）
-  if (!isCounterContext && tryCounterattack(s, target, attackerBG, events)) return
+  // 可反擊技能觸發（守方在傷害計算前宣告反擊）— defenderSkip 時跳過
+  if (!defenderSkip && !isCounterContext && tryCounterattack(s, target, attackerBG, events)) return
 
   // 傷害減免
   let finalValue = rawValue - target.damageReduction
@@ -737,16 +740,21 @@ function applyEventEffect(s: GameState, player: PlayerId, cardId: string, params
           ps.graveyard.push(params.discardCardId)
         }
       }
-      // 從牌組檢索反應卡（簡化：從牌組找第一張反應卡）
+      // 從牌組+墓地撈指定（或第一張）反應卡
       const ps = s.players[player]
-      const reactionIdx = ps.deck.findIndex(id => reactionById[id])
-      if (reactionIdx >= 0) {
-        const found = ps.deck.splice(reactionIdx, 1)[0]
+      const target = params.targetCardId
+      const deckIdx = target
+        ? ps.deck.findIndex(id => id === target)
+        : ps.deck.findIndex(id => reactionById[id])
+      if (deckIdx >= 0) {
+        const found = ps.deck.splice(deckIdx, 1)[0]
         ps.hand.push(found)
         events.push(makeEvent('event_effect', { cardId, found }))
       } else {
         // 從墓地找
-        const gravIdx = ps.graveyard.findIndex(id => reactionById[id])
+        const gravIdx = target
+          ? ps.graveyard.findIndex(id => id === target)
+          : ps.graveyard.findIndex(id => reactionById[id])
         if (gravIdx >= 0) {
           const found = ps.graveyard.splice(gravIdx, 1)[0]
           ps.hand.push(found)

@@ -1,12 +1,19 @@
 <template>
   <div class="hand-panel">
+    <div v-if="game.pendingReactionMaster?.discardCardId === ''" class="rm-hint">
+      ⬇ 點選要捨棄的手牌（反應大師）
+    </div>
     <div class="hand-title">手牌（{{ currentPlayerLabel }}：{{ hand.length }} 張）</div>
     <div class="hand-cards">
       <div
         v-for="(cardId, i) in hand"
         :key="i"
         class="hand-card"
-        :class="[cardType(cardId), { 'discard-selected': isDiscardSelected(cardId, i), 'discard-mode': !!game.pendingSkill }]"
+        :class="[cardType(cardId), {
+          'discard-selected': isDiscardSelected(cardId, i),
+          'discard-mode': !!game.pendingSkill || isReactionMasterDiscardMode(cardId),
+          'rm-discard-target': isReactionMasterDiscardMode(cardId),
+        }]"
         :title="cardTooltip(cardId)"
         @click="onCardClick(cardId, i)"
       >
@@ -88,7 +95,21 @@ function isDiscardSelected(cardId: string, index: number): boolean {
   return ps.selected.includes(`${index}:${cardId}`)
 }
 
+function isReactionMasterDiscardMode(cardId: string): boolean {
+  return !!game.pendingReactionMaster &&
+    game.pendingReactionMaster.discardCardId === '' &&
+    cardId !== 'reaction_master'
+}
+
 function onCardClick(cardId: string, index: number = 0) {
+  // 反應大師：選要捨棄的手牌
+  if (game.pendingReactionMaster && game.pendingReactionMaster.discardCardId === '') {
+    if (cardId !== 'reaction_master') {
+      game.pendingReactionMaster.discardCardId = cardId
+    }
+    return
+  }
+
   // 棄牌選擇模式
   if (game.pendingSkill) {
     const ps = game.pendingSkill
@@ -188,14 +209,28 @@ function onCardClick(cardId: string, index: number = 0) {
       return
     }
 
-    // 反應大師 — 自動選捨棄牌（非反應卡優先）
+    // 反應大師 — 開啟選擇 modal
     if (cardId === 'reaction_master') {
-      const currentHand = s.players[p].hand
-      if (currentHand.length >= 2) {
-        const discardCardId = currentHand.find(id => id !== 'reaction_master' && !reactionById[id]) ?? currentHand.find(id => id !== 'reaction_master')
-        if (discardCardId)
-          game.dispatchForCurrentPlayer({ type: 'PLAY_EVENT', cardId, params: { discardCardId } })
+      const ps = s.players[p]
+      const otherHand = ps.hand.filter(id => id !== 'reaction_master')
+      if (otherHand.length === 0) return
+      // 收集牌組+墓地中的反應卡（同 id 只顯示一次）
+      const available: { id: string; name: string; source: 'deck' | 'graveyard' }[] = []
+      const seen = new Set<string>()
+      for (const id of ps.deck) {
+        if (reactionById[id] && !seen.has(id)) {
+          seen.add(id); available.push({ id, name: reactionById[id].name, source: 'deck' })
+        }
       }
+      for (const id of ps.graveyard) {
+        if (reactionById[id] && !seen.has(id)) {
+          seen.add(id); available.push({ id, name: reactionById[id].name, source: 'graveyard' })
+        }
+      }
+      if (available.length === 0) return
+      // 只有1張可捨棄時自動選定，直接進第2步；否則先讓玩家選
+      const autoDiscard = otherHand.length === 1 ? otherHand[0] : ''
+      game.pendingReactionMaster = { discardCardId: autoDiscard, availableCards: available }
       return
     }
 
@@ -231,6 +266,13 @@ function onCardClick(cardId: string, index: number = 0) {
 
 <style scoped>
 .hand-panel { }
+.rm-hint {
+  background: #fff3e0; border: 1px solid #e07000; border-radius: 6px;
+  padding: 0.3rem 0.7rem; font-size: 0.82rem; color: #5a3000;
+  margin-bottom: 0.4rem; font-weight: bold;
+}
+.hand-card.rm-discard-target { border-color: #e07000; outline: 2px dashed #e07000; }
+.hand-card.rm-discard-target:hover { border-color: #c04000; background: #fff0d8; }
 .hand-title { font-size: 0.85rem; color: #7a6a58; margin-bottom: 0.5rem; }
 .hand-cards { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 60px; }
 .hand-card {

@@ -1,15 +1,20 @@
 .DS_Store
 
+# Backup directories
+app_backup/
+
 # Vite / Vue build outputs
 app/dist/
 app2/dist/
 app3/dist/
 app4/dist/
+app5/dist/
 # Dependencies
 app/node_modules/
 app2/node_modules/
 app3/node_modules/
 app4/node_modules/
+app5/node_modules/
 newProject/frontend/node_modules
 newProject/frontend/dist
 # Local env files
@@ -21,6 +26,8 @@ app3/.env
 app3/.env.*
 app4/.env
 app4/.env.*
+app5/.env
+app5/.env.*
 # Logs
 npm-debug.log*
 yarn-debug.log*

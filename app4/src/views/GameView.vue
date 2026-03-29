@@ -16,6 +16,7 @@
         <Transition name="bot-badge">
           <div v-if="isBotTurn" class="bot-badge">🤖 思考中…</div>
         </Transition>
+        <button class="surrender-btn" @click="surrender">投降</button>
       </div>
       <div class="player-info p2" :class="{ 'is-active': gs.currentPlayer === 'p2' }">
         <span class="player-label">P2</span>
@@ -29,6 +30,12 @@
     <!-- 事件 Toast（反應卡、免疫、KO 等） -->
     <EventToast />
 
+    <!-- 待確認行動蓋板 -->
+    <ConfirmOverlay />
+    <!-- 守方反應/反擊選擇彈窗 -->
+    <InterceptModal />
+    <!-- 反應大師：選反應卡 -->
+    <ReactionMasterModal />
     <!-- 威嚇反應選擇彈窗 -->
     <ReactionChoiceModal />
     <!-- BG 詳情彈窗（右鍵開啟） -->
@@ -93,6 +100,9 @@ import BrickAreaPanel from '../components/BrickAreaPanel.vue'
 import ActionPanel from '../components/ActionPanel.vue'
 import HandPanel from '../components/HandPanel.vue'
 import SelectionBar from '../components/SelectionBar.vue'
+import ConfirmOverlay from '../components/ConfirmOverlay.vue'
+import InterceptModal from '../components/InterceptModal.vue'
+import ReactionMasterModal from '../components/ReactionMasterModal.vue'
 import ReactionChoiceModal from '../components/ReactionChoiceModal.vue'
 import BGDetailModal from '../components/BGDetailModal.vue'
 import EventLog from '../components/EventLog.vue'
@@ -111,6 +121,7 @@ const phaseLabel = computed(() => phaseLabels[gs.value?.phase ?? ''] ?? '')
 const isBotTurn = computed(() => game.pveMode && gs.value?.currentPlayer !== game.localPlayer)
 
 function goHome() { router.push('/') }
+function surrender() { game.dispatchForCurrentPlayer({ type: 'SURRENDER' }) }
 </script>
 
 <style scoped>
@@ -161,6 +172,13 @@ function goHome() { router.push('/') }
   background: #b8820a; color: #fff; border: none; border-radius: 6px;
   cursor: pointer; font-size: 1rem;
 }
+.surrender-btn {
+  margin-top: 0.4rem; padding: 0.25rem 0.8rem;
+  background: #f0d8d8; color: #7a1010; border: 1px solid #c07070;
+  border-radius: 6px; cursor: pointer; font-size: 0.78rem;
+  transition: background 0.15s;
+}
+.surrender-btn:hover { background: #e0b0b0; }
 .no-game { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 1rem; }
 .no-game button { padding: 0.6rem 1.5rem; background: #b8820a; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
 </style>

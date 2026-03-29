@@ -4,8 +4,10 @@ import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
 import type { GameState } from '../../engine'
 import { canEnchant, canSacrifice, getSoulCard } from '../../engine'
 import BoardGrid from '../BoardGrid.vue'
+import PixiBoard from './PixiBoard.vue'
 import ConfirmModal from '../ConfirmModal.vue'
 import ShootPreviewModal from '../ShootPreviewModal.vue'
+import ShootActionOverlay from '../ShootActionOverlay.vue'
 import DamageFormulaToast from '../DamageFormulaToast.vue'
 import IncomeToast from '../IncomeToast.vue'
 import { useSelection } from '../../useSelection'
@@ -23,6 +25,52 @@ const ctx = inject(GAME_V2_KEY) as GameV2Ctx
 const state = ctx.state as Ref<GameState>
 const ui = useUiStore()
 const lastError = ref<string | null>(null)
+
+// PixiJS renderer toggle
+const usePixiRenderer = ref(localStorage.getItem('usePixiRenderer') === '1')
+function toggleRenderer() {
+  usePixiRenderer.value = !usePixiRenderer.value
+  localStorage.setItem('usePixiRenderer', usePixiRenderer.value ? '1' : '0')
+}
+
+// Adapter for PixiBoard cell-click event
+function onPixiCellClick(payload: { x: number; y: number }) {
+  const unitId = Object.values(state.value.units).find(u => u.pos.x === payload.x && u.pos.y === payload.y)?.id ?? null
+  onCellClick({ ...payload, unitId })
+}
+
+// Wrapper for PixiBoard unit-click that handles shooting preview
+function onPixiUnitClick(unitId: string) {
+  const unit = state.value.units[unitId]
+  if (!unit) return
+  
+  // Check if we're in enchant mode - if so, route through onCellClick
+  if (ui.interactionMode.kind === 'enchant_select_unit') {
+    onCellClick({ x: unit.pos.x, y: unit.pos.y, unitId })
+    return
+  }
+  
+  // Check if we're in sacrifice mode
+  if (ui.interactionMode.kind === 'sacrifice_select_target') {
+    onCellClick({ x: unit.pos.x, y: unit.pos.y, unitId })
+    return
+  }
+  
+  // Check if we're in item target mode
+  if (ui.interactionMode.kind === 'use_item_target_unit') {
+    onCellClick({ x: unit.pos.x, y: unit.pos.y, unitId })
+    return
+  }
+  
+  // If we have a selected unit that can shoot, and clicked an enemy unit, open shoot preview
+  if (selectedUnit.value && shootableTargetIds.value.includes(unitId)) {
+    openShootPreview(selectedUnit.value.id, unitId)
+    return
+  }
+  
+  // Otherwise, normal unit selection
+  onSelectUnit(unitId)
+}
 
 // ── Selection ─────────────────────────────────────────────────────────────────
 const {
@@ -318,6 +366,7 @@ const fxAbilityUnitIds = computed(() => ctx.fx?.fxAbilityUnitIds.value ?? [])
 const fxKilledPosKeys  = computed(() => ctx.fx?.fxKilledPosKeys.value  ?? [])
 const fxRevivedPosKeys = computed(() => ctx.fx?.fxRevivedPosKeys.value ?? [])
 const fxEnchantedPosKeys = computed(() => ctx.fx?.fxEnchantedPosKeys.value ?? [])
+const itemUsedEvents = computed(() => ctx.fx?.itemUsedEvents?.value ?? [])
 const floatTextsByPos  = computed(() => ctx.fx?.floatTextsByPos.value  ?? {})
 const fxBeams          = computed(() => ctx.fx?.fxBeams.value          ?? [])
 const damageToasts     = computed(() => ctx.fx?.damageToasts.value     ?? [])
@@ -412,6 +461,13 @@ defineExpose({ onUseItem })
         :title="ui.boardHoverEnabled ? '棋盤hover說明：開（點擊關閉）' : '棋盤hover說明：關（點擊開啟）'"
         @click="ui.toggleBoardHover()"
       >{{ ui.boardHoverEnabled ? '👁提示' : '👁關' }}</button>
+      <button
+        type="button"
+        class="scaleBtn"
+        :class="{ scaleActive: usePixiRenderer }"
+        :title="usePixiRenderer ? 'PixiJS 渲染（點擊切換 DOM）' : 'DOM 渲染（點擊切換 PixiJS）'"
+        @click="toggleRenderer()"
+      >{{ usePixiRenderer ? '🎮 Pixi' : '📄 DOM' }}</button>
       <span class="scaleDivider" />
       <button
         type="button"
@@ -424,7 +480,36 @@ defineExpose({ onUseItem })
     <!-- Board container + scale wrapper -->
     <div class="boardContainer">
     <div class="boardScaleWrap" :style="boardWrapStyle" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
+      <!-- PixiJS Renderer -->
+      <PixiBoard
+        v-if="usePixiRenderer"
+        :state="state"
+        :selected-unit-id="selectedUnitId"
+        :legal-moves="legalMoves"
+        :shootable-target-ids="shootableTargetIds"
+        :highlight-unit-ids="
+          enchantMode ? enchantableUnitIds :
+          sacrificeMode ? sacrificeTargetableUnitIds :
+          ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds :
+          []
+        "
+        :highlight-corpse-pos-keys="corpseTargetablePosKeys"
+        :fx-attack-unit-ids="fxAttackUnitIds"
+        :fx-hit-unit-ids="fxHitUnitIds"
+        :fx-killed-unit-ids="fxKilledUnitIds"
+        :fx-killed-pos-keys="fxKilledPosKeys"
+        :fx-enchanted-pos-keys="fxEnchantedPosKeys"
+        :fx-revived-pos-keys="fxRevivedPosKeys"
+        :item-used-events="itemUsedEvents"
+        :float-texts-by-pos="floatTextsByPos"
+        :fx-beams="fxBeams"
+        @cell-click="onPixiCellClick"
+        @unit-click="onPixiUnitClick"
+      />
+      
+      <!-- DOM Renderer (Original) -->
       <BoardGrid
+        v-else
         :state="state"
         :selected-unit-id="selectedUnitId"
         :selected-cell-pos-key="selectedCellKey"
@@ -489,7 +574,31 @@ defineExpose({ onUseItem })
       <div v-if="posToastVisible" class="posToast">{{ posToastText }}</div>
     </Transition>
 
-    <!-- Shoot preview modal -->
+    <!-- Shoot action overlay (first layer - quick actions for PixiJS) -->
+    <ShootActionOverlay
+      v-if="usePixiRenderer"
+      :show="!!shootPreview && !shootDetailsOpen"
+      title="射擊選單"
+      :style-obj="{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }"
+      :mana-cost="shootManaCost"
+      :confirm-disabled="!shootPreviewGuard.ok"
+      :confirm-title="shootConfirmTitle"
+      confirm-label="射擊 (Enter)"
+      details-label="射擊預覽"
+      :show-details="true"
+      :gold-for-damage="shootGoldForDamageInfo"
+      :spend-gold-for-damage="shootSpendGoldForDamage"
+      :blood-sacrifice="shootBloodSacrificeInfo"
+      :sacrifice-hp="shootSacrificeHp"
+      :offset="{ x: 0, y: 0 }"
+      @confirm="confirmShootPreview"
+      @cancel="cancelShootPreview"
+      @details="shootDetailsOpen = true"
+      @update:spend-gold-for-damage="setShootSpendGold"
+      @update:sacrifice-hp="setShootSacrificeHp"
+    />
+
+    <!-- Shoot preview modal (second layer - detailed preview) -->
     <ShootPreviewModal
       :open="shootDetailsOpen"
       :attacker="shootPreviewAttacker"
@@ -529,16 +638,16 @@ defineExpose({ onUseItem })
         <div class="boneRefineTitle">骸骨煉化 <span class="dragHint">⠿</span></div>
         <div class="boneRefineDesc">移除屍骸，選擇獲得的增益：</div>
         <div class="boneRefineBtns">
-          <button type="button" class="choiceBtn choiceGold" @click="boneRefineChoose('gold')">
+          <button type="button" class="choiceBtn choiceGold" @click.stop="boneRefineChoose('gold')" @pointerdown.stop>
             <span class="choiceIcon">💰</span>
             <span>+{{ getItemCard('item_bone_refine')?.effect?.goldAmount ?? 3 }} 財力</span>
           </button>
-          <button type="button" class="choiceBtn choiceMana" @click="boneRefineChoose('mana')">
+          <button type="button" class="choiceBtn choiceMana" @click.stop="boneRefineChoose('mana')" @pointerdown.stop>
             <span class="choiceIcon">💧</span>
             <span>+{{ getItemCard('item_bone_refine')?.effect?.manaAmount ?? 2 }} 魔力</span>
           </button>
         </div>
-        <button type="button" class="boneRefineCancel" @click="cancelBoneRefine()">取消</button>
+        <button type="button" class="boneRefineCancel" @click.stop="cancelBoneRefine()" @pointerdown.stop>取消</button>
       </div>
     </div>
   </div>

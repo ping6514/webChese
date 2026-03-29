@@ -19,8 +19,12 @@
     "electron:build": "npm run build && electron-builder"
   },
   "dependencies": {
+    "@pixi/filter-glow": "^5.2.1",
+    "@pixi/particle-emitter": "^5.0.8",
+    "gsap": "^3.12.5",
     "peerjs": "^1.5.5",
     "pinia": "^3.0.3",
+    "pixi.js": "^8.5.2",
     "vue": "^3.5.25",
     "vue-router": "^4.5.1"
   },

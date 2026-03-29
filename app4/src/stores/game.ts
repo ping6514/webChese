@@ -14,6 +14,18 @@ import type { PlayerId, ZoneId, BrickAreaId } from '../engine'
 import { opponentOf } from '../engine'
 import { botDecide } from '../sim/bot'
 import { DYNAMIC_WEIGHTS } from '../sim/botWeights'
+import { bgCardById } from '../data/bg-cards'
+import { reactionById } from '../data/reactions'
+
+export interface InterceptChoiceState {
+  reactionCardId?: string      // 可觸發的反應卡 ID（on_receive_attack）
+  reactionCardName?: string
+  counterattackSkillName?: string  // 可反擊的技能名稱
+  defenderBGName: string
+  pendingAction: Action        // 攻擊/清磚行動，帶入 defenderSkip 後再 dispatch
+  pendingPlayer: PlayerId
+  isBotAction: boolean
+}
 
 export interface SelectionState {
   prompt: string
@@ -44,6 +56,15 @@ export const useGameStore = defineStore('game', () => {
     targetOptions: { id: string; name: string }[]  // 可選目標（空陣列 = 不需手動選）
   }
   const pendingSkill = ref<PendingSkill | null>(null)
+
+  // ── 守方反應/反擊攔截 ─────────────────────────────────
+  const pendingInterceptChoice = ref<InterceptChoiceState | null>(null)
+
+  // ── 反應大師：兩步選擇暫存 ────────────────────────────
+  const pendingReactionMaster = ref<{
+    discardCardId: string     // 已選擇要捨棄的手牌
+    availableCards: { id: string; name: string; source: 'deck' | 'graveyard' }[]
+  } | null>(null)
 
   // ── UI 待確認行動 ───────────────────────────────────
   type UIPendingType = 'start_bg' | 'move' | 'attack' | 'joint' | 'clear' | 'siege'
@@ -117,6 +138,16 @@ export const useGameStore = defineStore('game', () => {
   function dispatch(action: Action, asPlayer?: PlayerId): boolean {
     if (!state.value) return false
     const player = asPlayer ?? localPlayer.value
+
+    // ── 守方反應攔截（DO_ATTACK / DO_CLEAR_BRICK 首次 dispatch，defenderSkip 尚未設定）
+    if (
+      (action.type === 'DO_ATTACK' || action.type === 'DO_CLEAR_BRICK') &&
+      action.defenderSkip === undefined
+    ) {
+      const intercepted = tryInterceptDefender(action, player)
+      if (intercepted) return false  // 暫停等守方選擇
+    }
+
     const guard = canDispatch(state.value, player, action)
     if (!guard.ok) {
       error.value = guard.reason
@@ -171,6 +202,95 @@ export const useGameStore = defineStore('game', () => {
       { type: 'RESOLVE_REACTION', choice: { reactionId: 'intimidate', triggerBGId: pending.triggerBGId, intimidateBGId: pending.intimidateBGId, intimidateChoice: choice } },
       pending.movedPlayer,
     )
+  }
+
+  // ── 守方反應/反擊攔截 ─────────────────────────────────────────
+
+  /** 攔截攻擊/清磚，檢查守方是否有可選反應。有則設 pendingInterceptChoice 並回傳 true。 */
+  function tryInterceptDefender(
+    action: (Action & { type: 'DO_ATTACK' }) | (Action & { type: 'DO_CLEAR_BRICK' }),
+    player: PlayerId,
+  ): boolean {
+    if (!state.value) return false
+
+    let defenderBG: BGInstance | undefined
+    if (action.type === 'DO_ATTACK') {
+      defenderBG = state.value.bgs[action.targetBGId]
+    } else {
+      // DO_CLEAR_BRICK：找同區域且有 block 反應卡的守方 BG
+      const actingBG = state.value.actingBGId ? state.value.bgs[state.value.actingBGId] : null
+      if (!actingBG) return false
+      const enemy = actingBG.owner === 'p1' ? 'p2' : 'p1'
+      defenderBG = Object.values(state.value.bgs).find(
+        bg => bg.owner === enemy && bg.zone === actingBG.zone && bg.reactionCard === 'block' && bg.state !== 'ko'
+      )
+    }
+    if (!defenderBG) return false
+
+    // 只攔截人類守方
+    const isHumanDefender = !pveMode.value || defenderBG.owner === localPlayer.value
+    if (!isHumanDefender) return false
+
+    const isBotAction = pveMode.value && player !== localPlayer.value
+
+    if (action.type === 'DO_ATTACK') {
+      const rcId = defenderBG.reactionCard
+      const hasOnReceiveReaction = rcId === 'dodge' || rcId === 'mislead' || rcId === 'agile'
+
+      // 反擊技能
+      let counterattackSkillName: string | undefined
+      if (!hasOnReceiveReaction && defenderBG.state !== 'stunned' && defenderBG.state !== 'ko') {
+        const def = bgCardById[defenderBG.cardId]
+        for (let si = 0; si < 2; si++) {
+          const skill = def?.skills[si]
+          if (!skill?.counterattack) continue
+          if (defenderBG.skillCooldowns[si] > 0) continue
+          const totalCost = (skill.handCost ?? 0) + (skill.counterattack.extraHandCost ?? 0)
+          if (state.value.players[defenderBG.owner].hand.length >= totalCost) {
+            counterattackSkillName = skill.name
+            break
+          }
+        }
+      }
+
+      if (!hasOnReceiveReaction && !counterattackSkillName) return false
+
+      pendingInterceptChoice.value = {
+        reactionCardId: hasOnReceiveReaction ? rcId! : undefined,
+        reactionCardName: hasOnReceiveReaction ? (reactionById[rcId!]?.name) : undefined,
+        counterattackSkillName,
+        defenderBGName: defenderBG.name,
+        pendingAction: action,
+        pendingPlayer: player,
+        isBotAction,
+      }
+      return true
+    } else {
+      // DO_CLEAR_BRICK — 守方有 block 反應卡
+      pendingInterceptChoice.value = {
+        reactionCardId: 'block',
+        reactionCardName: reactionById['block']?.name,
+        defenderBGName: defenderBG.name,
+        pendingAction: action,
+        pendingPlayer: player,
+        isBotAction,
+      }
+      return true
+    }
+  }
+
+  /** 守方選擇是否發動反應。skip=true = 放棄反應，skip=false = 發動 */
+  function resolveInterceptChoice(skip: boolean) {
+    const intercept = pendingInterceptChoice.value
+    if (!intercept) return
+    pendingInterceptChoice.value = null
+    const action = { ...intercept.pendingAction, defenderSkip: skip } as Action
+    dispatch(action, intercept.pendingPlayer)
+    if (intercept.isBotAction) {
+      // 繼續 bot 回合
+      scheduleAutoNextPhaseFromAction()
+      scheduleBotTurnIfNeeded()
+    }
   }
 
   // ── PVE Bot 執行 ──────────────────────────────────────────
@@ -230,7 +350,8 @@ export const useGameStore = defineStore('game', () => {
     if (!pveMode.value || !state.value) return
     if (state.value.winner) return
     if (state.value.currentPlayer === localPlayer.value) return
-    if (pendingIntimidateChoice.value) return  // 等人類解決威嚇
+    if (pendingIntimidateChoice.value) return   // 等人類解決威嚇
+    if (pendingInterceptChoice.value) return    // 等人類選擇是否反應
     setTimeout(() => runBotStep(), 400)
   }
 
@@ -269,6 +390,10 @@ export const useGameStore = defineStore('game', () => {
       state.value = result.state
       lastEvents.value = result.events
       eventLog.value.push(...result.events)
+    } else if (action.type === 'DO_ATTACK' || action.type === 'DO_CLEAR_BRICK') {
+      // 走 dispatch，允許攔截給人類守方選反應
+      dispatch(action, botPlayer)
+      if (pendingInterceptChoice.value) return  // 等人類選擇，bot 暫停
     } else {
       const result = reduce(state.value, botPlayer, action)
       if (!result.ok) return
@@ -383,6 +508,9 @@ export const useGameStore = defineStore('game', () => {
     selectZone,
     selectArea,
     resolveIntimidateChoice,
+    pendingInterceptChoice,
+    resolveInterceptChoice,
+    pendingReactionMaster,
     uiPending,
     uiSelectedAllyId,
     effectiveAllyId,

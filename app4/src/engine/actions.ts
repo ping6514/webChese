@@ -15,8 +15,8 @@ export type Action =
   | { type: 'START_BG_ACTION'; bgId: string }
   | { type: 'MOVE_BG'; toZone: ZoneId; ignoreBlock?: boolean }
   | { type: 'USE_SKILL'; skillIndex: 0 | 1; params: SkillParams; fromBGId?: string }  // fromBGId = 由哪個BG施放（不填=actingBG，填ally=聯合技能）
-  | { type: 'DO_ATTACK'; targetBGId: string; allyId?: string }  // allyId = 選擇協助的友軍
-  | { type: 'DO_CLEAR_BRICK'; areaId: BrickAreaId; slotIndex?: number }  // slotIndex 用於選擇建築卡
+  | { type: 'DO_ATTACK'; targetBGId: string; allyId?: string; defenderSkip?: boolean }  // defenderSkip = 守方選擇不發動反應
+  | { type: 'DO_CLEAR_BRICK'; areaId: BrickAreaId; slotIndex?: number; defenderSkip?: boolean }  // defenderSkip = 守方選擇不發動 block
   | { type: 'DO_SIEGE' }
   | { type: 'END_BG_ACTION' }
 
@@ -56,6 +56,7 @@ export type EventParams = {
   targetZone?: ZoneId
   targetBGId2?: string     // 呼朋引伴：被移動的友軍
   discardCardId?: string   // 反應大師：捨棄的手牌
+  targetCardId?: string    // 反應大師：指定要撈的反應卡
 }
 
 // ── 反應卡選擇 ───────────────────────────────────

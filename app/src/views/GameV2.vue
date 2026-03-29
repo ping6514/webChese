@@ -17,6 +17,7 @@ import { decideActions, type BotContext } from '../sim/balanceBot'
 import DesktopLayout from '../components/v2/DesktopLayout.vue'
 import MobileLayout from '../components/v2/MobileLayout.vue'
 import GameModalsV2 from '../components/v2/GameModalsV2.vue'
+import CardUsageToast from '../components/CardUsageToast.vue'
 
 // ── Window size (hard breakpoint 768px) ───────────────────────────────────────
 const windowWidth = ref(window.innerWidth)
@@ -53,7 +54,7 @@ watch(() => conn.gameState, (gs) => {
 const {
   fxAttackUnitIds, fxHitUnitIds, fxKilledUnitIds, fxAbilityUnitIds,
   fxKilledPosKeys, fxRevivedPosKeys, fxEnchantedPosKeys,
-  floatTextsByPos, fxBeams, damageToasts, incomeToasts, processEventFx,
+  floatTextsByPos, fxBeams, damageToasts, incomeToasts, cardUsageToasts, processEventFx,
 } = useGameEffects()
 const { dispatch, onlineWaiting, lastEvents, lastError } = useGameDispatch({ state, processEventFx, setup, conn })
 
@@ -332,6 +333,7 @@ provideGameV2({
     fxBeams,
     damageToasts,
     incomeToasts,
+    cardUsageToasts,
   },
 })
 </script>
@@ -341,6 +343,8 @@ provideGameV2({
     <DesktopLayout v-if="isDesktop" />
     <MobileLayout  v-else />
     <GameModalsV2 />
+
+    <CardUsageToast :toasts="cardUsageToasts" />
 
     <Transition name="error-toast">
       <div v-if="errorToastText" class="errorToast">{{ errorToastText }}</div>

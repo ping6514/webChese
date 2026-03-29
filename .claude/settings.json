@@ -99,7 +99,8 @@
       "Bash(\"d:/workspace/webChese/BG卡片完善計畫.md\":*)",
       "Bash(grep -r \"splash\\\\|announce\\\\|phase.*text\" /d/workspace/webChese/app/src --include=*.vue --include=*.ts)",
       "Bash(grep -r \"Transition\\\\|@keyframes\\\\|animation:\" /d/workspace/webChese/app/src/views --include=*.vue)",
-      "Bash(grep -r \"enter-active\\\\|leave-active\\\\|enter-from\\\\|leave-to\" /d/workspace/webChese/app/src --include=*.vue)"
+      "Bash(grep -r \"enter-active\\\\|leave-active\\\\|enter-from\\\\|leave-to\" /d/workspace/webChese/app/src --include=*.vue)",
+      "Bash(npm create:*)"
     ]
   }
 }

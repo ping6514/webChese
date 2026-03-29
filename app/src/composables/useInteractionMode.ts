@@ -254,8 +254,9 @@ export function useInteractionMode(opts: {
     if (!prevSelectedUnit) return
     if (!legalMoves.value.some((p) => p.x === payload.x && p.y === payload.y)) return
 
-    const movingName = prevSelectedUnit.enchant?.soulId
-      ? (getSoulCard(prevSelectedUnit.enchant.soulId)?.name ?? prevSelectedUnit.base)
+    const soulId = prevSelectedUnit.enchant?.soulId
+    const movingName = soulId
+      ? (getSoulCard(soulId)?.name ?? prevSelectedUnit.base)
       : prevSelectedUnit.base
     setPending({
       action: { type: 'MOVE', unitId: prevSelectedUnit.id, to: { x: payload.x, y: payload.y } },

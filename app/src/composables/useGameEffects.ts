@@ -1,6 +1,9 @@
 import { ref } from 'vue'
 import type { GameState, DamageBreakdownItem, IncomeReportItem } from '../engine'
 import { getSoulCard } from '../engine'
+import { getItemCard } from '../engine/items'
+import type { ItemCard } from '../engine/items'
+import type { SoulCard } from '../engine/cards'
 
 export type FloatText = { id: string; text: string; kind: 'damage' | 'heal' }
 export type BeamFx = { id: string; from: { x: number; y: number }; to: { x: number; y: number } }
@@ -15,6 +18,12 @@ export type IncomeToast = {
   id: string
   side: 'red' | 'black'
   items: IncomeReportItem[]
+}
+export type CardUsageToast = {
+  id: string
+  card: ItemCard | SoulCard
+  actionType: 'use_item' | 'enchant'
+  actionDescription: string
 }
 
 const BASE_LABELS: Record<string, string> = {
@@ -31,6 +40,7 @@ const FX_KILL_MS = 760
 const FX_REVIVE_MS = 760
 const FX_ENCHANT_MS = 820
 const FX_TOAST_MS = 3200
+const FX_CARD_USAGE_MS = 2800
 
 function getUnitDisplayName(state: GameState, unitId: string): string {
   const u = state.units[unitId]
@@ -38,6 +48,8 @@ function getUnitDisplayName(state: GameState, unitId: string): string {
   const soulName = u.enchant?.soulId ? getSoulCard(u.enchant.soulId)?.name : null
   return soulName ?? BASE_LABELS[u.base] ?? u.base
 }
+
+export type ItemUsedEvent = { id: string; itemId: string; posKey: string }
 
 export function useGameEffects() {
   const fxAttackUnitIds = ref<string[]>([])
@@ -49,8 +61,10 @@ export function useGameEffects() {
   const fxKilledPosKeys = ref<string[]>([])
   const fxRevivedPosKeys = ref<string[]>([])
   const fxEnchantedPosKeys = ref<string[]>([])
+  const itemUsedEvents = ref<ItemUsedEvent[]>([])
   const damageToasts = ref<DamageToast[]>([])
   const incomeToasts = ref<IncomeToast[]>([])
+  const cardUsageToasts = ref<CardUsageToast[]>([])
 
   function addFloatText(posKey: string, text: string, kind: FloatText['kind'], ms = FX_FLOAT_MS) {
     const id = `${Date.now()}-${Math.random()}`
@@ -81,11 +95,58 @@ export function useGameEffects() {
       const type = (e as any).type
 
       if (type === 'ITEM_USED') {
+        const itemId = String((e as any).itemId ?? '')
         const itemName = String((e as any).itemName ?? '')
         const usedSide = String((e as any).side ?? nextState.turn.side)
+        const targetUnitId = String((e as any).targetUnitId ?? '')
+        const targetPosKey = String((e as any).targetPosKey ?? '')
         const king = Object.values(nextState.units).find((u) => u.side === usedSide && u.base === 'king')
         if (king && itemName) {
           addFloatText(`${king.pos.x},${king.pos.y}`, itemName, 'heal', FX_ITEM_FLOAT_MS)
+        }
+        
+        // Track item usage for visual effects
+        let effectPosKey = ''
+        if (targetUnitId) {
+          const targetUnit = nextState.units[targetUnitId]
+          if (targetUnit) {
+            effectPosKey = `${targetUnit.pos.x},${targetUnit.pos.y}`
+          }
+        } else if (targetPosKey) {
+          effectPosKey = targetPosKey
+        } else if (king) {
+          effectPosKey = `${king.pos.x},${king.pos.y}`
+        }
+        
+        if (effectPosKey && itemId) {
+          const eventId = `${Date.now()}-${Math.random()}`
+          itemUsedEvents.value = [...itemUsedEvents.value, { id: eventId, itemId, posKey: effectPosKey }]
+          window.setTimeout(() => {
+            itemUsedEvents.value = itemUsedEvents.value.filter((ev) => ev.id !== eventId)
+          }, 1000)
+        }
+        
+        // Card usage toast for item
+        const itemCard = getItemCard(itemId)
+        if (itemCard) {
+          const toastId = `${Date.now()}-${Math.random()}`
+          let actionDesc = itemCard.text ?? '使用道具'
+          if (targetUnitId) {
+            const targetUnit = nextState.units[targetUnitId]
+            if (targetUnit) {
+              const targetName = getUnitDisplayName(nextState, targetUnitId)
+              actionDesc = `對 ${targetName} 使用`
+            }
+          }
+          cardUsageToasts.value = [...cardUsageToasts.value, {
+            id: toastId,
+            card: itemCard,
+            actionType: 'use_item',
+            actionDescription: actionDesc,
+          }]
+          window.setTimeout(() => {
+            cardUsageToasts.value = cardUsageToasts.value.filter((t) => t.id !== toastId)
+          }, FX_CARD_USAGE_MS)
         }
       }
 
@@ -103,7 +164,8 @@ export function useGameEffects() {
         const attackerId = String((e as any).attackerId ?? '')
         const targetId = String((e as any).targetUnitId ?? '')
         const attacker = attackerId ? nextState.units[attackerId] : null
-        const target = targetId ? nextState.units[targetId] : null
+        // Try nextState first, then prevState (in case target was killed)
+        const target = targetId ? (nextState.units[targetId] || prevState?.units[targetId]) : null
         if (attacker && target) {
           const id = `${Date.now()}-${Math.random()}`
           const beam: BeamFx = { id, from: { ...attacker.pos }, to: { ...target.pos } }
@@ -172,8 +234,25 @@ export function useGameEffects() {
 
       if (type === 'ENCHANTED') {
         const unitId = String((e as any).unitId ?? '')
+        const soulId = String((e as any).soulId ?? '')
         const u = unitId ? nextState.units[unitId] : null
         if (u) addPosKeyFx(fxEnchantedPosKeys, `${u.pos.x},${u.pos.y}`, FX_ENCHANT_MS)
+        
+        // Card usage toast for enchantment
+        const soulCard = getSoulCard(soulId)
+        if (soulCard && u) {
+          const toastId = `${Date.now()}-${Math.random()}`
+          const unitName = getUnitDisplayName(nextState, unitId)
+          cardUsageToasts.value = [...cardUsageToasts.value, {
+            id: toastId,
+            card: soulCard,
+            actionType: 'enchant',
+            actionDescription: `附魔於 ${unitName}`,
+          }]
+          window.setTimeout(() => {
+            cardUsageToasts.value = cardUsageToasts.value.filter((t) => t.id !== toastId)
+          }, FX_CARD_USAGE_MS)
+        }
       }
 
       if (type === 'INCOME_REPORT') {
@@ -206,8 +285,10 @@ export function useGameEffects() {
     fxKilledPosKeys,
     fxRevivedPosKeys,
     fxEnchantedPosKeys,
+    itemUsedEvents,
     damageToasts,
     incomeToasts,
+    cardUsageToasts,
     addFloatText,
     processEventFx,
   }
