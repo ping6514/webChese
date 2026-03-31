@@ -21,6 +21,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
 
   const spendGoldForDamage = ref(false)
   const sacrificeHp = ref(false)
+  const suppressPierce = ref(true)   // 貫通預設關閉，玩家主動啟用
   watch(shootPreview, (newVal, oldVal) => {
     // 只有在開啟新射擊預覽時才重置（攻擊方或主目標改變）
     // 單純更新 extraTargetUnitId（連鎖/貫穿目標選擇）不重置 toggles
@@ -30,6 +31,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     if (!sameSession) {
       spendGoldForDamage.value = false
       sacrificeHp.value = false
+      suppressPierce.value = true
     }
   })
 
@@ -167,18 +169,38 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       shootPreview.value.attackerId,
       shootPreview.value.targetUnitId,
       shootPreview.value.extraTargetUnitId ?? null,
+      suppressPierce.value,
     )
     return res.ok ? res : null
   })
 
-  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null; spendGoldForDamage?: boolean; sacrificeHp?: boolean }) => void) {
+  /** 永遠以「貫通啟用」狀態計算，用於判斷貫通是否可用及目標數 */
+  const pierceInfo = computed<{ targetCount: number } | null>(() => {
+    const s = opts.getState()
+    if (!shootPreview.value) return null
+    const res = buildShotPreview(
+      s,
+      shootPreview.value.attackerId,
+      shootPreview.value.targetUnitId,
+      shootPreview.value.extraTargetUnitId ?? null,
+      false,
+    )
+    if (!res.ok) return null
+    const pierce = (res.effects ?? []).find((e) => e.kind === 'PIERCE') as any
+    if (!pierce) return null
+    const count = Array.isArray(pierce.targetUnitIds) ? pierce.targetUnitIds.length : 0
+    return count > 0 ? { targetCount: count } : null
+  })
+
+  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null; spendGoldForDamage?: boolean; sacrificeHp?: boolean; suppressPierce?: boolean }) => void) {
     if (!shootPreview.value) return
     if (!guard.value.ok) return
     const a = shootPreview.value
     const gold = spendGoldForDamage.value && goldForDamageInfo.value ? true : undefined
     const sacHp = sacrificeHp.value && bloodSacrificeInfo.value ? true : undefined
+    const nopierce = suppressPierce.value ? true : undefined
     ui.clearShootPreview()
-    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null, spendGoldForDamage: gold, sacrificeHp: sacHp })
+    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null, spendGoldForDamage: gold, sacrificeHp: sacHp, suppressPierce: nopierce })
   }
 
   return {
@@ -189,10 +211,12 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     target,
     guard,
     info,
+    pierceInfo,
     confirm,
     goldForDamageInfo,
     spendGoldForDamage,
     bloodSacrificeInfo,
     sacrificeHp,
+    suppressPierce,
   }
 }

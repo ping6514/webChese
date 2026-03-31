@@ -188,7 +188,7 @@ function findDamageSharer(s: GameState, targetSide: 'red' | 'black'): { unitId: 
   return null
 }
 
-export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): ShotPreview {
+export function buildShotPreview(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null, suppressPierce?: boolean): ShotPreview {
   const attacker = state.units[attackerId]
   const target = state.units[targetUnitId]
   if (!attacker) return { ok: false, error: '找不到攻擊者' }
@@ -409,7 +409,7 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
   }
 
   // PIERCE: mirror effects.ts PIERCE target selection for preview transparency.
-  if (attackerSoulId) {
+  if (!suppressPierce && attackerSoulId) {
     const card = getSoulCard(attackerSoulId)
     if (card) {
       for (const ab of card.abilities) {
@@ -645,7 +645,7 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     }
   }
 
-  if (String((bsShotEffect as any)?.type ?? '') === 'PIERCE') {
+  if (!suppressPierce && String((bsShotEffect as any)?.type ?? '') === 'PIERCE') {
     const ab = bsShotEffect as any
     const requiresManaGte = Number(ab.requiresManaGte ?? 0)
     if (!(Number.isFinite(requiresManaGte) && requiresManaGte > 0) || state.resources[attacker.side].mana >= requiresManaGte) {

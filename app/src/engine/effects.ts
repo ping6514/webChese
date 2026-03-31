@@ -21,6 +21,7 @@ export type ShootPlanContext = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  suppressPierce?: boolean
   events?: Event[]
 }
 
@@ -537,6 +538,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         },
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
+          if (ctx.suppressPierce) return
 
           const attacker = ctx.state.units[ctx.attackerId]
           const target = ctx.state.units[ctx.targetUnitId]

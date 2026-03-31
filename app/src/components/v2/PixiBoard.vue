@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { PixiBoardRenderer } from '../../game/PixiBoardRenderer'
+import type { SkillSelectConfig, AttackConfirmConfig } from '../../game/BoardActionPanel'
 import { getSoulCard } from '../../engine'
 import type { GameState } from '../../engine'
 import type { FloatText, BeamFx } from '../../composables/useGameEffects'
@@ -31,6 +32,40 @@ const emit = defineEmits<{
 
 const canvasRef = ref<HTMLCanvasElement>()
 let renderer: PixiBoardRenderer | null = null
+
+// 手勢滾動追蹤
+const TAP_THRESHOLD = 8
+let gestureStartX = 0
+let gestureStartY = 0
+let gesturePrevY = 0
+let isScrollGesture = false
+
+function onCanvasPointerDown(e: PointerEvent) {
+  gestureStartX = e.clientX
+  gestureStartY = e.clientY
+  gesturePrevY = e.clientY
+  isScrollGesture = false
+}
+
+function onCanvasPointerMove(e: PointerEvent) {
+  if (e.buttons === 0) return
+  const dx = e.clientX - gestureStartX
+  const dy = e.clientY - gestureStartY
+  if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
+    isScrollGesture = true
+  }
+  if (isScrollGesture) {
+    const delta = gesturePrevY - e.clientY
+    const scrollEl = (e.currentTarget as HTMLElement).closest('.boardArea') as HTMLElement | null
+    if (scrollEl) scrollEl.scrollTop += delta
+    if (renderer) renderer.suppressNextClick = true
+  }
+  gesturePrevY = e.clientY
+}
+
+function onCanvasPointerUp() {
+  isScrollGesture = false
+}
 
 // Tooltip state
 const tooltipVisible = ref(false)
@@ -281,11 +316,25 @@ function updateHighlights() {
     highlightUnitIds: props.highlightUnitIds,
   })
 }
+
+defineExpose({
+  showSkillSelect:    (config: SkillSelectConfig)  => renderer?.actionPanel.showSkillSelect(config),
+  showAttackConfirm:  (config: AttackConfirmConfig) => renderer?.actionPanel.showAttackConfirm(config),
+  hideActionPanel:    ()                            => renderer?.actionPanel.hide(),
+  updateChainTarget:  (selected: boolean)           => renderer?.actionPanel.updateChainTarget(selected),
+  getCellScreenPos:   (x: number, y: number)        => renderer?.getCellPosition(x, y) ?? { x: 0, y: 0 },
+})
 </script>
 
 <template>
   <div class="pixi-board-wrapper">
-    <canvas ref="canvasRef" />
+    <canvas
+      ref="canvasRef"
+      @pointerdown="onCanvasPointerDown"
+      @pointermove="onCanvasPointerMove"
+      @pointerup="onCanvasPointerUp"
+      @pointercancel="onCanvasPointerUp"
+    />
     <UnitTooltip
       :visible="tooltipVisible"
       :unit-id="tooltipUnitId"

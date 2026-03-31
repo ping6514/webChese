@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, inject, onMounted, onUnmounted, type Ref } from 'vue'
+import { ref, computed, watch, inject, onMounted, onUnmounted, nextTick, type Ref } from 'vue'
 import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
 import type { GameState } from '../../engine'
 import { canEnchant, canSacrifice, getSoulCard } from '../../engine'
@@ -7,7 +7,7 @@ import BoardGrid from '../BoardGrid.vue'
 import PixiBoard from './PixiBoard.vue'
 import ConfirmModal from '../ConfirmModal.vue'
 import ShootPreviewModal from '../ShootPreviewModal.vue'
-import ShootActionOverlay from '../ShootActionOverlay.vue'
+import type { SkillOption } from '../../game/BoardActionPanel'
 import DamageFormulaToast from '../DamageFormulaToast.vue'
 import IncomeToast from '../IncomeToast.vue'
 import { useSelection } from '../../useSelection'
@@ -28,10 +28,28 @@ const lastError = ref<string | null>(null)
 
 // PixiJS renderer always enabled
 const usePixiRenderer = true
+const pixiBoardRef = ref<InstanceType<typeof PixiBoard>>()
+
+// 連鎖目標選擇模式（面板隱藏中，等待玩家點選目標）
+const isSelectingChain = ref(false)
+const activeKeysForConfirm = ref<string[]>([])
+
+// 結束連鎖選擇，重新顯示確認面板
+function finishChainSelection() {
+  isSelectingChain.value = false
+  if (shootPreview.value) {
+    nextTick(() => showCanvasConfirm(activeKeysForConfirm.value))
+  }
+}
 
 // Adapter for PixiBoard cell-click event
 function onPixiCellClick(payload: { x: number; y: number }) {
   const unitId = Object.values(state.value.units).find(u => u.pos.x === payload.x && u.pos.y === payload.y)?.id ?? null
+  if (isSelectingChain.value) {
+    onCellClick({ ...payload, unitId })
+    finishChainSelection()
+    return
+  }
   onCellClick({ ...payload, unitId })
 }
 
@@ -39,7 +57,17 @@ function onPixiCellClick(payload: { x: number; y: number }) {
 function onPixiUnitClick(unitId: string) {
   const unit = state.value.units[unitId]
   if (!unit) return
-  
+
+  // 連鎖選擇模式：點選棋子 → 更新連鎖目標 → 重新開啟面板
+  if (isSelectingChain.value) {
+    onCellClick({ x: unit.pos.x, y: unit.pos.y, unitId })
+    finishChainSelection()
+    return
+  }
+
+  // 射擊預覽中（面板可見）：忽略棋子點擊，避免誤觸
+  if (shootPreview.value) return
+
   // Check if we're in enchant mode - if so, route through onCellClick
   if (ui.interactionMode.kind === 'enchant_select_unit') {
     onCellClick({ x: unit.pos.x, y: unit.pos.y, unitId })
@@ -87,6 +115,8 @@ const {
   spendGoldForDamage: shootSpendGoldForDamage,
   bloodSacrificeInfo: shootBloodSacrificeInfo,
   sacrificeHp: shootSacrificeHp,
+  suppressPierce: shootSuppressPierce,
+  pierceInfo: shootPierceInfo,
 } = useShootPreview({ getState: () => state.value })
 
 const shootExtraTargetUnitId = computed(() => shootPreview.value?.extraTargetUnitId ?? null)
@@ -130,8 +160,140 @@ const shootPreviewPierceMarks = computed<Record<string, number>>(() => {
 
 function cancelShootPreview() {
   shootDetailsOpen.value = false
+  isSelectingChain.value = false
   closeShootPreview()
+  pixiBoardRef.value?.hideActionPanel()
 }
+
+// ── Canvas action panel flow ───────────────────────────────────────────────
+
+function getTargetScreenPos(): { x: number; y: number } | undefined {
+  const target = shootPreviewTarget.value
+  if (!target) return undefined
+  return pixiBoardRef.value?.getCellScreenPos(target.pos.x, target.pos.y)
+}
+
+function buildSummary(activeKeys: string[]): string | undefined {
+  const parts: string[] = []
+  if (shootManaCost.value != null) parts.push(`耗魔 ${shootManaCost.value}`)
+  if (activeKeys.includes('sacrifice')) parts.push('血祭')
+  if (activeKeys.includes('gold')) parts.push('以財傷敵')
+  if (activeKeys.includes('enable_pierce') && shootPierceInfo.value) {
+    parts.push(`貫通×${shootPierceInfo.value.targetCount}`)
+  }
+  return parts.length ? parts.join(' ／ ') : undefined
+}
+
+function showCanvasConfirm(activeKeys: string[]) {
+  activeKeysForConfirm.value = activeKeys
+  const hasSkills = !!(shootBloodSacrificeInfo.value || shootGoldForDamageInfo.value || shootPierceInfo.value)
+  const chainEligible = shootChainEligibleEnemyIds.value.length > 0
+  pixiBoardRef.value?.showAttackConfirm({
+    title: '確認射擊',
+    summary: buildSummary(activeKeys),
+    confirmLabel: '確認射擊',
+    confirmDisabled: !shootPreviewGuard.value.ok,
+    onSelectChain: chainEligible ? () => {
+      if (shootExtraTargetUnitId.value) {
+        // 已有目標 → 清除，按鈕回到未選擇狀態
+        openShootPreview(shootPreview.value!.attackerId, shootPreview.value!.targetUnitId, null)
+        pixiBoardRef.value?.updateChainTarget(false)
+      } else {
+        // 未選擇 → 隱藏面板，等待玩家點選目標
+        isSelectingChain.value = true
+        pixiBoardRef.value?.hideActionPanel()
+      }
+    } : undefined,
+    targetScreenPos: getTargetScreenPos(),
+    onConfirm: confirmShootPreview,
+    onBack: hasSkills ? () => openCanvasAttackFlow() : undefined,
+    onCancel: cancelShootPreview,
+    onPreview: () => { shootDetailsOpen.value = true },
+  })
+  // 同步連鎖按鈕的當前選取狀態
+  if (chainEligible) {
+    nextTick(() => pixiBoardRef.value?.updateChainTarget(!!shootExtraTargetUnitId.value))
+  }
+}
+
+function openCanvasAttackFlow() {
+  const skills: SkillOption[] = []
+  if (shootBloodSacrificeInfo.value) {
+    skills.push({
+      key: 'sacrifice',
+      label: `血祭 帥-${shootBloodSacrificeInfo.value.hpCost ?? 1}HP`,
+      style: 'blood',
+    })
+  }
+  if (shootGoldForDamageInfo.value) {
+    skills.push({
+      key: 'gold',
+      label: `以財傷敵 -${shootGoldForDamageInfo.value.goldCost}G +${shootGoldForDamageInfo.value.damageBonus}傷`,
+      style: 'gold',
+    })
+  }
+
+  if (shootPierceInfo.value) {
+    skills.push({
+      key: 'enable_pierce',
+      label: `啟用貫通（穿透 ${shootPierceInfo.value.targetCount} 個目標）`,
+      style: 'gold',
+    })
+  }
+  const chainEligibleCount = shootChainEligibleEnemyIds.value.length
+  const targetScreenPos = getTargetScreenPos()
+
+  if (skills.length > 0) {
+    pixiBoardRef.value?.showSkillSelect({
+      title: '攻擊前技能選擇',
+      skills,
+      chainEligibleCount: chainEligibleCount || undefined,
+      targetScreenPos,
+      onContinue: (activeKeys) => {
+        setShootSpendGold(activeKeys.includes('gold'))
+        setShootSacrificeHp(activeKeys.includes('sacrifice'))
+        setShootSuppressPierce(!activeKeys.includes('enable_pierce'))
+        showCanvasConfirm(activeKeys)
+      },
+      onCancel: cancelShootPreview,
+    })
+  } else {
+    showCanvasConfirm([])
+  }
+}
+
+// 連鎖目標更新後，若面板可見則同步顯示
+watch(shootExtraTargetUnitId, (id) => {
+  if (shootPreview.value && !isSelectingChain.value) {
+    pixiBoardRef.value?.updateChainTarget(!!id)
+  }
+})
+
+// 當 shootPreview 開啟時，啟動 Canvas 面板流程
+watch(shootPreview, async (newVal, oldVal) => {
+  if (!newVal) {
+    isSelectingChain.value = false
+    pixiBoardRef.value?.hideActionPanel()
+    return
+  }
+  if (!oldVal) {
+    await nextTick()
+    openCanvasAttackFlow()
+  }
+})
+
+// 詳情預覽開啟/關閉時同步面板狀態
+watch(shootDetailsOpen, (open) => {
+  if (open) {
+    pixiBoardRef.value?.hideActionPanel()
+  } else if (shootPreview.value) {
+    const activeKeys: string[] = []
+    if (shootSacrificeHp.value) activeKeys.push('sacrifice')
+    if (shootSpendGoldForDamage.value) activeKeys.push('gold')
+    if (!shootSuppressPierce.value) activeKeys.push('enable_pierce')
+    showCanvasConfirm(activeKeys)
+  }
+})
 
 // ── Pending confirm ────────────────────────────────────────────────────────────
 const {
@@ -268,13 +430,38 @@ const shootTargetPosKey = computed(() => {
   return u ? `${u.pos.x},${u.pos.y}` : null
 })
 
+// ── Sacrifice Pixi confirm panel ───────────────────────────────────────────────
+function showSacrificeConfirmPanel(action: { type: 'SACRIFICE'; sourceUnitId: string; targetUnitId: string; range: number }) {
+  const srcUnit = state.value.units[action.sourceUnitId]
+  const tgtUnit = state.value.units[action.targetUnitId]
+  const srcName = srcUnit?.enchant?.soulId ? (getSoulCard(srcUnit.enchant.soulId)?.name ?? srcUnit.base) : (srcUnit?.base ?? action.sourceUnitId)
+  const tgtName = tgtUnit?.enchant?.soulId ? (getSoulCard(tgtUnit.enchant.soulId)?.name ?? tgtUnit.base) : (tgtUnit?.base ?? action.targetUnitId)
+  const targetScreenPos = tgtUnit ? pixiBoardRef.value?.getCellScreenPos(tgtUnit.pos.x, tgtUnit.pos.y) : undefined
+  pixiBoardRef.value?.showAttackConfirm({
+    title: '確認獻祭',
+    summary: `${srcName} 獻祭 → ${tgtName}`,
+    confirmLabel: '確認獻祭',
+    targetScreenPos,
+    onConfirm: () => { ctx.dispatch(action) },
+    onCancel: () => {},
+  })
+}
+
+function handleSetPending(p: Parameters<typeof setPending>[0]) {
+  if (p.action.type === 'SACRIFICE') {
+    showSacrificeConfirmPanel(p.action as { type: 'SACRIFICE'; sourceUnitId: string; targetUnitId: string; range: number })
+    return
+  }
+  setPending(p)
+}
+
 // ── Interaction mode (cell click routing) ─────────────────────────────────────
 const { boneRefineChoicePos, onUseItem, onCellClick, boneRefineChoose, cancelBoneRefine } =
   useInteractionMode({
     state, lastError, selectedUnit, shootPreview, shootChainEligibleEnemyIds,
     shootExtraTargetUnitId, enchantableUnitIds, sacrificeTargetableUnitIds,
     onCellClickSelection, openShootPreview, cancelShootPreview,
-    shootDetailsOpen, legalMoves, setPending,
+    shootDetailsOpen, legalMoves, setPending: handleSetPending,
   })
 
 function startSacrificeMode(sourceUnitId: string, range?: number) {
@@ -313,6 +500,10 @@ function setShootSpendGold(v: boolean) {
 
 function setShootSacrificeHp(v: boolean) {
   shootSacrificeHp.value = v
+}
+
+function setShootSuppressPierce(v: boolean) {
+  shootSuppressPierce.value = v
 }
 
 // ── Phase toast ────────────────────────────────────────────────────────────────
@@ -472,11 +663,13 @@ defineExpose({ onUseItem })
       <!-- PixiJS Renderer -->
       <PixiBoard
         v-if="usePixiRenderer"
+        ref="pixiBoardRef"
         :state="state"
         :selected-unit-id="selectedUnitId"
         :legal-moves="legalMoves"
         :shootable-target-ids="shootableTargetIds"
         :highlight-unit-ids="
+          isSelectingChain ? shootChainEligibleEnemyIds :
           enchantMode ? enchantableUnitIds :
           sacrificeMode ? sacrificeTargetableUnitIds :
           ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds :
@@ -563,29 +756,7 @@ defineExpose({ onUseItem })
       <div v-if="posToastVisible" class="posToast">{{ posToastText }}</div>
     </Transition>
 
-    <!-- Shoot action overlay (first layer - quick actions for PixiJS) -->
-    <ShootActionOverlay
-      v-if="usePixiRenderer"
-      :show="!!shootPreview && !shootDetailsOpen"
-      title="射擊選單"
-      :style-obj="{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }"
-      :mana-cost="shootManaCost"
-      :confirm-disabled="!shootPreviewGuard.ok"
-      :confirm-title="shootConfirmTitle"
-      confirm-label="射擊 (Enter)"
-      details-label="射擊預覽"
-      :show-details="true"
-      :gold-for-damage="shootGoldForDamageInfo"
-      :spend-gold-for-damage="shootSpendGoldForDamage"
-      :blood-sacrifice="shootBloodSacrificeInfo"
-      :sacrifice-hp="shootSacrificeHp"
-      :offset="{ x: 0, y: 0 }"
-      @confirm="confirmShootPreview"
-      @cancel="cancelShootPreview"
-      @details="shootDetailsOpen = true"
-      @update:spend-gold-for-damage="setShootSpendGold"
-      @update:sacrifice-hp="setShootSacrificeHp"
-    />
+    <!-- 射擊流程已移入 Canvas (BoardActionPanel)，此處不再需要 DOM overlay -->
 
     <!-- Shoot preview modal (second layer - detailed preview) -->
     <ShootPreviewModal

@@ -3,6 +3,7 @@ import { gsap } from 'gsap'
 import { UnitSprite, type UnitSpriteData } from './UnitSprite'
 import { CorpseSprite } from './CorpseSprite'
 import { EffectsManager } from './EffectsManager'
+import { BoardActionPanel } from './BoardActionPanel'
 import type { GameState } from '../engine'
 import { BOARD_WIDTH, BOARD_HEIGHT } from '../engine'
 import { getMaxHpForUnitInState } from '../engine/stats'
@@ -29,7 +30,11 @@ export class PixiBoardRenderer {
   private highlightSprites: Map<string, PIXI.Graphics> = new Map()
   
   public effectsManager: EffectsManager
-  
+  public actionPanel: BoardActionPanel
+
+  private canvasWidth: number
+  private canvasHeight: number
+
   private config: BoardConfig = {
     cellSize: 70,
     padding: 2,
@@ -43,10 +48,15 @@ export class PixiBoardRenderer {
   public onCellOut?: (x: number, y: number) => void
   public onUnitHover?: (unitId: string, x: number, y: number) => void
   public onUnitHoverOut?: () => void
+
+  /** 設為 true 時，下一次 pointerup 觸發的 click 會被忽略（用於滾動手勢後抑制誤點） */
+  public suppressNextClick = false
   
   constructor(canvas: HTMLCanvasElement, width: number, height: number) {
     this.app = new PIXI.Application()
-    
+    this.canvasWidth = width
+    this.canvasHeight = height
+
     this.app.init({
       canvas,
       width,
@@ -60,13 +70,14 @@ export class PixiBoardRenderer {
       this.renderBoard()
       this.startRenderLoop()
     })
-    
+
     this.boardContainer = new PIXI.Container()
     this.highlightContainer = new PIXI.Container()
     this.unitsContainer = new PIXI.Container()
     this.corpsesContainer = new PIXI.Container()
     this.effectsContainer = new PIXI.Container()
     this.effectsManager = new EffectsManager(this.effectsContainer)
+    this.actionPanel = new BoardActionPanel(this.canvasWidth, this.canvasHeight)
   }
   
   private setupLayers() {
@@ -75,6 +86,7 @@ export class PixiBoardRenderer {
     this.app.stage.addChild(this.corpsesContainer)
     this.app.stage.addChild(this.unitsContainer)
     this.app.stage.addChild(this.effectsContainer)
+    this.app.stage.addChild(this.actionPanel) // 最上層，遮蓋棋盤事件
   }
   
   private renderBoard() {
@@ -151,6 +163,15 @@ export class PixiBoardRenderer {
           this.onCellOutHandler(x, y)
         })
         cell.on('pointerdown', () => {
+          // 觸控裝置上 pointerover 不會觸發，這裡補上視覺回饋
+          this.onCellHoverHandler(x, y)
+        })
+        cell.on('pointerup', () => {
+          this.onCellOutHandler(x, y)
+          if (this.suppressNextClick) {
+            this.suppressNextClick = false
+            return
+          }
           this.onCellClickHandler(x, y)
         })
         
@@ -311,10 +332,14 @@ export class PixiBoardRenderer {
     unitSprite.x = pos.x
     unitSprite.y = pos.y
     
-    unitSprite.on('pointerdown', () => {
+    unitSprite.on('pointerup', () => {
+      if (this.suppressNextClick) {
+        this.suppressNextClick = false
+        return
+      }
       this.onUnitClick?.(data.id)
     })
-    
+
     this.unitSprites.set(data.id, unitSprite)
     this.unitsContainer.addChild(unitSprite)
   }
@@ -432,10 +457,14 @@ export class PixiBoardRenderer {
         unitSprite.x = pos.x
         unitSprite.y = pos.y
         
-        unitSprite.on('pointerdown', () => {
+        unitSprite.on('pointerup', () => {
+          if (this.suppressNextClick) {
+            this.suppressNextClick = false
+            return
+          }
           this.onUnitClick?.(unit.id)
         })
-        
+
         unitSprite.on('pointerover', (event) => {
           const globalPos = event.global
           this.onUnitHover?.(unit.id, globalPos.x, globalPos.y)

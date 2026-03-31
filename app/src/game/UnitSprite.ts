@@ -25,6 +25,7 @@ export class UnitSprite extends PIXI.Container {
   private glowFilter!: GlowFilter
   private enchantBadge?: PIXI.Container
   private sealIcon?: PIXI.Text
+  private soulNameText?: PIXI.Text
   
   constructor(data: UnitSpriteData) {
     super()
@@ -111,7 +112,10 @@ export class UnitSprite extends PIXI.Container {
       soulNameText.anchor.set(0.5)
       soulNameText.y = 20  // Near bottom of unit sprite
       soulNameText.alpha = 0.95
+      this.soulNameText = soulNameText
       this.addChild(soulNameText)
+    } else {
+      this.soulNameText = undefined
     }
   }
   
@@ -448,8 +452,15 @@ export class UnitSprite extends PIXI.Container {
         this.removeChild(this.enchantBadge)
         this.enchantBadge = undefined
       }
-      // Remove old label
+      // Remove old soul name text (區域變數轉為 instance 追蹤)
+      if (this.soulNameText) {
+        gsap.killTweensOf(this.soulNameText)
+        this.removeChild(this.soulNameText)
+        this.soulNameText = undefined
+      }
+      // Remove old label（同時殺掉 shimmer 動畫）
       if (this.labelText) {
+        gsap.killTweensOf(this.labelText)
         this.removeChild(this.labelText)
       }
       

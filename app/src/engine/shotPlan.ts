@@ -12,7 +12,7 @@ import { countCorpses, countSoldiers } from './corpses'
 
 export type ShotPlanResult = { ok: true; plan: ShotPlan } | { ok: false; error: string }
 
-export function buildShotPlan(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): ShotPlanResult {
+export function buildShotPlan(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null, suppressPierce?: boolean): ShotPlanResult {
   const handlers = getEffectHandlers(state)
 
   const events: Event[] = []
@@ -43,7 +43,7 @@ export function buildShotPlan(state: GameState, attackerId: string, targetUnitId
   }
 
   for (const h of handlers) {
-    h.onAfterShotPlanBuilt?.({ state, attackerId, targetUnitId, extraTargetUnitId, events }, plan)
+    h.onAfterShotPlanBuilt?.({ state, attackerId, targetUnitId, extraTargetUnitId, suppressPierce, events }, plan)
   }
 
   ;(plan as any).__buildEvents = events

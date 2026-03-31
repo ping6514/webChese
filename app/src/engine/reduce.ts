@@ -771,7 +771,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         }
       }
 
-      const planRes = buildShotPlan(stateForShot, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
+      const planRes = buildShotPlan(stateForShot, action.attackerId, action.targetUnitId, action.extraTargetUnitId, action.suppressPierce)
       if (!planRes.ok) return { ok: false, error: (planRes as { ok: false; error: string }).error }
 
       // GOLD_FOR_DAMAGE: validate and inject gold spend into plan
