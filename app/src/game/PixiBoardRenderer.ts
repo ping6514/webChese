@@ -1,7 +1,7 @@
 import * as PIXI from 'pixi.js'
 import { gsap } from 'gsap'
 import { UnitSprite, type UnitSpriteData } from './UnitSprite'
-import { CorpseSprite, type CorpseData } from './CorpseSprite'
+import { CorpseSprite } from './CorpseSprite'
 import { EffectsManager } from './EffectsManager'
 import type { GameState } from '../engine'
 import { BOARD_WIDTH, BOARD_HEIGHT } from '../engine'
@@ -235,7 +235,7 @@ export class PixiBoardRenderer {
   }
   
   clearHighlights() {
-    this.highlightSprites.forEach((highlight, posKey) => {
+    this.highlightSprites.forEach((highlight, _posKey) => {
       gsap.killTweensOf(highlight.scale)
       this.highlightContainer.removeChild(highlight)
       highlight.destroy()
@@ -467,7 +467,7 @@ export class PixiBoardRenderer {
       
       const coords = posKey.split(',').map(Number)
       if (coords.length !== 2 || coords.some(isNaN)) return
-      const [x, y] = coords
+      const [x, y] = coords as [number, number]
       const pos = this.getCellPosition(x, y)
       
       const corpseData = corpses.map(c => ({

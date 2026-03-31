@@ -54,7 +54,7 @@ watch(() => conn.gameState, (gs) => {
 const {
   fxAttackUnitIds, fxHitUnitIds, fxKilledUnitIds, fxAbilityUnitIds,
   fxKilledPosKeys, fxRevivedPosKeys, fxEnchantedPosKeys,
-  floatTextsByPos, fxBeams, damageToasts, incomeToasts, cardUsageToasts, processEventFx,
+  floatTextsByPos, fxBeams, damageToasts, incomeToasts, cardUsageToasts, itemUsedEvents, processEventFx,
 } = useGameEffects()
 const { dispatch, onlineWaiting, lastEvents, lastError } = useGameDispatch({ state, processEventFx, setup, conn })
 
@@ -329,6 +329,7 @@ provideGameV2({
     fxKilledPosKeys,
     fxRevivedPosKeys,
     fxEnchantedPosKeys,
+    itemUsedEvents,
     floatTextsByPos,
     fxBeams,
     damageToasts,

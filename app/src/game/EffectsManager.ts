@@ -1,13 +1,10 @@
 import * as PIXI from 'pixi.js'
 import { GlowFilter } from '@pixi/filter-glow'
 import { gsap } from 'gsap'
-import { Emitter, upgradeConfig } from '@pixi/particle-emitter'
-import type { EmitterConfigV3 } from '@pixi/particle-emitter'
 
 export class EffectsManager {
   public container: PIXI.Container
   private particleContainer: PIXI.Container
-  private particleEmitters: Emitter[] = []
   
   constructor(container: PIXI.Container) {
     this.container = container
@@ -35,8 +32,8 @@ export class EffectsManager {
       outerStrength: 2,
       color: 0xff4d4f
     })
-    beam.filters = [glowFilter]
-    
+    beam.filters = [glowFilter] as any
+
     this.container.addChild(beam)
     
     beam.scale.x = 0
@@ -62,7 +59,8 @@ export class EffectsManager {
     // TEMPORARILY DISABLED: Particle effects causing updateLocalTransform errors
     // this.createBeamParticles(from, to)
   }
-  
+
+  /* createBeamParticles removed — dead code (see comment above)
   private createBeamParticles(from: { x: number; y: number }, to: { x: number; y: number }) {
     const particleTexture = PIXI.Texture.from(this.createParticleCanvas())
     
@@ -143,7 +141,8 @@ export class EffectsManager {
       }, 500)
     }, 200)
   }
-  
+  */
+
   createDamageText(x: number, y: number, damage: number, isCritical: boolean = false) {
     const text = new PIXI.Text({
       text: `-${damage}`,
@@ -165,7 +164,7 @@ export class EffectsManager {
         outerStrength: 3,
         color: 0xff0000
       })
-      text.filters = [glowFilter]
+      text.filters = [glowFilter] as any
       
       gsap.to(text, {
         rotation: 0.1,
@@ -258,7 +257,7 @@ export class EffectsManager {
       outerStrength: 5,
       color: 0x91caff
     })
-    mainBeam.filters = [mainGlow]
+    mainBeam.filters = [mainGlow] as any
     effectContainer.addChild(mainBeam)
     
     // Side beams - BIGGER and more dramatic, START VISIBLE
@@ -267,7 +266,7 @@ export class EffectsManager {
     leftBeam.fill({ color: 0x91caff, alpha: 0.6 })
     leftBeam.y = -90
     leftBeam.visible = true
-    leftBeam.filters = [new GlowFilter({ distance: 25, outerStrength: 3, color: 0x91caff })]
+    leftBeam.filters = [new GlowFilter({ distance: 25, outerStrength: 3, color: 0x91caff })] as any
     effectContainer.addChild(leftBeam)
     
     const rightBeam = new PIXI.Graphics()
@@ -275,7 +274,7 @@ export class EffectsManager {
     rightBeam.fill({ color: 0x91caff, alpha: 0.6 })
     rightBeam.y = -90
     rightBeam.visible = true
-    rightBeam.filters = [new GlowFilter({ distance: 25, outerStrength: 3, color: 0x91caff })]
+    rightBeam.filters = [new GlowFilter({ distance: 25, outerStrength: 3, color: 0x91caff })] as any
     effectContainer.addChild(rightBeam)
     
     console.log('Beams created and added, starting animation...')
@@ -285,7 +284,7 @@ export class EffectsManager {
     burst.circle(0, 0, 50)
     burst.fill({ color: 0xffffff, alpha: 0 })
     burst.scale.set(1, 1)
-    burst.filters = [new GlowFilter({ distance: 50, outerStrength: 6, color: 0x91caff })]
+    burst.filters = [new GlowFilter({ distance: 50, outerStrength: 6, color: 0x91caff })] as any
     effectContainer.addChild(burst)
     
     // Sparkle particles - MORE and BIGGER
@@ -295,7 +294,7 @@ export class EffectsManager {
       sparkle.circle(0, 0, 5)
       sparkle.fill({ color: 0xffffff, alpha: 0 })
       sparkle.scale.set(1, 1)
-      sparkle.filters = [new GlowFilter({ distance: 12, outerStrength: 3, color: 0x91caff })]
+      sparkle.filters = [new GlowFilter({ distance: 12, outerStrength: 3, color: 0x91caff })] as any
       effectContainer.addChild(sparkle)
       sparkles.push(sparkle)
     }
@@ -456,8 +455,8 @@ export class EffectsManager {
       outerStrength: 1.5,
       color: 0x91caff
     })
-    wave.filters = [glowFilter]
-    
+    wave.filters = [glowFilter] as any
+
     this.container.addChild(wave)
     
     // Animate: expand and fade
@@ -537,7 +536,7 @@ export class EffectsManager {
       outerStrength: 2,
       color: 0x722ed1
     })
-    chains.filters = [glowFilter]
+    chains.filters = [glowFilter] as any
     
     this.container.addChild(chains)
     
@@ -648,7 +647,7 @@ export class EffectsManager {
       })
   }
   
-  createDeathEffect(x: number, y: number, color: number) {
+  createDeathEffect(x: number, y: number, _color: number) {
     // Central explosion flash - white with cyan tint
     const flash = new PIXI.Graphics()
     flash.circle(0, 0, 30)
@@ -914,7 +913,7 @@ export class EffectsManager {
   }
   */
   
-  update(delta: number) {
+  update(_delta: number) {
     // Particle emitters disabled - no update needed
   }
   

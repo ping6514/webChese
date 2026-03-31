@@ -18,11 +18,11 @@ export interface UnitSpriteData {
 
 export class UnitSprite extends PIXI.Container {
   public unitId: string
-  private background: PIXI.Graphics
-  private labelText: PIXI.Text
-  private hpBar: PIXI.Graphics
-  private hpText: PIXI.Text
-  private glowFilter: GlowFilter
+  private background!: PIXI.Graphics
+  private labelText!: PIXI.Text
+  private hpBar!: PIXI.Graphics
+  private hpText!: PIXI.Text
+  private glowFilter!: GlowFilter
   private enchantBadge?: PIXI.Container
   private sealIcon?: PIXI.Text
   
@@ -164,7 +164,7 @@ export class UnitSprite extends PIXI.Container {
       color: side === 'red' ? 0xff4d4f : 0x52c41a,
       quality: 0.5
     })
-    this.filters = [this.glowFilter]
+    this.filters = [this.glowFilter] as any
   }
   
   private setupSealIcon() {
@@ -310,8 +310,8 @@ export class UnitSprite extends PIXI.Container {
       .to(this, { x: this.x, duration: 0.05 })
     
     const colorMatrix = new PIXI.ColorMatrixFilter()
-    const originalFilters = this.filters || []
-    this.filters = [...originalFilters, colorMatrix]
+    const existingFilters = Array.isArray(this.filters) ? [...(this.filters as any[])] : []
+    this.filters = [...existingFilters, colorMatrix] as any
     
     gsap.timeline()
       .to(colorMatrix, {
@@ -326,7 +326,7 @@ export class UnitSprite extends PIXI.Container {
           colorMatrix.brightness(1, false)
         },
         onComplete: () => {
-          this.filters = originalFilters
+          this.filters = existingFilters as any
         }
       })
   }

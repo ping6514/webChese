@@ -45,7 +45,6 @@ onMounted(() => {
   
   // Calculate canvas size based on board dimensions
   const cellSize = 70
-  const padding = 2
   const boardOffsetX = 10  // Reduced for mobile
   const boardOffsetY = 20
   
@@ -162,18 +161,18 @@ watch(() => props.fxKilledUnitIds, (unitIds) => {
 // Separate watcher for death explosion effects using position keys
 watch(() => props.fxKilledPosKeys, (posKeys) => {
   if (!renderer) return
-  
+
   posKeys.forEach(posKey => {
     const coords = posKey.split(',').map(Number)
     if (coords.length !== 2 || coords.some(isNaN)) return
-    const [x, y] = coords
-    const pos = renderer.getCellPosition(x, y)
+    const [x, y] = coords as [number, number]
+    const pos = renderer!.getCellPosition(x, y)
     
     // Determine color from units at that position
     const unit = Object.values(props.state.units).find(u => u.pos.x === x && u.pos.y === y)
     const color = unit?.side === 'red' ? 0xff4d4f : 0x52c41a
     
-    renderer.effectsManager.createDeathEffect(pos.x, pos.y, color)
+    renderer!.effectsManager.createDeathEffect(pos.x, pos.y, color)
   })
 })
 
@@ -183,9 +182,9 @@ watch(() => props.floatTextsByPos, (textsByPos) => {
   Object.entries(textsByPos).forEach(([posKey, texts]) => {
     const coords = posKey.split(',').map(Number)
     if (coords.length !== 2) return
-    const [x, y] = coords
+    const [x, y] = coords as [number, number]
     const pos = renderer!.getCellPosition(x, y)
-    
+
     texts.forEach(text => {
       if (text.kind === 'damage') {
         const damage = parseInt(text.text.replace('-', '').replace('+', ''))
@@ -221,7 +220,7 @@ watch(() => props.fxEnchantedPosKeys, (posKeys) => {
       console.warn('Invalid coords for enchant effect:', posKey, coords)
       return
     }
-    const [x, y] = coords
+    const [x, y] = coords as [number, number]
     const pos = renderer!.getCellPosition(x, y)
     console.log(`✨ Creating enchant effect at grid (${x},${y}) -> screen (${pos.x},${pos.y})`)
     try {
@@ -239,7 +238,7 @@ watch(() => props.fxRevivedPosKeys, (posKeys) => {
   posKeys.forEach(posKey => {
     const coords = posKey.split(',').map(Number)
     if (coords.length !== 2 || coords.some(isNaN)) return
-    const [x, y] = coords
+    const [x, y] = coords as [number, number]
     const pos = renderer!.getCellPosition(x, y)
     renderer!.effectsManager.createReviveEffect(pos.x, pos.y)
   })
@@ -261,7 +260,7 @@ watch(() => props.itemUsedEvents, (events) => {
   events.forEach(event => {
     const coords = event.posKey.split(',').map(Number)
     if (coords.length !== 2 || coords.some(isNaN)) return
-    const [x, y] = coords
+    const [x, y] = coords as [number, number]
     const pos = renderer!.getCellPosition(x, y)
     renderer!.effectsManager.createItemUseEffect(event.itemId, pos.x, pos.y)
   })
