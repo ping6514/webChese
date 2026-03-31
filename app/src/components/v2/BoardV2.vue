@@ -26,12 +26,8 @@ const state = ctx.state as Ref<GameState>
 const ui = useUiStore()
 const lastError = ref<string | null>(null)
 
-// PixiJS renderer toggle
-const usePixiRenderer = ref(localStorage.getItem('usePixiRenderer') === '1')
-function toggleRenderer() {
-  usePixiRenderer.value = !usePixiRenderer.value
-  localStorage.setItem('usePixiRenderer', usePixiRenderer.value ? '1' : '0')
-}
+// PixiJS renderer always enabled
+const usePixiRenderer = true
 
 // Adapter for PixiBoard cell-click event
 function onPixiCellClick(payload: { x: number; y: number }) {
@@ -461,13 +457,6 @@ defineExpose({ onUseItem })
         :title="ui.boardHoverEnabled ? '棋盤hover說明：開（點擊關閉）' : '棋盤hover說明：關（點擊開啟）'"
         @click="ui.toggleBoardHover()"
       >{{ ui.boardHoverEnabled ? '👁提示' : '👁關' }}</button>
-      <button
-        type="button"
-        class="scaleBtn"
-        :class="{ scaleActive: usePixiRenderer }"
-        :title="usePixiRenderer ? 'PixiJS 渲染（點擊切換 DOM）' : 'DOM 渲染（點擊切換 PixiJS）'"
-        @click="toggleRenderer()"
-      >{{ usePixiRenderer ? '🎮 Pixi' : '📄 DOM' }}</button>
       <span class="scaleDivider" />
       <button
         type="button"
