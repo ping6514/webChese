@@ -1,3 +1,6 @@
+import type { ItemAbility } from './abilityTypes'
+export type { ItemAbility, ItemAbilityTarget } from './abilityTypes'
+
 export type ItemCard = {
   id: string
   name: string
@@ -7,7 +10,7 @@ export type ItemCard = {
   image?: string | null
   text?: string
   copies?: number
-  abilities?: unknown[]
+  abilities?: ItemAbility[]
   effect?: {
     goldAmount?: number
     manaAmount?: number

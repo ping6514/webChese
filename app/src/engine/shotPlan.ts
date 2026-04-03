@@ -4,11 +4,13 @@ import { SHOT_INSTANCE_PRIORITY } from './gameConfig'
 import { canShoot } from './shooting'
 import { getDefValueInState } from './stats'
 import { getEffectHandlers, type ShotPlan } from './effects'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
+import type { CounterTarget } from './cards'
 import { computeDamageWithBreakdown, findFirstDamagedReduction } from './damage'
 import { killUnit as killUnitShared } from './kill'
 import { rollDice, type RngState } from '../serverSim'
 import { countCorpses, countSoldiers } from './corpses'
+import { palaceContains as _palaceContains, crossedRiver as _crossedRiver } from './boardUtils'
 
 export type ShotPlanResult = { ok: true; plan: ShotPlan } | { ok: false; error: string }
 
@@ -31,8 +33,8 @@ export function buildShotPlan(state: GameState, attackerId: string, targetUnitId
   const check = canShoot(state, attackerId, targetUnitId, shootRules)
   if (!check.ok) return { ok: false, error: (check as { ok: false; error: string }).error }
 
-  const cost = Number.isFinite(shootRules.manaCostOverride as any)
-    ? Math.max(0, Math.floor(shootRules.manaCostOverride as number))
+  const cost = shootRules.manaCostOverride !== undefined
+    ? Math.max(0, Math.floor(shootRules.manaCostOverride))
     : state.rules.shootManaCost
 
   const plan: ShotPlan = {
@@ -46,7 +48,7 @@ export function buildShotPlan(state: GameState, attackerId: string, targetUnitId
     h.onAfterShotPlanBuilt?.({ state, attackerId, targetUnitId, extraTargetUnitId, suppressPierce, events }, plan)
   }
 
-  ;(plan as any).__buildEvents = events
+  plan.__buildEvents = events
   return { ok: true, plan }
 }
 
@@ -62,19 +64,13 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
   let lastDirectDamage = 0
 
   const sortedInstances = [...plan.instances].sort((a, b) => {
-    const ak = String((a as any).kind ?? '')
-    const bk = String((b as any).kind ?? '')
-    const ap = SHOT_INSTANCE_PRIORITY[ak] ?? 999
-    const bp = SHOT_INSTANCE_PRIORITY[bk] ?? 999
+    const ap = SHOT_INSTANCE_PRIORITY[a.kind] ?? 999
+    const bp = SHOT_INSTANCE_PRIORITY[b.kind] ?? 999
     if (ap !== bp) return ap - bp
 
-    const asrc = String((a as any).sourceUnitId ?? '')
-    const bsrc = String((b as any).sourceUnitId ?? '')
-    if (asrc !== bsrc) return asrc.localeCompare(bsrc)
+    if (a.sourceUnitId !== b.sourceUnitId) return a.sourceUnitId.localeCompare(b.sourceUnitId)
 
-    const atgt = String((a as any).targetUnitId ?? '')
-    const btgt = String((b as any).targetUnitId ?? '')
-    if (atgt !== btgt) return atgt.localeCompare(btgt)
+    if (a.targetUnitId !== b.targetUnitId) return a.targetUnitId.localeCompare(b.targetUnitId)
 
     return 0
   })
@@ -83,13 +79,12 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     const soulId = attacker.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
     let usedExtraShot = false
-    const extra = card?.abilities.find((a) => a.type === 'EXTRA_SHOT')
+    const extra = findAbility(card?.abilities ?? [], 'EXTRA_SHOT')
     if (extra) {
-      const crossedRiver = (side: 'red' | 'black', y: number): boolean => (side === 'red' ? y <= 4 : y >= 5)
-      const whenType = String((extra as any)?.when?.type ?? '')
-      const crossed = crossedRiver(attacker.side, attacker.pos.y)
+      const whenType = extra.when?.type ?? ''
+      const crossed = _crossedRiver(attacker.side, attacker.pos.y)
       if (!(whenType === 'AFTER_CROSS_RIVER' && !crossed)) {
-        const perTurn = Number((extra as any)?.perTurn ?? 0)
+        const perTurn = Number(extra.perTurn ?? 0)
         const key = `${plan.attackerId}:EXTRA_SHOT`
         const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
         const canExtra = Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
@@ -108,22 +103,22 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       // continue
     }
 
-    const ab = usedExtraShot ? undefined : card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
-    const when = (ab as any)?.when
-    if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-      const need = Number(when.count ?? 0)
+    const ab = usedExtraShot ? undefined : findAbility(card?.abilities ?? [], 'MOVE_THEN_SHOOT')
+    const when = ab?.when
+    if (when?.type === 'CORPSES_GTE') {
+      const need = Number(when.count)
       if (Number.isFinite(need) && need > 0) {
         const corpses = countCorpses(state, attacker.side)
         if (corpses < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
-    if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
-      const need = Number(when.count ?? 0)
+    if (when?.type === 'SOLDIERS_GTE') {
+      const need = Number(when.count)
       if (Number.isFinite(need) && need > 0) {
         if (countSoldiers(state, attacker.side) < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
-    const perTurn = Number((ab as any)?.perTurn ?? 0)
+    const perTurn = Number(ab?.perTurn ?? 0)
     const moved = !!state.turnFlags.movedThisTurn?.[plan.attackerId]
     const key = `${plan.attackerId}:MOVE_THEN_SHOOT`
     const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
@@ -171,7 +166,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     const cur = nextState.turnFlags.abilityUsed ?? {}
     const next: Record<string, number> = { ...cur }
     for (const u of plan.abilityUses) {
-      const key = String((u as any).key ?? '')
+      const key = u.key
       if (!key) continue
       next[key] = Number(next[key] ?? 0) + 1
 
@@ -192,7 +187,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
   }
 
   // GOLD_FOR_DAMAGE: deduct gold and store bonus for damage computation
-  const goldForDamage = (plan as any).__goldForDamage as { cost: number; bonus: number } | undefined
+  const goldForDamage = plan.__goldForDamage
   if (goldForDamage) {
     const side = state.turn.side
     const rg = nextState.resources[side]
@@ -222,16 +217,14 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return null
   }
 
-  function counterTargetsMatch(damaged: Unit, counterUnit: Unit, targets: any[]): boolean {
+  function counterTargetsMatch(damaged: Unit, counterUnit: Unit, targets: CounterTarget[]): boolean {
     if (!Array.isArray(targets) || targets.length === 0) return false
     for (const t of targets) {
-      const type = String((t as any)?.type ?? '')
-      if (type === 'SELF') {
+      if (t.type === 'SELF') {
         if (counterUnit.id === damaged.id) return true
       }
-      if (type === 'ALLY_BASE') {
-        const base = String((t as any)?.base ?? '')
-        if (base && damaged.side === counterUnit.side && damaged.base === base) return true
+      if (t.type === 'ALLY_BASE') {
+        if (t.base && damaged.side === counterUnit.side && damaged.base === t.base) return true
       }
     }
     return false
@@ -255,26 +248,31 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (!card) continue
 
       // New generic COUNTER
-      const counterAb = card.abilities.find((a) => a.type === 'COUNTER') as any
+      const counterAb = findAbility(card.abilities, 'COUNTER')
       // Legacy compat: COUNTER_ON_KING_DAMAGED treated as COUNTER(targets=[ALLY_BASE king])
-      const legacyAb = card.abilities.find((a) => a.type === 'COUNTER_ON_KING_DAMAGED') as any
+      const legacyAb = findAbility(card.abilities, 'COUNTER_ON_KING_DAMAGED')
 
-      let ab: any = null
       let perTurn = 0
       let key = ''
-      let targets: any[] | null = null
+      let dmgDice = 0
+      let dmgAtkKey = 'phys'
+      let dmgAtkValue = 0
 
       if (counterAb) {
-        ab = counterAb
         perTurn = Number(counterAb.perTurn ?? 0)
         key = `${u.id}:COUNTER`
-        targets = Array.isArray(counterAb.targets) ? counterAb.targets : null
-        if (!targets || !counterTargetsMatch(damaged, u, targets)) continue
+        const targets: CounterTarget[] = Array.isArray(counterAb.targets) ? counterAb.targets : []
+        if (!targets.length || !counterTargetsMatch(damaged, u, targets)) continue
+        dmgDice = Number(counterAb.damage.dice)
+        dmgAtkKey = counterAb.damage.atkKey
+        dmgAtkValue = Number(counterAb.damage.atkValue)
       } else if (legacyAb) {
-        ab = legacyAb
         perTurn = Number(legacyAb.perTurn ?? 0)
         key = `${u.id}:COUNTER_ON_KING_DAMAGED`
         if (!(damaged.base === 'king' && damaged.side === u.side)) continue
+        dmgDice = Number(legacyAb.damage.fixed)
+        dmgAtkKey = 'phys'
+        dmgAtkValue = 0
       } else {
         continue
       }
@@ -282,14 +280,10 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       const used = Number(s.turnFlags.abilityUsed?.[key] ?? 0)
       if (Number.isFinite(perTurn) && perTurn > 0 && used >= perTurn) continue
 
-      const dmg = (ab as any).damage ?? {}
-      const dice = Number(dmg.dice ?? 0)
-      const atkKey = String(dmg.atkKey ?? 'phys')
-      const atkValue = Number(dmg.atkValue ?? 0)
-      if (!(Number.isFinite(dice) && dice > 0)) continue
+      if (!(Number.isFinite(dmgDice) && dmgDice > 0)) continue
 
-      const defValue = getDefValueInState(s, src, atkKey)
-      const raw = Math.max(1, dice + atkValue - defValue)
+      const defValue = getDefValueInState(s, src, dmgAtkKey)
+      const raw = Math.max(1, dmgDice + dmgAtkValue - defValue)
       const nextHp = src.hpCurrent - raw
       s.units[src.id] = { ...src, hpCurrent: nextHp }
       events.push({ type: 'DAMAGE_DEALT', attackerId: u.id, targetUnitId: src.id, amount: raw })
@@ -346,11 +340,7 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     return s
   }
 
-  function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-    if (pos.x < 3 || pos.x > 5) return false
-    if (side === 'red') return pos.y >= 7 && pos.y <= 9
-    return pos.y >= 0 && pos.y <= 2
-  }
+  const palaceContains = _palaceContains
 
   function alliesInPalaceCount(s: GameState, side: 'red' | 'black'): number {
     let n = 0
@@ -375,11 +365,11 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
 
       for (const ab of card.abilities) {
         if (ab.type !== 'DAMAGE_SHARE') continue
-        const amount = Number((ab as any).amount ?? 0)
+        const amount = Number(ab.amount)
         if (!Number.isFinite(amount) || amount <= 0) continue
-        const when = (ab as any).when
-        if (when && when.type === 'ALLIES_IN_PALACE_GTE') {
-          const need = Number(when.count ?? 0)
+        const when = ab.when
+        if (when?.type === 'ALLIES_IN_PALACE_GTE') {
+          const need = Number(when.count)
           if (alliesInPalace < need) continue
         }
         return { unitId: u.id, amount }
@@ -399,8 +389,8 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (!card) continue
       for (const ab of card.abilities) {
         if (ab.type !== 'PALACE_GUARD') continue
-        const amount = Number((ab as any).amount ?? 1)
-        const perTurn = Number((ab as any).perTurn ?? 1)
+        const amount = Number(ab.amount ?? 1)
+        const perTurn = Number(ab.perTurn ?? 1)
         const key = `${u.id}:PALACE_GUARD`
         const used = Number(s.turnFlags.abilityUsed?.[key] ?? 0)
         if (used >= perTurn) continue
@@ -419,10 +409,10 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
     const tgt = nextState.units[inst.targetUnitId]
     if (!src || !tgt) continue
 
-    const fixedDamage = Number((inst as any).fixedDamage ?? 0)
+    const fixedDamage = Number(inst.fixedDamage ?? 0)
     const isFixed = Number.isFinite(fixedDamage) && fixedDamage > 0
     const splashMirror = !isFixed && inst.kind === 'splash' && Number.isFinite(lastDirectDamage) && lastDirectDamage > 0
-    const dmgMult = Number((inst as any).damageMultiplier ?? 0)
+    const dmgMult = Number(inst.damageMultiplier ?? 0)
     const hasMult = !isFixed && !splashMirror && Number.isFinite(dmgMult) && dmgMult > 0
     // GOLD_FOR_DAMAGE bonus only applies to the direct shot (not splash/chain)
     const extraBonus = (inst.kind === 'direct' && inst.sourceUnitId === plan.attackerId) ? (goldForDamage?.bonus ?? 0) : 0
@@ -534,16 +524,16 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
       if (killedSide !== src.side) {
         const soulId = src.enchant?.soulId
         const card = soulId ? getSoulCard(soulId) : undefined
-        const heal = card?.abilities.find((a) => a.type === 'HEAL_KING_ON_KILL')
-        const amount = Number((heal as any)?.amount ?? 0)
+        const heal = card ? findAbility(card.abilities, 'HEAL_KING_ON_KILL') : undefined
+        const amount = Number(heal?.amount ?? 0)
         if (Number.isFinite(amount) && amount > 0) {
           nextState = healKingOnKill(nextState, events, src.id, amount)
         }
 
-        const dualHeal = card?.abilities.find((a) => a.type === 'HEAL_SELF_AND_KING_ON_KILL')
+        const dualHeal = card ? findAbility(card.abilities, 'HEAL_SELF_AND_KING_ON_KILL') : undefined
         if (dualHeal) {
-          const selfAmount = Number((dualHeal as any)?.selfAmount ?? 0)
-          const kingAmount = Number((dualHeal as any)?.kingAmount ?? 0)
+          const selfAmount = Number(dualHeal.selfAmount ?? 0)
+          const kingAmount = Number(dualHeal.kingAmount ?? 0)
           if (Number.isFinite(selfAmount) && selfAmount > 0) {
             nextState = healUnitById(nextState, events, src.id, selfAmount, 'HEAL_SELF_AND_KING_ON_KILL')
           }
@@ -556,8 +546,8 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         }
 
         // KILL_MANA_GAIN: gain mana when this unit kills an enemy
-        const manaAb = card?.abilities.find((a) => a.type === 'KILL_MANA_GAIN')
-        const manaAmount = Number((manaAb as any)?.amount ?? 0)
+        const manaAb = card ? findAbility(card.abilities, 'KILL_MANA_GAIN') : undefined
+        const manaAmount = Number(manaAb?.amount ?? 0)
         if (Number.isFinite(manaAmount) && manaAmount > 0) {
           const ms = src.side
           const rr0 = nextState.resources[ms]
@@ -567,8 +557,8 @@ export function executeShotPlan(state: GameState, plan: ShotPlan): ExecuteShotPl
         }
 
         // KILL_GOLD_GAIN: gain gold when this unit kills an enemy
-        const gainAb = card?.abilities.find((a) => a.type === 'KILL_GOLD_GAIN')
-        const gainAmount = Number((gainAb as any)?.amount ?? 0)
+        const gainAb = card ? findAbility(card.abilities, 'KILL_GOLD_GAIN') : undefined
+        const gainAmount = Number(gainAb?.amount ?? 0)
         if (Number.isFinite(gainAmount) && gainAmount > 0) {
           const gs = src.side
           const rg = nextState.resources[gs]

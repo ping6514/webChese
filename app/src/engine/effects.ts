@@ -1,7 +1,10 @@
 import type { GameState } from './state'
 import type { Event } from './events'
-import { getSoulCard } from './cards'
-import { countCorpses, countSoldiers } from './corpses'
+import { getSoulCard, findAbility } from './cards'
+import type { SoulAbilityCondition } from './cards'
+import { countCorpses, countSoldiers, chebyshev } from './corpses'
+import { palaceContains, crossedRiver } from './boardUtils'
+import { isResonanceActive } from './stats'
 
 export type ShootValidateContext = {
   state: GameState
@@ -40,6 +43,10 @@ export type ShotPlan = {
   cost: number
   instances: AttackInstance[]
   abilityUses?: Array<{ key: string }>
+  /** Injected by reduce.ts before executeShotPlan for GOLD_FOR_DAMAGE ability */
+  __goldForDamage?: { cost: number; bonus: number }
+  /** Events collected during buildShotPlan (injected before returning) */
+  __buildEvents?: Event[]
 }
 
 function abilityUseKey(unitId: string, abilityType: string): string {
@@ -51,19 +58,7 @@ export type EffectHandler = {
   onAfterShotPlanBuilt?: (ctx: ShootPlanContext, plan: ShotPlan) => void
 }
 
-function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
-}
 
-function crossedRiver(side: 'red' | 'black', y: number): boolean {
-  return side === 'red' ? y <= 4 : y >= 5
-}
-
-function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
-}
 
 function countBetweenOrthogonal(state: GameState, a: { x: number; y: number }, b: { x: number; y: number }): number | null {
   if (a.x !== b.x && a.y !== b.y) return null
@@ -113,41 +108,14 @@ function abilityUsedCount(state: GameState, unitId: string, abilityType: string)
   return Number(state.turnFlags.abilityUsed?.[key] ?? 0)
 }
 
-function enemiesWithinRangeGte(state: GameState, sourceUnitId: string, range: number, count: number): boolean {
-  const src = state.units[sourceUnitId]
-  if (!src) return false
-  let n = 0
-  for (const u of Object.values(state.units)) {
-    if (u.side === src.side) continue
-    if (chebyshev(u.pos, src.pos) <= range) n++
-  }
-  return n >= count
-}
 
-function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
-  if (!Number.isFinite(need) || need <= 0) return false
-  const source = state.units[sourceUnitId]
-  if (!source) return false
-  let count = 0
-  for (const u of Object.values(state.units)) {
-    if (u.side !== source.side) continue
-    const soulId = u.enchant?.soulId
-    if (!soulId) continue
-    const c = getSoulCard(soulId)
-    if (!c) continue
-    if (c.clan !== clan) continue
-    count++
-  }
-  return count >= need
-}
-
-function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId: string, when: any, clan: string): boolean {
+function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId: string, when: SoulAbilityCondition | undefined, clan: string): boolean {
   const auraUnit = state.units[auraUnitId]
   const attacker = state.units[attackerId]
   if (!auraUnit || !attacker) return false
   if (auraUnit.side !== attacker.side) return false
 
-  const type = String(when?.type ?? '')
+  const type = when?.type ?? ''
   if (!type) return true
 
   if (type === 'ATTACKER_IN_PALACE') {
@@ -158,10 +126,10 @@ function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId:
     // Find resonance need from aura unit's own card abilities.
     const soulId = auraUnit.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
-    const res = card?.abilities.find((a) => a.type === 'RESONANCE')
-    const need = Number((res as any)?.need ?? 0)
-    const resClan = String((res as any)?.clan ?? '')
-    return isResonanceActive(state, auraUnit.id, need, resClan || clan)
+    const res = findAbility(card?.abilities ?? [], 'RESONANCE')
+    const need = Number(res?.need ?? 0)
+    const resClan = String(res?.clan ?? '')
+    return isResonanceActive(state, auraUnit.side, need, resClan || clan)
   }
 
   return true
@@ -210,7 +178,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
           const fixedDamage = Number(buff.chainFixedDamage ?? 0)
           const dmgMult = Number(buff.chainDamageMultiplier ?? 0)
-          const inst: any = { kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id }
+          const inst: AttackInstance = { kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id }
           if (Number.isFinite(fixedDamage) && fixedDamage > 0) inst.fixedDamage = Math.floor(fixedDamage)
           else if (Number.isFinite(dmgMult) && dmgMult > 0) inst.damageMultiplier = dmgMult
           plan.instances.push(inst)
@@ -226,29 +194,23 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
 
-          const whenType = String((ab as any).when?.type ?? '')
+          const when = ab.when
+          const whenType = when?.type ?? ''
           const crossed = crossedRiver(u.side, u.pos.y)
           // Data-driven gate
           if (whenType === 'AFTER_CROSS_RIVER' && !crossed) return
           // Legacy gate: if the card has CROSS_RIVER and ability has no when, gate until crossed.
           if (!whenType && hasCrossRiver && !crossed) return
 
-          const mode = String((ab as any).mode ?? '')
-          const when = (ab as any).when
-          if (when && when.type === 'ENEMIES_WITHIN_RANGE_GTE') {
-            const range = Number(when.range ?? 0)
-            const count = Number(when.count ?? 0)
-            if (!(Number.isFinite(range) && range > 0 && Number.isFinite(count) && count > 0)) return
-            if (!enemiesWithinRangeGte(ctx.state, u.id, range, count)) return
-          }
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
+          const mode = ab.mode ?? ''
+          if (when?.type === 'CORPSES_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
           }
-          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
-            const need = Number(when.count ?? 0)
+          if (when?.type === 'SOLDIERS_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             if (countSoldiers(ctx.state, u.side) < need) return
           }
@@ -257,7 +219,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
             return
           }
-          const count = Number((ab as any).count ?? 0)
+          const count = Number(ab.count ?? 0)
           if (Number.isFinite(count) && count > 0) {
             ctx.shootRules.ignoreBlockingCount += count
             ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'IGNORE_BLOCKING', text: '無視阻擋' })
@@ -273,20 +235,20 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
 
-          const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
+          const when = ab.when
+          if (when?.type === 'CORPSES_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
           }
-          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
-            const need = Number(when.count ?? 0)
+          if (when?.type === 'SOLDIERS_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             if (countSoldiers(ctx.state, u.side) < need) return
           }
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn ?? 0)
           if (!(Number.isFinite(perTurn) && perTurn > 0)) return
           const key = abilityUseKey(u.id, 'FREE_SHOOT')
           const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
@@ -298,20 +260,20 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
 
-          const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
+          const when = ab.when
+          if (when?.type === 'CORPSES_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             const corpses = countCorpses(ctx.state, u.side)
             if (corpses < need) return
           }
-          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
-            const need = Number(when.count ?? 0)
+          if (when?.type === 'SOLDIERS_GTE') {
+            const need = Number(when.count)
             if (!(Number.isFinite(need) && need > 0)) return
             if (countSoldiers(ctx.state, u.side) < need) return
           }
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn ?? 0)
           if (!(Number.isFinite(perTurn) && perTurn > 0)) return
           const key = abilityUseKey(u.id, 'FREE_SHOOT')
           const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
@@ -331,46 +293,39 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
       handlers.push({
         onBeforeShootValidate: (ctx) => {
           // Aura source is u; it can modify allied attacker shots.
-          if (!auraAppliesToAttacker(ctx.state, u.id, ctx.attackerId, (ab as any).when, card.clan)) return
+          if (!auraAppliesToAttacker(ctx.state, u.id, ctx.attackerId, ab.when, card.clan)) return
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn ?? 0)
           if (Number.isFinite(perTurn) && perTurn > 0) {
             const key = abilityUseKey(u.id, 'AURA_IGNORE_BLOCKING')
             const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
             if (used >= perTurn) return
           }
 
-          const forKey = String((ab as any).for ?? '')
+          const forKey = ab.for ?? ''
           if (forKey === 'CROSS_RIVER_UNITS') {
             const attacker = ctx.state.units[ctx.attackerId]
             if (!attacker) return
             if (!crossedRiver(attacker.side, attacker.pos.y)) return
           }
 
-          const mode = String((ab as any).mode ?? '')
-          if (mode === 'all') {
-            ctx.shootRules.ignoreBlockingAll = true
-            ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'AURA_IGNORE_BLOCKING', text: '無視阻擋' })
-            return
-          }
-
-          const count = Number((ab as any).count ?? 0)
+          const count = Number(ab.count ?? 0)
           if (Number.isFinite(count) && count > 0) {
             ctx.shootRules.ignoreBlockingCount += count
             ctx.events?.push({ type: 'ABILITY_TRIGGERED', unitId: u.id, abilityType: 'AURA_IGNORE_BLOCKING', text: '無視阻擋' })
           }
         },
         onAfterShotPlanBuilt: (ctx, plan) => {
-          if (!auraAppliesToAttacker(ctx.state, u.id, ctx.attackerId, (ab as any).when, card.clan)) return
+          if (!auraAppliesToAttacker(ctx.state, u.id, ctx.attackerId, ab.when, card.clan)) return
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn ?? 0)
           if (!(Number.isFinite(perTurn) && perTurn > 0)) return
 
           const key = abilityUseKey(u.id, 'AURA_IGNORE_BLOCKING')
           const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
           if (used >= perTurn) return
 
-          const forKey = String((ab as any).for ?? '')
+          const forKey = ab.for ?? ''
           if (forKey === 'CROSS_RIVER_UNITS') {
             const attacker = ctx.state.units[ctx.attackerId]
             if (!attacker) return
@@ -391,7 +346,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
 
-          const whenType = String((ab as any).when?.type ?? '')
+          const whenType = ab.when?.type ?? ''
           const crossed = crossedRiver(u.side, u.pos.y)
           // Data-driven gate
           if (whenType === 'AFTER_CROSS_RIVER' && !crossed) return
@@ -402,13 +357,13 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           const attacker = ctx.state.units[ctx.attackerId]
           if (!target || !attacker) return
 
-          const radius = Number((ab as any).radius ?? 0)
+          const radius = Number(ab.radius)
           if (!Number.isFinite(radius) || radius <= 0) return
 
-          const fixedDamage = Number((ab as any).fixedDamage ?? 0)
+          const fixedDamage = Number(ab.fixedDamage ?? 0)
           const hasFixed = Number.isFinite(fixedDamage) && fixedDamage > 0
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn)
           if (Number.isFinite(perTurn) && perTurn > 0) {
             const key = abilityUseKey(u.id, 'SPLASH')
             const used = Number(ctx.state.turnFlags.abilityUsed?.[key] ?? 0)
@@ -425,12 +380,9 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             .sort((a, b) => a.id.localeCompare(b.id))
 
           for (const extra of splashTargets) {
-            plan.instances.push({
-              kind: 'splash',
-              sourceUnitId: attacker.id,
-              targetUnitId: extra.id,
-              ...(hasFixed ? { fixedDamage: Math.floor(fixedDamage) } : {}),
-            } as any)
+            const inst: AttackInstance = { kind: 'splash', sourceUnitId: attacker.id, targetUnitId: extra.id }
+            if (hasFixed) inst.fixedDamage = Math.floor(fixedDamage)
+            plan.instances.push(inst)
           }
         },
       })
@@ -443,7 +395,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
 
-          const manaCost = Number((ab as any).manaCost ?? 0)
+          const manaCost = Number(ab.manaCost ?? 0)
           if (!(Number.isFinite(manaCost) && manaCost > 0)) return
 
           const extraId = ctx.extraTargetUnitId
@@ -456,34 +408,34 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           if (!mainTarget || !extraTarget || !attacker) return
           if (extraTarget.side === attacker.side) return
 
-          const radius = Number((ab as any).radius ?? 0)
+          const radius = Number(ab.radius)
           if (!(Number.isFinite(radius) && radius > 0)) return
           if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
 
-          const baseCost = Number.isFinite(ctx.shootRules.manaCostOverride as any)
-            ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride as number))
+          const baseCost = ctx.shootRules.manaCostOverride !== undefined
+            ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride))
             : ctx.state.rules.shootManaCost
           ctx.shootRules.manaCostOverride = baseCost + Math.floor(manaCost)
         },
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
 
-          const when = (ab as any).when
-          if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-            const need = Number(when.count ?? 0)
+          const when = ab.when
+          if (when?.type === 'CORPSES_GTE') {
+            const need = Number(when.count)
             if (Number.isFinite(need) && need > 0) {
               const corpses = countCorpses(ctx.state, u.side)
               if (corpses < need) return
             }
           }
-          if (when && String(when.type ?? '') === 'SOLDIERS_GTE') {
-            const need = Number(when.count ?? 0)
+          if (when?.type === 'SOLDIERS_GTE') {
+            const need = Number(when.count)
             if (Number.isFinite(need) && need > 0) {
               if (countSoldiers(ctx.state, u.side) < need) return
             }
           }
 
-          const perTurn = Number((ab as any).perTurn ?? 0)
+          const perTurn = Number(ab.perTurn ?? 0)
           if (Number.isFinite(perTurn) && perTurn > 0) {
             const used = abilityUsedCount(ctx.state, u.id, 'CHAIN')
             if (used >= perTurn) return
@@ -499,7 +451,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           if (!mainTarget || !extraTarget || !attacker) return
           if (extraTarget.side === attacker.side) return
 
-          const radius = Number((ab as any).radius ?? 0)
+          const radius = Number(ab.radius)
           if (!(Number.isFinite(radius) && radius > 0)) return
           if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
 
@@ -522,16 +474,16 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
 
-          const requiresManaGte = Number((ab as any).requiresManaGte ?? 0)
+          const requiresManaGte = Number(ab.requiresManaGte ?? 0)
           if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
             const mana = ctx.state.resources[u.side]?.mana ?? 0
             if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
           }
 
-          const manaCost = Number((ab as any).manaCost ?? 0)
+          const manaCost = Number(ab.manaCost ?? 0)
           if (Number.isFinite(manaCost) && manaCost > 0) {
-            const baseCost = Number.isFinite(ctx.shootRules.manaCostOverride as any)
-              ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride as number))
+            const baseCost = ctx.shootRules.manaCostOverride !== undefined
+              ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride))
               : ctx.state.rules.shootManaCost
             ctx.shootRules.manaCostOverride = baseCost + Math.floor(manaCost)
           }
@@ -544,7 +496,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           const target = ctx.state.units[ctx.targetUnitId]
           if (!attacker || !target) return
 
-          const mode = String((ab as any).mode ?? '')
+          const mode = ab.mode
           if (mode === 'CANNON_SCREEN_AND_TARGET') {
             if (attacker.base !== 'cannon') return
             const between = countBetweenOrthogonal(ctx.state, attacker.pos, target.pos)
@@ -561,7 +513,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           }
 
           if (mode === 'LINE_ENEMIES') {
-            const count = Number((ab as any).count ?? 0)
+            const count = Number(ab.count ?? 0)
             if (!(Number.isFinite(count) && count > 1)) return
 
             const dx = Math.sign(target.pos.x - attacker.pos.x)
@@ -631,15 +583,15 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         handlers.push({
           onBeforeShootValidate: (ctx) => {
             if (ctx.attackerId !== bsUnit.id) return
-            const requiresManaGte = Number((eff as any).requiresManaGte ?? 0)
+            const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
               if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
             }
-            const manaCost = Number((eff as any).manaCost ?? 0)
+            const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
-              const baseCost = Number.isFinite(ctx.shootRules.manaCostOverride as any)
-                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride as number))
+              const baseCost = ctx.shootRules.manaCostOverride !== undefined
+                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride))
                 : ctx.state.rules.shootManaCost
               ctx.shootRules.manaCostOverride = baseCost + Math.floor(manaCost)
             }
@@ -667,15 +619,15 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (!(Number.isFinite(radius) && radius > 0)) return
             if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
 
-            const requiresManaGte = Number((eff as any).requiresManaGte ?? 0)
+            const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
               if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
             }
-            const manaCost = Number((eff as any).manaCost ?? 0)
+            const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
-              const baseCost = Number.isFinite(ctx.shootRules.manaCostOverride as any)
-                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride as number))
+              const baseCost = ctx.shootRules.manaCostOverride !== undefined
+                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride))
                 : ctx.state.rules.shootManaCost
               ctx.shootRules.manaCostOverride = baseCost + Math.floor(manaCost)
             }
@@ -709,15 +661,15 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         handlers.push({
           onBeforeShootValidate: (ctx) => {
             if (ctx.attackerId !== bsUnit.id) return
-            const requiresManaGte = Number((eff as any).requiresManaGte ?? 0)
+            const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
               if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
             }
-            const manaCost = Number((eff as any).manaCost ?? 0)
+            const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
-              const baseCost = Number.isFinite(ctx.shootRules.manaCostOverride as any)
-                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride as number))
+              const baseCost = ctx.shootRules.manaCostOverride !== undefined
+                ? Math.max(0, Math.floor(ctx.shootRules.manaCostOverride))
                 : ctx.state.rules.shootManaCost
               ctx.shootRules.manaCostOverride = baseCost + Math.floor(manaCost)
             }

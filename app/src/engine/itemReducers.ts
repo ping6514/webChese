@@ -3,6 +3,7 @@ import type { UseItemFromHandAction } from './actions'
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
 import { getItemCard } from './items'
+import type { ItemAbilityTarget } from './items'
 import { refillDisplayByBase, BASE_STATS } from './state'
 import type { PieceBase } from './types'
 import { nextU32, type RngState } from '../serverSim'
@@ -27,7 +28,7 @@ function applyFirstItemUseIfGoldLtGainGold(state: GameState, events: Event[]): G
     const card = getSoulCard(soulId)
     if (!card) continue
 
-    for (const ab of card.abilities as any[]) {
+    for (const ab of card.abilities) {
       if (ab.type !== 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD') continue
       const perTurn = Number(ab.perTurn ?? 1)
       const threshold = Number(ab.threshold ?? 0)
@@ -62,13 +63,13 @@ function applyFirstItemUseIfGoldLtGainGold(state: GameState, events: Event[]): G
 function resolveTargetUnit(
   state: GameState,
   action: UseItemFromHandAction,
-  targetSpec: unknown,
+  targetSpec: ItemAbilityTarget | undefined,
 ): { ok: true; unitId: string; unit: GameState['units'][string] } | { ok: false; error: string } | { ok: false; unsupported: true; reason: string } {
   if (!action.targetUnitId) return { ok: false, error: '需要目標單位' }
   const unit = state.units[action.targetUnitId]
   if (!unit) return { ok: false, error: '找不到單位' }
 
-  const targetType = String((targetSpec as any)?.type ?? '')
+  const targetType = targetSpec?.type ?? ''
   if (!targetType) return { ok: false, unsupported: true, reason: 'target.type 必填' }
   const needsEnchant = targetType === 'ALLY_ENCHANTED_UNIT' || targetType === 'ENEMY_ENCHANTED_UNIT'
   if (needsEnchant && !unit.enchant) return { ok: false, error: '該單位未附魔' }
@@ -89,7 +90,7 @@ function executeItemAbilitiesA1(
   item: ReturnType<typeof getItemCard>,
 ): ItemAbilityExecResult {
   if (!item) return { ok: false, error: '找不到道具卡' }
-  const abs = (item as any).abilities
+  const abs = item.abilities
   if (!Array.isArray(abs) || abs.length === 0) return { ok: false, unsupported: true, reason: '沒有 abilities' }
 
   let nextState = state
@@ -429,7 +430,7 @@ export function reduceUseItem(state: GameState, action: UseItemFromHandAction): 
   if (!hand.includes(action.itemId)) return { ok: false, error: '道具卡不在手牌中' }
   const item = getItemCard(action.itemId)
   if (!item) return { ok: false, error: '找不到道具卡' }
-  const limitPerTurn = Number((item as any).limitPerTurn ?? 0)
+  const limitPerTurn = Number(item.limitPerTurn ?? 0)
   if (Number.isFinite(limitPerTurn) && limitPerTurn > 0) {
     const used = Number(state.turnFlags.itemUsedByItemId?.[action.itemId] ?? 0)
     if (used >= limitPerTurn) return { ok: false, error: '此道具本回合已達使用上限' }

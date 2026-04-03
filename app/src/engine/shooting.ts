@@ -1,14 +1,9 @@
 import type { GameState } from './state'
 import { getUnitAt } from './state'
 import { getEffectHandlers } from './effects'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
 import { countCorpses } from './corpses'
-
-function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
-}
+import { palaceContains, crossedRiver } from './boardUtils'
 
 export type ShootCheckOk = { ok: true }
 
@@ -151,29 +146,27 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
   const target = state.units[targetUnitId]
   if (!target) return { ok: false, error: '找不到目標' }
 
-  const crossedRiver = (side: 'red' | 'black', y: number): boolean => (side === 'red' ? y <= 4 : y >= 5)
-
   if (state.turn.phase !== 'combat') return { ok: false, error: '需要在戰鬥階段' }
   if (attacker.side !== state.turn.side) return { ok: false, error: '不是你的回合' }
   if (target.side === attacker.side) return { ok: false, error: '不能攻擊己方單位' }
 
-  const cost = Number.isFinite(rules?.manaCostOverride as any) ? Math.max(0, Math.floor(rules?.manaCostOverride as number)) : state.rules.shootManaCost
+  const cost = rules?.manaCostOverride !== undefined ? Math.max(0, Math.floor(rules.manaCostOverride)) : state.rules.shootManaCost
   const r = state.resources[state.turn.side]
   if (r.mana < cost) return { ok: false, error: '魔力不足' }
 
   if (state.turnFlags.shotUsed[attackerId]) {
     const soulId = attacker.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
-    const mts = card?.abilities.find((a) => a.type === 'MOVE_THEN_SHOOT')
-    const extra = card?.abilities.find((a) => a.type === 'EXTRA_SHOT')
+    const mts = card ? findAbility(card.abilities, 'MOVE_THEN_SHOOT') : undefined
+    const extra = card ? findAbility(card.abilities, 'EXTRA_SHOT') : undefined
 
     // New: EXTRA_SHOT (independent of move)
     if (extra) {
-      const whenType = String((extra as any)?.when?.type ?? '')
+      const whenType = extra.when?.type ?? ''
       if (whenType === 'AFTER_CROSS_RIVER' && !crossedRiver(attacker.side, attacker.pos.y)) {
         // not active
       } else {
-        const perTurn = Number((extra as any)?.perTurn ?? 0)
+        const perTurn = Number(extra.perTurn ?? 0)
         const key = `${attackerId}:EXTRA_SHOT`
         const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)
         const canExtra = Number.isFinite(perTurn) && perTurn > 0 && used < perTurn
@@ -182,15 +175,15 @@ export function canShoot(state: GameState, attackerId: string, targetUnitId: str
     }
 
     const ab = mts
-    const when = (ab as any)?.when
-    if (when && String(when.type ?? '') === 'CORPSES_GTE') {
-      const need = Number(when.count ?? 0)
+    const when = ab?.when
+    if (when?.type === 'CORPSES_GTE') {
+      const need = Number(when.count)
       if (Number.isFinite(need) && need > 0) {
         const corpses = countCorpses(state, attacker.side)
         if (corpses < need) return { ok: false, error: '本回合已射擊過' }
       }
     }
-    const perTurn = Number((ab as any)?.perTurn ?? 0)
+    const perTurn = Number(ab?.perTurn ?? 0)
     const moved = !!state.turnFlags.movedThisTurn?.[attackerId]
     const key = `${attackerId}:MOVE_THEN_SHOOT`
     const used = Number(state.turnFlags.abilityUsed?.[key] ?? 0)

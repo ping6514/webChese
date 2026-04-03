@@ -31,7 +31,7 @@ export function killUnit(s: GameState, unitId: string, events: Event[], killerId
   // DEATH_COUNTER: counter-attack the killer using the dying unit's own ATK
   if (deadSoulId && killerId) {
     const card = getSoulCard(deadSoulId)
-    const hasCounter = card?.abilities.some((a) => String((a as any).type ?? '') === 'DEATH_COUNTER')
+    const hasCounter = card?.abilities.some((a) => a.type === 'DEATH_COUNTER')
     if (hasCounter) {
       const killer = s.units[killerId]
       if (killer && killer.side !== deadSide) {
@@ -56,12 +56,12 @@ export function killUnit(s: GameState, unitId: string, events: Event[], killerId
     const card = getSoulCard(deadSoulId)
     if (card) {
       for (const ab of card.abilities) {
-        if (String((ab as any).type ?? '') !== 'ON_DEATH_FIXED_DAMAGE') continue
+        if (ab.type !== 'ON_DEATH_FIXED_DAMAGE') continue
 
-        const amount = Math.floor(Number((ab as any).amount ?? 0))
-        const radius = Math.floor(Number((ab as any).radius ?? 0))
-        const targets = String((ab as any).targets ?? '')
-        const ignoreDef = !!(ab as any).ignoreDef
+        const amount = Math.floor(Number(ab.amount))
+        const radius = Math.floor(Number(ab.radius))
+        const targets = ab.targets
+        const ignoreDef = !!ab.ignoreDef
 
         if (!(Number.isFinite(amount) && amount > 0)) continue
         if (!(Number.isFinite(radius) && radius >= 0)) continue

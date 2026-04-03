@@ -12,7 +12,9 @@ import { getSoulCard } from './cards'
 import { getItemCard } from './items'
 import { killUnit } from './kill'
 import { canSacrifice } from './guards'
-import { getMaxHpForUnitInState } from './stats'
+import { getMaxHpForUnitInState, isResonanceActive } from './stats'
+import { palaceContains, crossedRiver } from './boardUtils'
+import { findAbility } from './cards'
 
 export type ReduceOk = {
   ok: true
@@ -59,7 +61,7 @@ function applyFirstAttackIfGoldLtGainGold(state: GameState, attackerId: string, 
     const card = getSoulCard(soulId)
     if (!card) continue
 
-    for (const ab of card.abilities as any[]) {
+    for (const ab of card.abilities) {
       if (ab.type !== 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') continue
       const scope = String(ab.scope ?? 'self')
       // self scope: only triggers when this unit itself attacks
@@ -103,33 +105,6 @@ function applyAuraStatHpHealOnceAfterNecroAction(state: GameState, events: Event
   let nextState = state
   let nextUsed: Record<string, true> | null = null
 
-  function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-    if (pos.x < 3 || pos.x > 5) return false
-    if (side === 'red') return pos.y >= 7 && pos.y <= 9
-    return pos.y >= 0 && pos.y <= 2
-  }
-
-  function crossedRiver(side: 'red' | 'black', y: number): boolean {
-    return side === 'red' ? y <= 4 : y >= 5
-  }
-
-  function isResonanceActive(s: GameState, sourceUnitId: string, need: number, clan: string): boolean {
-    if (!Number.isFinite(need) || need <= 0) return false
-    const source = s.units[sourceUnitId]
-    if (!source) return false
-    let count = 0
-    for (const u of Object.values(s.units)) {
-      if (u.side !== source.side) continue
-      const soulId = u.enchant?.soulId
-      if (!soulId) continue
-      const c = getSoulCard(soulId)
-      if (!c) continue
-      if (c.clan !== clan) continue
-      count++
-    }
-    return count >= need
-  }
-
   function auraWhenOk(s: GameState, auraUnit: any, when: any, clanFallback: string): boolean {
     const type = String(when?.type ?? '')
     if (!type) return true
@@ -144,10 +119,10 @@ function applyAuraStatHpHealOnceAfterNecroAction(state: GameState, events: Event
     if (type === 'RESONANCE_ACTIVE') {
       const soulId = auraUnit.enchant?.soulId
       const card = soulId ? getSoulCard(soulId) : undefined
-      const res = card?.abilities.find((a) => a.type === 'RESONANCE') as any
+      const res = card ? findAbility(card.abilities, 'RESONANCE') : undefined
       const need = Number(res?.need ?? 0)
       const resClan = String(res?.clan ?? '')
-      return isResonanceActive(s, auraUnit.id, need, resClan || clanFallback)
+      return isResonanceActive(s, auraUnit.side, need, resClan || clanFallback)
     }
     return true
   }
@@ -186,7 +161,7 @@ function applyAuraStatHpHealOnceAfterNecroAction(state: GameState, events: Event
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
 
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       const bonus = ab.bonus ?? {}
       if (bonus.healCurrent !== true) continue
@@ -260,9 +235,9 @@ function findFormationCommandHelper(state: GameState, unitId: string): { allyId:
     if (!soulId) continue
     const card = getSoulCard(soulId)
     if (!card) continue
-    const ab = card.abilities.find((a) => a.type === 'FORMATION_COMMAND')
+    const ab = findAbility(card.abilities, 'FORMATION_COMMAND')
     if (!ab) continue
-    const perTurn = Number((ab as any).perTurn ?? 1)
+    const perTurn = Number(ab.perTurn ?? 1)
     const key = `${u.id}:FORMATION_COMMAND`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0
     if (used >= perTurn) continue
@@ -279,9 +254,9 @@ function findLogisticsReviveHelper(state: GameState): { allyId: string; abilityK
     if (!soulId) continue
     const card = getSoulCard(soulId)
     if (!card) continue
-    const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+    const ab = findAbility(card.abilities, 'LOGISTICS_REVIVE')
     if (!ab) continue
-    const perTurn = Number((ab as any).perTurn ?? 1)
+    const perTurn = Number(ab.perTurn ?? 1)
     const key = `${u.id}:LOGISTICS_REVIVE`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0
     if (used >= perTurn) continue
@@ -297,22 +272,6 @@ function clamp(n: number, min: number, max: number): number {
 function pushResourcesEvent(events: Event[], state: GameState, side: GameState['turn']['side']) {
   const r = state.resources[side]
   events.push({ type: 'RESOURCES_CHANGED', side, gold: r.gold, mana: r.mana, storageMana: r.storageMana })
-}
-
-function isResonanceActive(s: GameState, side: Side, need: number, clan: string): boolean {
-  if (!Number.isFinite(need) || need <= 0) return false
-  if (!clan) return false
-  let count = 0
-  for (const u of Object.values(s.units)) {
-    if (u.side !== side) continue
-    const soulId = u.enchant?.soulId
-    if (!soulId) continue
-    const c = getSoulCard(soulId)
-    if (!c) continue
-    if (c.clan !== clan) continue
-    count++
-  }
-  return count >= need
 }
 
 function autoTurnStart(state: GameState, events: Event[]): GameState {
@@ -333,7 +292,7 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
     if (!card) continue
     for (const ab of card.abilities) {
       if (ab.type !== 'INCOME_BONUS') continue
-      const amount = Number((ab as any).amount ?? 0)
+      const amount = Number(ab.amount ?? 0)
       if (Number.isFinite(amount) && amount > 0) incomeBonus += amount
     }
   }
@@ -363,14 +322,14 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
     const card = getSoulCard(soulId)
     if (!card) continue
 
-    const res = card.abilities.find((a) => a.type === 'RESONANCE') as any
+    const res = findAbility(card.abilities, 'RESONANCE')
     const need = Number(res?.need ?? 0)
     const clan = String(res?.clan ?? '')
     if (!isResonanceActive(next, side, need, clan)) continue
 
-    for (const ab of card.abilities as any[]) {
-      if (String(ab?.when?.type ?? '') !== 'RESONANCE_ACTIVE') continue
-      const perTurn = Number(ab?.perTurn ?? 0)
+    for (const ab of card.abilities) {
+      if (String((ab as { when?: { type?: string } }).when?.type ?? '') !== 'RESONANCE_ACTIVE') continue
+      const perTurn = Number((ab as { perTurn?: number }).perTurn ?? 0)
       if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
 
       if (ab.type === 'AURA_GRANT_FREE_SHOOT') {
@@ -753,13 +712,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (action.sacrificeHp) {
         const attacker = stateForShot.units[action.attackerId]
         const attackerCard = attacker?.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
-        const bsAb = attackerCard?.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
-        if (bsAb && (bsAb as any).onActivate) {
-          const hpCost = Number((bsAb as any).hpCost ?? 1)
+        const bsAb = attackerCard ? findAbility(attackerCard.abilities, 'BLOOD_SACRIFICE') : undefined
+        if (bsAb) {
+          const hpCost = Number(bsAb.hpCost ?? 1)
           const king = Object.values(stateForShot.units).find((u) => u.side === stateForShot.turn.side && u.base === 'king')
           if (king && king.hpCurrent > hpCost) {
             stateForShot = { ...stateForShot, units: { ...stateForShot.units, [king.id]: { ...king, hpCurrent: king.hpCurrent - hpCost } } }
-            const onActivate = (bsAb as any).onActivate as Record<string, unknown>
+            const onActivate = bsAb.onActivate as Record<string, unknown>
             if (onActivate.type === 'MOVE_THEN_SHOOT') {
               const cur = stateForShot.turnFlags.bloodSacrificeMoveThenShoot ?? {}
               stateForShot = { ...stateForShot, turnFlags: { ...stateForShot.turnFlags, bloodSacrificeMoveThenShoot: { ...cur, [action.attackerId]: true } } }
@@ -778,13 +737,13 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (action.spendGoldForDamage) {
         const attacker = stateForShot.units[action.attackerId]
         const attackerCard = attacker?.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
-        const goldAb = attackerCard?.abilities.find((a) => a.type === 'GOLD_FOR_DAMAGE')
+        const goldAb = attackerCard ? findAbility(attackerCard.abilities, 'GOLD_FOR_DAMAGE') : undefined
         if (goldAb) {
-          const goldCost = Number((goldAb as any).goldCost ?? 0)
-          const damageBonus = Number((goldAb as any).damageBonus ?? 0)
+          const goldCost = Number(goldAb.goldCost ?? 0)
+          const damageBonus = Number(goldAb.damageBonus ?? 0)
           const availGold = stateForShot.resources[stateForShot.turn.side].gold
           if (goldCost > 0 && damageBonus > 0 && availGold >= goldCost) {
-            ;(planRes.plan as any).__goldForDamage = { cost: goldCost, bonus: damageBonus }
+            planRes.plan.__goldForDamage = { cost: goldCost, bonus: damageBonus }
           }
         }
       }
@@ -797,7 +756,7 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       if (!execRes.ok) return execRes
 
       let finalState = execRes.state
-      const buildEvents: Event[] = Array.isArray((planRes.plan as any).__buildEvents) ? ((planRes.plan as any).__buildEvents as any[]) : []
+      const buildEvents: Event[] = planRes.plan.__buildEvents ?? []
 
       if (hasFreeShoot) {
         // 恢復原始魔力（射擊免費）並遞減 freeShootBonus
@@ -887,9 +846,9 @@ export function reduce(state: GameState, action: Action): ReduceResult {
 
       const soulId = src.enchant?.soulId ?? null
       const card = soulId ? getSoulCard(soulId) : null
-      const selfSacAb = card?.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SELF_APPLY_STATUS')
+      const selfSacAb = card ? findAbility(card.abilities, 'SACRIFICE_SELF_APPLY_STATUS') : undefined
       if (selfSacAb && src.id === tgt.id) {
-        const statusType = String((selfSacAb as any).status ?? '')
+        const statusType = String(selfSacAb.status ?? '')
         if (statusType === 'KING_INVINCIBLE_UNTIL_NEXT_TURN_START') {
           nextState = {
             ...nextState,
@@ -902,20 +861,18 @@ export function reduce(state: GameState, action: Action): ReduceResult {
       }
 
       if (src.id !== tgt.id && soulId) {
-        const ab = card?.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
-        const buff = (ab as any)?.buff
+        const ab = card ? findAbility(card.abilities, 'SACRIFICE_SHOT_BUFF') : undefined
+        const buff = ab?.buff
         if (buff) {
           const nextBuff = {
-            ignoreBlockingAll: (buff as any).ignoreBlockingAll ? (true as const) : undefined,
-            chainRadius: Number.isFinite((buff as any).chainRadius as any) ? Math.max(0, Math.floor(Number((buff as any).chainRadius))) : undefined,
-            chainFixedDamage: Number.isFinite((buff as any).chainFixedDamage as any)
-              ? Math.max(0, Math.floor(Number((buff as any).chainFixedDamage)))
+            ignoreBlockingAll: buff.ignoreBlockingAll ? (true as const) : undefined,
+            chainRadius: Number.isFinite(buff.chainRadius) ? Math.max(0, Math.floor(Number(buff.chainRadius))) : undefined,
+            chainFixedDamage: undefined as number | undefined,
+            chainDamageMultiplier: Number.isFinite(buff.chainDamageMultiplier)
+              ? Math.max(0, Number(buff.chainDamageMultiplier))
               : undefined,
-            chainDamageMultiplier: Number.isFinite((buff as any).chainDamageMultiplier as any)
-              ? Math.max(0, Number((buff as any).chainDamageMultiplier))
-              : undefined,
-            damageBonusPerCorpsesCap: Number.isFinite((buff as any).damageBonusPerCorpsesCap as any)
-              ? Math.max(0, Math.floor(Number((buff as any).damageBonusPerCorpsesCap)))
+            damageBonusPerCorpsesCap: Number.isFinite(buff.damageBonusPerCorpsesCap)
+              ? Math.max(0, Math.floor(Number(buff.damageBonusPerCorpsesCap)))
               : undefined,
           }
 

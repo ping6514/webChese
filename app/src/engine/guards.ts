@@ -5,7 +5,7 @@ import { getReviveGoldCost } from './state'
 import type { PieceBase, Pos } from './types'
 import { isOnBoard } from './types'
 import { isLegalMove } from './legalMoves'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
 import { buildShotPlan } from './shotPlan'
 import { getItemCard } from './items'
 import { FREE_SHOOT_MANA_SENTINEL } from './gameConfig'
@@ -21,14 +21,14 @@ export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitI
   const srcSoulId = src.enchant?.soulId ?? null
   const srcCard = srcSoulId ? getSoulCard(srcSoulId) : null
   if (!srcSoulId || !srcCard) return fail('來源單位沒有獻祭技能')
-  if (String((srcCard as any).clan ?? '') !== 'eternal_night') return fail('來源單位沒有獻祭技能')
-  const sacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SHOT_BUFF')
-  const selfSacAb = srcCard.abilities.find((a) => String((a as any).type ?? '') === 'SACRIFICE_SELF_APPLY_STATUS')
+  if (srcCard.clan !== 'eternal_night') return fail('來源單位沒有獻祭技能')
+  const sacAb = findAbility(srcCard.abilities, 'SACRIFICE_SHOT_BUFF')
+  const selfSacAb = findAbility(srcCard.abilities, 'SACRIFICE_SELF_APPLY_STATUS')
   const hasSacrifice = !!sacAb || !!selfSacAb
   if (!hasSacrifice) return fail('來源單位沒有獻祭技能')
 
   if (state.turnFlags.shotUsed?.[src.id]) return fail('本回合已射擊過')
-  if (sacAb && (sacAb as any).requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('獻祭前必須先移動')
+  if (sacAb?.requiresMovedThisTurn && !state.turnFlags.movedThisTurn?.[src.id]) return fail('獻祭前必須先移動')
 
   // Advisors: sacrifice self only.
   if (selfSacAb) {
@@ -44,10 +44,10 @@ export function canSacrifice(state: GameState, sourceUnitId: string, targetUnitI
   if (tgt.base === 'king') return fail('不能獻祭帥/將')
 
   const r = (() => {
-    const r0 = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : null
+    const r0 = range !== undefined && Number.isFinite(range) ? Math.max(0, Math.floor(range)) : null
     if (r0 != null) return r0
     if (sacAb) {
-      const rr = Number((sacAb as any).range ?? 0)
+      const rr = Number(sacAb.range ?? 0)
       if (Number.isFinite(rr) && rr > 0) return Math.floor(rr)
     }
     return 1
@@ -174,9 +174,9 @@ function findFormationCommand(state: GameState, unitId: string): { allyId: strin
     if (!soulId) continue
     const card = getSoulCard(soulId)
     if (!card) continue
-    const ab = card.abilities.find((a) => a.type === 'FORMATION_COMMAND')
+    const ab = findAbility(card.abilities, 'FORMATION_COMMAND')
     if (!ab) continue
-    const perTurn = Number((ab as any).perTurn ?? 1)
+    const perTurn = Number(ab.perTurn ?? 1)
     const key = `${u.id}:FORMATION_COMMAND`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0
     if (used >= perTurn) continue
@@ -270,9 +270,9 @@ function findLogisticsRevive(state: GameState): { allyId: string; abilityKey: st
     if (!soulId) continue
     const card = getSoulCard(soulId)
     if (!card) continue
-    const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
+    const ab = findAbility(card.abilities, 'LOGISTICS_REVIVE')
     if (!ab) continue
-    const perTurn = Number((ab as any).perTurn ?? 1)
+    const perTurn = Number(ab.perTurn ?? 1)
     const key = `${u.id}:LOGISTICS_REVIVE`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0
     if (used >= perTurn) continue

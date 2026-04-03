@@ -230,10 +230,10 @@ export function createInitialState(config?: Partial<GameConfig>): GameState {
   const deckByBase: Partial<Record<PieceBase, string[]>> = {}
   const displayByBase: Partial<Record<PieceBase, string | null>> = {}
 
-  const enabled = Array.isArray((rules as any).enabledClans) ? (rules as any).enabledClans.map(String) : []
+  const enabled = Array.isArray(rules.enabledClans) ? rules.enabledClans.map(String) : []
   const enabledSet = enabled.length > 0 ? new Set(enabled) : null
   const all = listSoulCards()
-    .filter((c) => !enabledSet || enabledSet.has(String((c as any).clan ?? '')))
+    .filter((c) => !enabledSet || enabledSet.has(c.clan))
     .slice()
     .sort((a, b) => a.id.localeCompare(b.id))
   for (const b of bases) {

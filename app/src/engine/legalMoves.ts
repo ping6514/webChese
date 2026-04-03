@@ -1,21 +1,12 @@
-import type { GameState, Unit } from './state'
+import type { GameState } from './state'
 import type { Pos } from './types'
 import { isOnBoard } from './types'
 import { getUnitAt } from './state'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
+import { palaceContains, crossedRiver } from './boardUtils'
 
 function isEmpty(state: GameState, pos: Pos): boolean {
   return !getUnitAt(state, pos)
-}
-
-function palaceContains(side: Unit['side'], pos: Pos): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
-}
-
-function crossedRiver(side: Unit['side'], y: number): boolean {
-  return side === 'red' ? y <= 4 : y >= 5
 }
 
 function addIfEmpty(state: GameState, out: Pos[], pos: Pos) {
@@ -44,17 +35,18 @@ export function getLegalMoves(state: GameState, unitId: string): Pos[] {
 
   const soulId = unit.enchant?.soulId
   const card = soulId ? getSoulCard(soulId) : undefined
-  const movePathAb = card?.abilities.find((a) => a.type === 'IGNORE_PATH_BLOCKING' && (a as any).for === 'MOVE') as any
-  const movePathWhenType = String(movePathAb?.when?.type ?? '')
+  const movePathAb = card ? findAbility(card.abilities, 'IGNORE_PATH_BLOCKING') : undefined
+  const movePathAbMove = movePathAb?.for === 'MOVE' ? movePathAb : undefined
+  const movePathWhenType = movePathAbMove?.when?.type ?? ''
   const movePathCrossed = crossedRiver(unit.side, unit.pos.y)
-  const movePathActive = !movePathAb
+  const movePathActive = !movePathAbMove
     ? false
     : (movePathWhenType === 'AFTER_CROSS_RIVER')
       ? movePathCrossed
       : true
-  const ignorePathBlockingMove = !!movePathAb && movePathActive
+  const ignorePathBlockingMove = !!movePathAbMove && movePathActive
   const passThroughCount = ignorePathBlockingMove
-    ? Math.max(0, Math.floor(Number(movePathAb?.count ?? 0)))
+    ? Math.max(0, Math.floor(Number(movePathAbMove.count ?? 0)))
     : 0
 
   const out: Pos[] = []

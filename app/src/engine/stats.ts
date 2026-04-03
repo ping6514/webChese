@@ -1,9 +1,10 @@
 import type { GameState, Unit } from './state'
 import { BASE_STATS } from './state'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
 import { getItemCard } from './items'
 import { countCorpses } from './corpses'
 import { countSoldiers } from './corpses'
+import { palaceContains, crossedRiver } from './boardUtils'
 
 function getItemHandTotalValue(state: GameState, side: 'red' | 'black'): number {
   let total = 0
@@ -19,23 +20,12 @@ export function getDefValue(unit: Unit, atkKey: string): number {
   return found ? found.value : 0
 }
 
-function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
-}
-
-function crossedRiver(side: 'red' | 'black', y: number): boolean {
-  return side === 'red' ? y <= 4 : y >= 5
-}
-
-function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
+export function isResonanceActive(state: GameState, side: 'red' | 'black', need: number, clan: string): boolean {
   if (!Number.isFinite(need) || need <= 0) return false
-  const source = state.units[sourceUnitId]
-  if (!source) return false
+  if (!clan) return false
   let count = 0
   for (const u of Object.values(state.units)) {
-    if (u.side !== source.side) continue
+    if (u.side !== side) continue
     const soulId = u.enchant?.soulId
     if (!soulId) continue
     const c = getSoulCard(soulId)
@@ -60,10 +50,10 @@ function auraWhenOk(state: GameState, auraUnit: Unit, when: any, clanFallback: s
   if (type === 'RESONANCE_ACTIVE') {
     const soulId = auraUnit.enchant?.soulId
     const card = soulId ? getSoulCard(soulId) : undefined
-    const res = card?.abilities.find((a) => a.type === 'RESONANCE') as any
+    const res = card ? findAbility(card.abilities, 'RESONANCE') : undefined
     const need = Number(res?.need ?? 0)
     const resClan = String(res?.clan ?? '')
-    return isResonanceActive(state, auraUnit.id, need, resClan || clanFallback)
+    return isResonanceActive(state, auraUnit.side, need, resClan || clanFallback)
   }
   return true
 }
@@ -162,7 +152,7 @@ export function getAuraHpBonusInState(state: GameState, unitId: string): { hpBon
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
 
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       if (!auraWhenOk(state, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
       if (!auraForKeysOk(unit, ab)) continue
@@ -205,28 +195,27 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     const card = getSoulCard(soulId)
     if (card) {
       const crossed = crossedRiver(unit.side, unit.pos.y)
-      for (const ab of card.abilities as any[]) {
+      for (const ab of card.abilities) {
         if (ab.type !== 'ATK_BONUS') continue
 
         const when = ab.when
-        const whenType = String(when?.type ?? '')
-        if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
+        if (when?.type === 'AFTER_CROSS_RIVER' && !crossed) continue
 
-        if (whenType === 'CORPSES_GTE') {
-          const need = Number(when?.count ?? 0)
+        if (when?.type === 'CORPSES_GTE') {
+          const need = Number(when.count)
           if (!(Number.isFinite(need) && need > 0)) continue
           if (countCorpses(state, unit.side) < need) continue
         }
-        if (whenType === 'SOLDIERS_GTE') {
-          const need = Number(when?.count ?? 0)
+        if (when?.type === 'SOLDIERS_GTE') {
+          const need = Number(when.count)
           if (!(Number.isFinite(need) && need > 0)) continue
           if (countSoldiers(state, unit.side) < need) continue
         }
-        if (whenType === 'MOVED_THIS_TURN') {
+        if (when?.type === 'MOVED_THIS_TURN') {
           if (!state.turnFlags.movedThisTurn?.[unitId]) continue
         }
-        if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
-          const need = Number(when?.count ?? 0)
+        if (when?.type === 'ENEMY_KILLED_THIS_TURN_GTE') {
+          const need = Number(when.count)
           const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
           if (!(Number.isFinite(need) && need > 0)) continue
           if (cur < need) continue
@@ -248,7 +237,7 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
 
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       if (!auraWhenOk(state, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
       if (!auraForKeysOk(unit, ab)) continue
@@ -267,7 +256,7 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
       const scope = String(ab.scope ?? 'self')
       if (scope !== 'global') continue
@@ -288,7 +277,7 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'ITEM_VALUE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue
@@ -311,18 +300,17 @@ export function getAtkPanelBreakdownInState(state: GameState, unitId: string): {
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_DAMAGE_BONUS') continue
 
       // when condition
       const when = ab.when
-      const whenType = String(when?.type ?? '')
-      if (whenType === 'CORPSES_GTE') {
-        const need = Number(when?.count ?? 0)
+      if (when?.type === 'CORPSES_GTE') {
+        const need = Number(when.count)
         if (countCorpses(state, auraUnit.side) < need) continue
       }
-      if (whenType === 'RESONANCE_ACTIVE') {
-        const res = (auraCard.abilities as any[]).find((a) => a.type === 'RESONANCE')
+      if (when?.type === 'RESONANCE_ACTIVE') {
+        const res = (auraCard.abilities).find((a) => a.type === 'RESONANCE')
         const need = Number(res?.need ?? 0)
         if (!(Number.isFinite(need) && need > 0)) continue
         let count = 0
@@ -408,7 +396,7 @@ export function getHpPanelBreakdownInState(state: GameState, unitId: string): Hp
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
 
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       if (!auraWhenOk(state, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
       if (!auraForKeysOk(u, ab)) continue
@@ -445,7 +433,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (selfSoulId) {
       const selfCard = getSoulCard(selfSoulId)
       if (selfCard && u.hpCurrent < getMaxHpForUnitInState(state, u.id)) {
-        for (const ab of selfCard.abilities as any[]) {
+        for (const ab of selfCard.abilities) {
           if (ab.type !== 'BELOW_MAX_HP_DEFENSE_BONUS') continue
           const { phys: p, magic: m } = getDefBonusPair(ab?.defBonus)
           if (p > 0) { physBonus += p; physParts.push({ label: selfCard.name, amount: p }) }
@@ -461,7 +449,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (selfSoulId) {
       const selfCard = getSoulCard(selfSoulId)
       if (selfCard) {
-        for (const ab of selfCard.abilities as any[]) {
+        for (const ab of selfCard.abilities) {
           if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
           const scope = String(ab.scope ?? 'self')
           if (scope !== 'self') continue
@@ -487,7 +475,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
       const scope = String(ab.scope ?? 'self')
       if (scope !== 'global') continue
@@ -510,16 +498,15 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_DEF_BONUS') continue
       const amount = Number(ab.amount ?? 0)
       if (!(Number.isFinite(amount) && amount > 0)) continue
 
       const when = ab.when
-      const whenType = String(when?.type ?? '')
-      if (whenType === 'SOURCE_IN_PALACE' && !palaceContains(auraUnit.side, auraUnit.pos)) continue
-      if (whenType === 'CORPSES_GTE') {
-        const need = Number(when?.count ?? 0)
+      if (when?.type === 'SOURCE_IN_PALACE' && !palaceContains(auraUnit.side, auraUnit.pos)) continue
+      if (when?.type === 'CORPSES_GTE') {
+        const need = Number(when.count)
         if (!(Number.isFinite(need) && need > 0)) continue
         if (countCorpses(state, auraUnit.side) < need) continue
       }
@@ -552,7 +539,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       if (!auraWhenOk(state, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
       if (!auraForKeysOk(u, ab)) continue
@@ -569,7 +556,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'ITEM_VALUE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue
@@ -590,7 +577,7 @@ export function getDefPanelBreakdownInState(state: GameState, unitId: string): D
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
     const advantage = unitCountDelta(state, u.side)
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'UNIT_COUNT_ADVANTAGE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue
@@ -617,7 +604,7 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     if (selfSoulId) {
       const selfCard = getSoulCard(selfSoulId)
       if (selfCard && unit.hpCurrent < getMaxHpForUnitInState(state, unit.id)) {
-        for (const ab of selfCard.abilities as any[]) {
+        for (const ab of selfCard.abilities) {
           if (ab.type !== 'BELOW_MAX_HP_DEFENSE_BONUS') continue
           const bonusAmount = getDefBonusAmountByKey(ab?.defBonus, atkKey)
           if (Number.isFinite(bonusAmount) && bonusAmount > 0) defValue += Math.floor(bonusAmount)
@@ -634,13 +621,13 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
       if (selfCard) {
         for (const ab of selfCard.abilities) {
           if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
-          const scope = String((ab as any).scope ?? 'self')
+          const scope = ab.scope ?? 'self'
           if (scope !== 'self') continue
-          const defBonus = (ab as any).defBonus
+          const defBonus = ab.defBonus
           if (!defBonus) continue
-          const bonusAmount = Number(defBonus[atkKey] ?? 0)
+          const bonusAmount = Number((defBonus as Record<string, number | undefined>)[atkKey] ?? 0)
           if (!Number.isFinite(bonusAmount) || bonusAmount <= 0) continue
-          const threshold = Number((ab as any).threshold ?? 0)
+          const threshold = Number(ab.threshold ?? 0)
           if (!Number.isFinite(threshold) || threshold <= 0) continue
           if (state.resources[unit.side].gold >= threshold) defValue += bonusAmount
         }
@@ -657,13 +644,13 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     if (!auraCard) continue
     for (const ab of auraCard.abilities) {
       if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
-      const scope = String((ab as any).scope ?? 'self')
+      const scope = ab.scope ?? 'self'
       if (scope !== 'global') continue
-      const defBonus = (ab as any).defBonus
+      const defBonus = ab.defBonus
       if (!defBonus) continue
-      const bonusAmount = Number(defBonus[atkKey] ?? 0)
+      const bonusAmount = Number((defBonus as Record<string, number | undefined>)[atkKey] ?? 0)
       if (!Number.isFinite(bonusAmount) || bonusAmount <= 0) continue
-      const threshold = Number((ab as any).threshold ?? 0)
+      const threshold = Number(ab.threshold ?? 0)
       if (!Number.isFinite(threshold) || threshold <= 0) continue
       if (state.resources[auraUnit.side].gold >= threshold) defValue += bonusAmount
     }
@@ -676,7 +663,7 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'ITEM_VALUE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue
@@ -700,35 +687,35 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_DEF_BONUS') continue
 
-      const key = String((ab as any).key ?? '')
+      const key = ab.key
       if (!key || key !== atkKey) continue
 
-      const amount = Number((ab as any).amount ?? 0)
+      const amount = Number(ab.amount ?? 0)
       if (!(Number.isFinite(amount) && amount > 0)) continue
 
-      const when = (ab as any).when
+      const when = ab.when
       const whenType = String(when?.type ?? '')
       if (whenType === 'SOURCE_IN_PALACE' && !palaceContains(auraUnit.side, auraUnit.pos)) continue
 
       if (whenType === 'CORPSES_GTE') {
-        const need = Number(when?.count ?? 0)
+        const need = Number(when?.type === 'CORPSES_GTE' ? when.count : 0)
         if (!(Number.isFinite(need) && need > 0)) continue
         const corpses = countCorpses(state, auraUnit.side)
         if (corpses < need) continue
       }
 
-      const forKey = String((ab as any).for ?? '')
+      const forKey = String(ab.for ?? '')
       if (forKey === 'ALLIES_IN_PALACE' && !palaceContains(unit.side, unit.pos)) continue
 
       if (forKey === 'CLAN') {
-        const clan = String((ab as any).clan ?? '')
+        const clan = String(ab.clan ?? '')
         if (!clan) continue
         const soulId = unit.enchant?.soulId
         const card = soulId ? getSoulCard(soulId) : undefined
         if (!card) continue
         if (String(card.clan ?? '') !== clan) continue
 
-        const excludeBase = String((ab as any).excludeBase ?? '')
+        const excludeBase = String(ab.excludeBase ?? '')
         if (excludeBase && unit.base === excludeBase) continue
       }
 
@@ -744,7 +731,7 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
 
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_STAT_BONUS') continue
       if (!auraWhenOk(state, auraUnit, ab.when, String(auraCard.clan ?? ''))) continue
       if (!auraForKeysOk(unit, ab)) continue
@@ -762,7 +749,7 @@ export function getDefValueInState(state: GameState, unit: Unit, atkKey: string)
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
     const advantage = unitCountDelta(state, unit.side)
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'UNIT_COUNT_ADVANTAGE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue

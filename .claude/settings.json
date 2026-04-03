@@ -102,7 +102,9 @@
       "Bash(grep -r \"enter-active\\\\|leave-active\\\\|enter-from\\\\|leave-to\" /d/workspace/webChese/app/src --include=*.vue)",
       "Bash(npm create:*)",
       "Bash(grep '\"\"pixi.js\"\"' package.json)",
-      "Bash(grep -B5 -A25 \"case ''SACRIFICE'':\" /Users/pingwu/Desktop/workspace/github/webChese/app/src/engine/reduce.ts)"
+      "Bash(grep -B5 -A25 \"case ''SACRIFICE'':\" /Users/pingwu/Desktop/workspace/github/webChese/app/src/engine/reduce.ts)",
+      "Bash(wc -l /d/workspace/webChese/app/src/engine/*.ts)",
+      "Bash(node scripts/build-engine.mjs)"
     ]
   }
 }

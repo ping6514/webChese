@@ -5,11 +5,9 @@ import ironGuard from '../data/souls/iron-guard.json'
 import goldMerc from '../data/souls/gold-merc.json'
 import deathOath from '../data/souls/death-oath.json'
 import type { PieceBase } from './types'
-
-export type SoulAbility = {
-  type: string
-  [k: string]: unknown
-}
+export type { SoulAbility, SoulAbilityCondition, ItemAbility, AuraStatBonus, SacrificeBuffShape, DefBonus, CounterTarget, ItemAbilityTarget, ItemAbilityRestrict } from './abilityTypes'
+export { findAbility } from './abilityTypes'
+import type { SoulAbility } from './abilityTypes'
 
 export type SoulCard = {
   id: string
@@ -32,7 +30,7 @@ function normalizePublicAssetUrl(p: string): string {
 }
 
 const allSoulCards: SoulCard[] = [...(darkMoon as SoulCard[]), ...(styx as SoulCard[]), ...(eternalNight as SoulCard[]), ...(ironGuard as SoulCard[]), ...(goldMerc as SoulCard[]), ...(deathOath as SoulCard[])]
-  .map((c) => ({ ...c, image: normalizePublicAssetUrl(String((c as any).image ?? '')) }))
+  .map((c) => ({ ...c, image: normalizePublicAssetUrl(String(c.image ?? '')) }))
 
 export const soulCardsById: Record<string, SoulCard> = Object.fromEntries(allSoulCards.map((c) => [c.id, c]))
 

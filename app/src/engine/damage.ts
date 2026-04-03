@@ -1,9 +1,11 @@
 import type { GameState } from './state'
 import type { DamageBreakdownItem } from './events'
-import { getSoulCard } from './cards'
+import { getSoulCard, findAbility } from './cards'
+import type { SoulAbility } from './abilityTypes'
 import { getItemCard } from './items'
-import { getDefValueInState } from './stats'
+import { getDefValueInState, isResonanceActive } from './stats'
 import { countCorpses, countSoldiers } from './corpses'
+import { palaceContains, crossedRiver } from './boardUtils'
 
 function getItemHandTotalValue(state: GameState, side: 'red' | 'black'): number {
   let totalValue = 0
@@ -26,9 +28,9 @@ export function findFirstDamagedReduction(
   if (!card) return null
 
   for (const ab of card.abilities) {
-    if (String((ab as any).type ?? '') !== 'FIRST_DAMAGED_REDUCTION') continue
-    const amount = Number((ab as any).amount ?? 0)
-    const perTurn = Number((ab as any).perTurn ?? 1)
+    if (ab.type !== 'FIRST_DAMAGED_REDUCTION') continue
+    const amount = Number(ab.amount ?? 0)
+    const perTurn = Number(ab.perTurn ?? 1)
     if (!(Number.isFinite(amount) && amount > 0)) continue
     if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
     const key = `${target.id}:FIRST_DAMAGED_REDUCTION`
@@ -38,16 +40,6 @@ export function findFirstDamagedReduction(
   }
 
   return null
-}
-
-export function crossedRiver(side: 'red' | 'black', y: number): boolean {
-  return side === 'red' ? y <= 4 : y >= 5
-}
-
-function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
 }
 
 function getHighestTierAmount(tiers: { count: number; amount: number }[], soldierCount: number): number {
@@ -84,41 +76,41 @@ function computeDamageCore(
       ? state.turnFlags.bloodSacrificeActiveShotEffect.effect
       : null
 
-  const targetDefMinusAbilities: Array<Record<string, unknown>> = []
+  type TargetDefMinusAb = Extract<SoulAbility, { type: 'TARGET_DEF_MINUS' }>
+  const targetDefMinusAbilities: TargetDefMinusAb[] = []
   if (attackerSoulId0) {
     const attackerCard0 = getSoulCard(attackerSoulId0)
     if (attackerCard0) {
       for (const ab of attackerCard0.abilities) {
-        if (String((ab as any).type ?? '') === 'TARGET_DEF_MINUS') {
-          targetDefMinusAbilities.push(ab as any)
-        }
+        if (ab.type === 'TARGET_DEF_MINUS') targetDefMinusAbilities.push(ab)
       }
     }
   }
-  if (String((bsShotEffect as any)?.type ?? '') === 'TARGET_DEF_MINUS') {
-    targetDefMinusAbilities.push(bsShotEffect as Record<string, unknown>)
+  // blood sacrifice effect can also inject TARGET_DEF_MINUS
+  if (bsShotEffect && String((bsShotEffect as Record<string, unknown>).type ?? '') === 'TARGET_DEF_MINUS') {
+    targetDefMinusAbilities.push(bsShotEffect as unknown as TargetDefMinusAb)
   }
   for (const ab of targetDefMinusAbilities) {
-    const onlyIfAtkKey = String((ab as any).onlyIfAtkKey ?? '')
+    const onlyIfAtkKey = ab.onlyIfAtkKey
     if (onlyIfAtkKey && onlyIfAtkKey !== attacker.atk.key) continue
 
-    const key = String((ab as any).key ?? '')
+    const key = ab.key
     if (!key || key !== attacker.atk.key) continue
 
     let minus = 0
-    const per = (ab as any).per
-    if (per && String(per.type ?? '') === 'CORPSES_PER') {
+    const per = ab.per
+    if (per && per.type === 'CORPSES_PER') {
       const perCount = Number(per.count ?? 0)
-      const amountPer = Number((ab as any).amountPer ?? 0)
+      const amountPer = Number(ab.amountPer ?? 0)
       if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
       const corpses = countCorpses(state, attacker.side)
       minus = Math.floor(corpses / perCount) * amountPer
     } else {
-      minus = Number((ab as any).amount ?? 0)
+      minus = Number(ab.amount ?? 0)
     }
     if (!(Number.isFinite(minus) && minus > 0)) continue
 
-    const minDef = Number((ab as any).minDef ?? 0)
+    const minDef = Number(ab.minDef ?? 0)
     defValue = Math.max(Number.isFinite(minDef) ? Math.floor(minDef) : 0, defValue - minus)
   }
 
@@ -128,8 +120,8 @@ function computeDamageCore(
     const card = getSoulCard(attackerSoulId)
     if (card) {
       // Sacrifice buff (冥骨車)
-      const sb = (state as any).status?.sacrificeBuffByUnitId?.[attackerId]
-      const cap = Number((sb as any)?.damageBonusPerCorpsesCap ?? 0)
+      const sb = state.status.sacrificeBuffByUnitId?.[attackerId]
+      const cap = Number(sb?.damageBonusPerCorpsesCap ?? 0)
       if (Number.isFinite(cap) && cap > 0) {
         const corpses = countCorpses(state, attacker.side)
         const amount = Math.min(cap, Math.max(0, Math.floor(corpses)))
@@ -143,15 +135,15 @@ function computeDamageCore(
       const crossed = crossedRiver(attacker.side, attacker.pos.y)
       for (const ab of card.abilities) {
         if (ab.type !== 'DAMAGE_BONUS' && ab.type !== 'DAMAGE_MODIFIER') continue
-        const when = (ab as any).when
-        const whenType = String(when?.type ?? '')
+        const when = ab.when
+        const whenType = when?.type ?? ''
         // Data-driven gate
         if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
         // Legacy gate (only if ability has no when)
         if (!whenType && hasCrossRiver && !crossed) continue
 
         if (whenType === 'CORPSES_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'CORPSES_GTE' ? Number(when.count) : 0
           if (Number.isFinite(need) && need > 0) {
             if (countCorpses(state, attacker.side) < need) continue
           }
@@ -160,57 +152,50 @@ function computeDamageCore(
           if (!state.turnFlags.movedThisTurn?.[attackerId]) continue
         }
         if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'ENEMY_KILLED_THIS_TURN_GTE' ? Number(when.count) : 0
           const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
           if (!(Number.isFinite(need) && need > 0)) continue
           if (cur < need) continue
         }
         if (whenType === 'SOLDIERS_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'SOLDIERS_GTE' ? Number(when.count) : 0
           if (Number.isFinite(need) && need > 0) {
             if (countSoldiers(state, attacker.side) < need) continue
           }
         }
 
-        const targetWhen = (ab as any).targetWhen
-        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
+        const targetWhen = ab.targetWhen
+        if (targetWhen?.type === 'TARGET_IN_PALACE') {
           const tgt = state.units[targetUnitId]
           if (!tgt || !palaceContains(tgt.side, tgt.pos)) continue
         }
-        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_CROSS_RIVER') {
+        if (targetWhen?.type === 'TARGET_CROSS_RIVER') {
           const tgt = state.units[targetUnitId]
           if (!tgt || !crossedRiver(tgt.side, tgt.pos.y)) continue
         }
 
-        const amount = Number((ab as any).amount ?? 0)
+        const amount = Number(ab.amount ?? 0)
         if (Number.isFinite(amount) && amount > 0) {
           bonus += amount
           breakdown.push({ label: card.name, amount })
         }
       }
 
-      if (String((bsShotEffect as any)?.type ?? '') === 'DAMAGE_BONUS') {
-        const bsAb = bsShotEffect as any
-        const targetWhen = bsAb.targetWhen
-        if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_IN_PALACE') {
-          if (palaceContains(target.side, target.pos)) {
-            const amount = Number(bsAb.amount ?? 0)
-            if (Number.isFinite(amount) && amount > 0) {
+      if (bsShotEffect && String(bsShotEffect.type ?? '') === 'DAMAGE_BONUS') {
+        const targetWhen = bsShotEffect.targetWhen as { type: string } | undefined
+        const amount = Number(bsShotEffect.amount ?? 0)
+        if (Number.isFinite(amount) && amount > 0) {
+          if (targetWhen?.type === 'TARGET_IN_PALACE') {
+            if (palaceContains(target.side, target.pos)) {
               bonus += amount
               breakdown.push({ label: '血祭', amount })
             }
-          }
-        } else if (targetWhen && String(targetWhen.type ?? '') === 'TARGET_CROSS_RIVER') {
-          if (crossedRiver(target.side, target.pos.y)) {
-            const amount = Number(bsAb.amount ?? 0)
-            if (Number.isFinite(amount) && amount > 0) {
+          } else if (targetWhen?.type === 'TARGET_CROSS_RIVER') {
+            if (crossedRiver(target.side, target.pos.y)) {
               bonus += amount
               breakdown.push({ label: '血祭', amount })
             }
-          }
-        } else if (!targetWhen) {
-          const amount = Number(bsAb.amount ?? 0)
-          if (Number.isFinite(amount) && amount > 0) {
+          } else if (!targetWhen) {
             bonus += amount
             breakdown.push({ label: '血祭', amount })
           }
@@ -227,13 +212,13 @@ function computeDamageCore(
       const crossed = crossedRiver(attacker.side, attacker.pos.y)
       for (const ab of card.abilities) {
         if (ab.type !== 'ATK_BONUS') continue
-        const when = (ab as any).when
-        const whenType = String(when?.type ?? '')
+        const when = ab.when
+        const whenType = when?.type ?? ''
         if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
         if (!whenType && hasCrossRiver && !crossed) continue
 
         if (whenType === 'CORPSES_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'CORPSES_GTE' ? Number(when.count) : 0
           if (Number.isFinite(need) && need > 0) {
             if (countCorpses(state, attacker.side) < need) continue
           }
@@ -242,19 +227,19 @@ function computeDamageCore(
           if (!state.turnFlags.movedThisTurn?.[attackerId]) continue
         }
         if (whenType === 'ENEMY_KILLED_THIS_TURN_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'ENEMY_KILLED_THIS_TURN_GTE' ? Number(when.count) : 0
           const cur = Number(state.turnFlags.enemyKilledThisTurnCount ?? 0)
           if (!(Number.isFinite(need) && need > 0)) continue
           if (cur < need) continue
         }
         if (whenType === 'SOLDIERS_GTE') {
-          const need = Number(when?.count ?? 0)
+          const need = when?.type === 'SOLDIERS_GTE' ? Number(when.count) : 0
           if (Number.isFinite(need) && need > 0) {
             if (countSoldiers(state, attacker.side) < need) continue
           }
         }
 
-        const amount = Number((ab as any).amount ?? 0)
+        const amount = Number(ab.amount ?? 0)
         if (Number.isFinite(amount) && amount > 0) {
           bonus += amount
           breakdown.push({ label: card.name + ' 攻擊+', amount })
@@ -269,7 +254,7 @@ function computeDamageCore(
     if (card) {
       for (const ab of card.abilities) {
         if (ab.type !== 'SOLDIERS_TIERED_DAMAGE_BONUS') continue
-        const tiers = (ab as any).tiers as { count: number; amount: number }[]
+        const tiers = ab.tiers
         if (!Array.isArray(tiers)) continue
         const soldiers = countSoldiers(state, attacker.side)
         const amount = getHighestTierAmount(tiers, soldiers)
@@ -287,9 +272,9 @@ function computeDamageCore(
     if (card) {
       for (const ab of card.abilities) {
         if (ab.type !== 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER') continue
-        const radius = Number((ab as any).radius ?? 1)
-        const amountPer = Number((ab as any).amountPer ?? 1)
-        const maxBonus = Number((ab as any).max ?? 999)
+        const radius = Number(ab.radius ?? 1)
+        const amountPer = Number(ab.amountPer ?? 1)
+        const maxBonus = Number(ab.max ?? 999)
         let soldierCount = 0
         for (const u of Object.values(state.units)) {
           if (u.side !== attacker.side) continue
@@ -320,9 +305,9 @@ function computeDamageCore(
       if (card) {
         for (const ab of card.abilities) {
           if (ab.type !== 'BLOOD_RAGE_AURA') continue
-          const scope = String((ab as any).scope ?? 'self')
+          const scope = ab.scope ?? 'self'
           if (scope !== 'self') continue
-          const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
+          const stages = ab.stages
           if (Array.isArray(stages)) {
             const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
             let bestBonus = 0
@@ -347,9 +332,9 @@ function computeDamageCore(
       if (!auraCard) continue
       for (const ab of auraCard.abilities) {
         if (ab.type !== 'BLOOD_RAGE_AURA') continue
-        const scope = String((ab as any).scope ?? 'self')
+        const scope = ab.scope ?? 'self'
         if (scope !== 'global') continue
-        const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
+        const stages = ab.stages
         if (!Array.isArray(stages)) continue
         const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
         let bestBonus = 0
@@ -376,9 +361,9 @@ function computeDamageCore(
       if (card) {
         for (const ab of card.abilities) {
           if (ab.type !== 'UNDERDOG_AURA') continue
-          const scope = String((ab as any).scope ?? 'self')
+          const scope = ab.scope ?? 'self'
           if (scope !== 'self') continue
-          const stages = (ab as any).stages as Array<{ margin: number; atkBonus: number }> | undefined
+          const stages = ab.stages
           if (Array.isArray(stages)) {
             const sorted = [...stages].sort((a, b) => a.margin - b.margin)
             let bestBonus = 0
@@ -391,7 +376,7 @@ function computeDamageCore(
             }
           } else if (deficit > 0) {
             // Legacy single-threshold (no stages): any deficit triggers
-            const atkBonus = Number((ab as any).atkBonus ?? 1)
+            const atkBonus = Number(ab.stages?.[0]?.atkBonus ?? 1)
             if (atkBonus > 0) {
               bonus += atkBonus
               breakdown.push({ label: card.name + ' 逆境', amount: atkBonus })
@@ -410,9 +395,9 @@ function computeDamageCore(
       if (!auraCard) continue
       for (const ab of auraCard.abilities) {
         if (ab.type !== 'UNDERDOG_AURA') continue
-        const scope = String((ab as any).scope ?? 'self')
+        const scope = ab.scope ?? 'self'
         if (scope !== 'global') continue
-        const stages = (ab as any).stages as Array<{ margin: number; atkBonus: number }> | undefined
+        const stages = ab.stages
         if (!Array.isArray(stages)) continue
         const sorted = [...stages].sort((a, b) => a.margin - b.margin)
         let bestBonus = 0
@@ -439,7 +424,7 @@ function computeDamageCore(
       if (!auraSoulId) continue
       const auraCard = getSoulCard(auraSoulId)
       if (!auraCard) continue
-      for (const ab of auraCard.abilities as any[]) {
+      for (const ab of auraCard.abilities) {
         if (ab.type !== 'UNIT_COUNT_UNDERDOG_AURA') continue
         const scope = String(ab.scope ?? 'global')
         if (scope !== 'global') continue
@@ -460,11 +445,11 @@ function computeDamageCore(
     if (card) {
       for (const ab of card.abilities) {
         if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
-        const scope = String((ab as any).scope ?? 'self')
+        const scope = ab.scope ?? 'self'
         if (scope !== 'self') continue
-        const atkBonus = Number((ab as any).atkBonus ?? 0)
+        const atkBonus = Number(ab.atkBonus ?? 0)
         if (!Number.isFinite(atkBonus) || atkBonus <= 0) continue
-        const threshold = Number((ab as any).threshold ?? 0)
+        const threshold = Number(ab.threshold ?? 0)
         if (!Number.isFinite(threshold) || threshold <= 0) continue
         if (state.resources[attacker.side].gold < threshold) continue
         bonus += atkBonus
@@ -494,8 +479,8 @@ function computeDamageCore(
     if (card) {
       for (const ab of card.abilities) {
         if (ab.type !== 'ITEM_VALUE_ATK_BONUS') continue
-        const threshold = Number((ab as any).threshold ?? 0)
-        const atkBonus = Number((ab as any).atkBonus ?? 0)
+        const threshold = Number(ab.threshold ?? 0)
+        const atkBonus = Number(ab.atkBonus ?? 0)
         if (!Number.isFinite(threshold) || threshold <= 0) continue
         if (!Number.isFinite(atkBonus) || atkBonus <= 0) continue
         let totalValue = 0
@@ -518,7 +503,7 @@ function computeDamageCore(
     if (!auraSoulId) continue
     const auraCard = getSoulCard(auraSoulId)
     if (!auraCard) continue
-    for (const ab of auraCard.abilities as any[]) {
+    for (const ab of auraCard.abilities) {
       if (ab.type !== 'ITEM_VALUE_AURA') continue
       const scope = String(ab.scope ?? 'global')
       if (scope !== 'global') continue
@@ -544,53 +529,42 @@ function computeDamageCore(
     for (const ab of auraCard.abilities) {
       if (ab.type !== 'AURA_DAMAGE_BONUS' && ab.type !== 'AURA_DAMAGE_MODIFIER') continue
 
-      const when = (ab as any).when
-      const type = String(when?.type ?? '')
-      if (type === 'ATTACKER_IN_PALACE') {
-        const pos = attacker.pos
-        const inPalace = pos.x >= 3 && pos.x <= 5 && (attacker.side === 'red' ? pos.y >= 7 && pos.y <= 9 : pos.y >= 0 && pos.y <= 2)
-        if (!inPalace) continue
-      }
-      if (type === 'RESONANCE_ACTIVE') {
-        const res = auraCard.abilities.find((a) => a.type === 'RESONANCE')
-        const need = Number((res as any)?.need ?? 0)
-        if (!(Number.isFinite(need) && need > 0)) continue
-        let count = 0
-        for (const u of Object.values(state.units)) {
-          if (u.side !== auraUnit.side) continue
-          const sid = u.enchant?.soulId
-          if (!sid) continue
-          const c = getSoulCard(sid)
-          if (!c) continue
-          if (c.clan !== auraCard.clan) continue
-          count++
-        }
-        if (count < need) continue
+      const when = ab.when
+      const whenType = when?.type ?? ''
+      if (whenType === 'ATTACKER_IN_PALACE' && !palaceContains(attacker.side, attacker.pos)) continue
+      if (whenType === 'RESONANCE_ACTIVE') {
+        // 使用共用函式，確保所有持有共鳴光環的單位都能獨立觸發（堆疊正確）
+        const res = findAbility(auraCard.abilities, 'RESONANCE')
+        const need = Number(res?.need ?? 0)
+        const resClan = String(res?.clan ?? auraCard.clan)
+        if (!isResonanceActive(state, auraUnit.side, need, resClan)) continue
       }
 
-      const forRaw = (ab as any).for
-      const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
+      const forRaw = ab.for
+      const forKeys: string[] = Array.isArray(forRaw)
+        ? (forRaw as unknown[]).map((x) => String(x ?? '')).filter(Boolean)
+        : [String(forRaw ?? '')].filter(Boolean)
       let forAllowed = true
       for (const forKey of forKeys) {
         if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) {
           forAllowed = false; break
         }
         if (forKey === 'CLAN') {
-          const clan = String((ab as any).clan ?? '')
+          const clan = String(ab.clan ?? '')
           if (!clan) { forAllowed = false; break }
           const attackerCard = attacker.enchant?.soulId ? getSoulCard(attacker.enchant.soulId) : undefined
           if (!attackerCard) { forAllowed = false; break }
           if (String(attackerCard.clan ?? '') !== clan) { forAllowed = false; break }
-          const excludeBase = String((ab as any).excludeBase ?? '')
+          const excludeBase = ab.type === 'AURA_DAMAGE_BONUS' ? String(ab.excludeBase ?? '') : ''
           if (excludeBase && attacker.base === excludeBase) { forAllowed = false; break }
         }
       }
       if (!forAllowed) continue
 
-      const per = (ab as any).per
-      if (per && String(per.type ?? '') === 'CORPSES_PER') {
+      const per = ab.type === 'AURA_DAMAGE_BONUS' ? ab.per : undefined
+      if (per && per.type === 'CORPSES_PER') {
         const perCount = Number(per.count ?? 0)
-        const amountPer = Number((ab as any).amountPer ?? 0)
+        const amountPer = Number(ab.type === 'AURA_DAMAGE_BONUS' ? (ab.amountPer ?? 0) : 0)
         if (!(Number.isFinite(perCount) && perCount > 0 && Number.isFinite(amountPer) && amountPer > 0)) continue
         const corpses = countCorpses(state, attacker.side)
         const amount = Math.floor(corpses / perCount) * amountPer
@@ -601,7 +575,7 @@ function computeDamageCore(
         continue
       }
 
-      const amount = Number((ab as any).amount ?? 0)
+      const amount = Number(ab.amount ?? 0)
       if (Number.isFinite(amount) && amount > 0) {
         bonus += amount
         breakdown.push({ label: auraCard.name + ' 光環', amount })
@@ -618,7 +592,7 @@ function computeDamageCore(
     if (!auraCard) continue
     for (const ab of auraCard.abilities) {
       if (ab.type !== 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') continue
-      const tiers = (ab as any).tiers as { count: number; amount: number }[]
+      const tiers = ab.tiers
       if (!Array.isArray(tiers)) continue
       const soldiers = countSoldiers(state, auraUnit.side)
       const amount = getHighestTierAmount(tiers, soldiers)
@@ -648,7 +622,7 @@ function computeDamageCore(
       if (!auraCard) continue
       for (const ab of auraCard.abilities) {
         if (ab.type !== 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') continue
-        const tiers = (ab as any).tiers as { count: number; amount: number }[]
+        const tiers = ab.tiers
         if (!Array.isArray(tiers)) continue
         const soldiers = countSoldiers(state, auraUnit.side)
         const amount = getHighestTierAmount(tiers, soldiers)
@@ -684,7 +658,7 @@ function computeDamageCore(
 }
 
 export function computeRawDamage(state: GameState, attackerId: string, targetUnitId: string, diceValue?: number): number {
-  const dice = Number.isFinite(diceValue as any) ? Math.floor(diceValue as number) : state.rules.diceFixed
+  const dice = diceValue !== undefined && Number.isFinite(diceValue) ? Math.floor(diceValue) : state.rules.diceFixed
   return computeDamageCore(state, attackerId, targetUnitId, dice).damage
 }
 

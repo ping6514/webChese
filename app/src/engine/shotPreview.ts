@@ -1,7 +1,9 @@
 import type { GameState } from './state'
 import { getSoulCard } from './cards'
 import { computeRawDamage, computeDamageWithBreakdown } from './damage'
-import { countCorpses } from './corpses'
+import { countCorpses, chebyshev } from './corpses'
+import { palaceContains, crossedRiver } from './boardUtils'
+import { isResonanceActive } from './stats'
 
 export type ShotPreviewEffect =
   | {
@@ -88,42 +90,11 @@ export type ShotPreview =
       cost?: number
     }
 
-function crossedRiver(side: 'red' | 'black', y: number): boolean {
-  return side === 'red' ? y <= 4 : y >= 5
-}
-
-function chebyshev(a: { x: number; y: number }, b: { x: number; y: number }): number {
-  return Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
-}
-
 function getUnitAt(state: GameState, pos: { x: number; y: number }) {
   for (const u of Object.values(state.units)) {
     if (u.pos.x === pos.x && u.pos.y === pos.y) return u
   }
   return null
-}
-
-function isResonanceActive(state: GameState, sourceUnitId: string, need: number, clan: string): boolean {
-  if (!Number.isFinite(need) || need <= 0) return false
-  const source = state.units[sourceUnitId]
-  if (!source) return false
-  let count = 0
-  for (const u of Object.values(state.units)) {
-    if (u.side !== source.side) continue
-    const soulId = u.enchant?.soulId
-    if (!soulId) continue
-    const c = getSoulCard(soulId)
-    if (!c) continue
-    if (c.clan !== clan) continue
-    count++
-  }
-  return count >= need
-}
-
-function palaceContains(side: 'red' | 'black', pos: { x: number; y: number }): boolean {
-  if (pos.x < 3 || pos.x > 5) return false
-  if (side === 'red') return pos.y >= 7 && pos.y <= 9
-  return pos.y >= 0 && pos.y <= 2
 }
 
 function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId: string, when: any, clan: string): boolean {
@@ -145,7 +116,7 @@ function auraAppliesToAttacker(state: GameState, auraUnitId: string, attackerId:
     const res = card?.abilities.find((a) => a.type === 'RESONANCE')
     const need = Number((res as any)?.need ?? 0)
     const resClan = String((res as any)?.clan ?? '')
-    return isResonanceActive(state, auraUnit.id, need, resClan || clan)
+    return isResonanceActive(state, auraUnit.side, need, resClan || clan)
   }
 
   return true
@@ -618,15 +589,15 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
     if (card) {
       let ignoreAll = false
       let ignoreCount = 0
-      for (const ab of card.abilities as any[]) {
+      for (const ab of card.abilities) {
         if (ab.type !== 'IGNORE_BLOCKING') continue
 
         const whenType = String(ab.when?.type ?? '')
         const crossed = crossedRiver(attacker.side, attacker.pos.y)
         if (whenType === 'AFTER_CROSS_RIVER' && !crossed) continue
 
-        if (whenType === 'CORPSES_GTE') {
-          const need = Number(ab.when?.count ?? 0)
+        if (ab.when?.type === 'CORPSES_GTE') {
+          const need = Number(ab.when.count)
           if (Number.isFinite(need) && need > 0) {
             const corpses = countCorpses(state, attacker.side)
             if (corpses < need) continue
