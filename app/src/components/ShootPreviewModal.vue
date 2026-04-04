@@ -66,14 +66,12 @@ export default defineComponent({
     extraEffectText(e: ShotPreviewEffect): string | null {
       if (e.kind === 'DAMAGE_SHARE') return `傷害分攤：${e.amount}（由 ${e.byUnitId} 承擔）`
       if (e.kind === 'SPLASH') {
-        const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds.join(', ') : ''
-        return `波及 (半徑${(e as any).radius})：[${ids}] 各 ${(e as any).fixedDamage} 傷`
+        return `波及 (半徑${e.radius})：[${e.targetUnitIds.join(', ')}] 各 ${e.fixedDamage} 傷`
       }
-      if (e.kind === 'CHAIN') return `連鎖：追加 ${(e as any).targetUnitId} ${(e as any).fixedDamage} 傷`
+      if (e.kind === 'CHAIN') return `連鎖：追加 ${e.targetUnitId} ${e.fixedDamage} 傷`
       if (e.kind === 'PIERCE') {
-        const ids = Array.isArray((e as any).targetUnitIds) ? (e as any).targetUnitIds : []
-        const mode = (e as any).mode === 'CANNON_SCREEN_AND_TARGET' ? '隔子' : '直線'
-        return `貫通(${mode})：[${ids.join(', ')}] 各 ${(e as any).fixedDamage} 傷`
+        const mode = e.mode === 'CANNON_SCREEN_AND_TARGET' ? '隔子' : '直線'
+        return `貫通(${mode})：[${e.targetUnitIds.join(', ')}] 各 ${e.fixedDamage} 傷`
       }
       return null
     },

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, reduce, soulCardsById } from '../index'
+import { createInitialState, reduce, soulCardsById, type GameState } from '../index'
+import type { SoulAbility } from '../abilityTypes'
 import { getAtkPanelBreakdownInState, getDefPanelBreakdownInState } from '../stats'
 
 describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
@@ -13,10 +14,10 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
       // Inject test-only aura that increases max HP by 3 and heals current by +3
       auraCard.abilities = [
         ...oldAbilities,
-        { type: 'AURA_STAT_BONUS', for: 'ALLIES_IN_PALACE', bonus: { hp: 3, healCurrent: true } } as any,
+        { type: 'AURA_STAT_BONUS', for: 'ALLIES_IN_PALACE', bonus: { hp: 3, healCurrent: true } } as SoulAbility,
       ]
 
-      const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+      const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } })
 
       // Put into necro phase and ensure aura unit is enchanted
       const auraUnitId = 'red:advisor:0'
@@ -33,11 +34,11 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
           [auraUnitId]: { ...auraUnit, enchant: { soulId: auraSoulId }, pos: { x: 4, y: 8 } },
         },
         corpsesByPos: {
-          [`${pos.x},${pos.y}`]: [{ ownerSide: 'red', base: 'soldier', soulId: null } as any],
+          [`${pos.x},${pos.y}`]: [{ ownerSide: 'red', base: 'soldier' as const }],
         },
       }
 
-      const res = reduce(s1 as any, { type: 'REVIVE', pos } as any)
+      const res = reduce(s1 as GameState, { type: 'REVIVE', pos })
       expect(res.ok).toBe(true)
       if (!res.ok) return
 
@@ -47,14 +48,14 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
 
       // Base soldier hp=8; aura hp+3 => max=11; healCurrent should heal +3 to 11.
       expect(revived.hpCurrent).toBe(11)
-      expect(res.events.some((e: any) => e.type === 'UNIT_HP_CHANGED' && e.unitId === revived.id)).toBe(true)
+      expect(res.events.some((e) => e.type === 'UNIT_HP_CHANGED' && e.unitId === revived.id)).toBe(true)
     } finally {
       auraCard.abilities = oldAbilities
     }
   })
 
   it('revives the topmost allied corpse even when enemy corpses are stacked above other allied corpses', () => {
-    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } })
     const side = s0.turn.side
     const enemySide = side === 'red' ? 'black' : 'red'
     const pos = { x: 0, y: 5 }
@@ -65,14 +66,14 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
       corpsesByPos: {
         ...s0.corpsesByPos,
         [`${pos.x},${pos.y}`]: [
-          { ownerSide: side, base: 'soldier' },
-          { ownerSide: enemySide, base: 'rook' },
-          { ownerSide: side, base: 'knight' },
-        ] as any,
+          { ownerSide: side, base: 'soldier' as const },
+          { ownerSide: enemySide, base: 'rook' as const },
+          { ownerSide: side, base: 'knight' as const },
+        ],
       },
     }
 
-    const res = reduce(s1 as any, { type: 'REVIVE', pos } as any)
+    const res = reduce(s1 as GameState, { type: 'REVIVE', pos })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -87,7 +88,7 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
   })
 
   it('cannot revive onto a tile that currently has a living unit', () => {
-    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+    const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } })
     const side = s0.turn.side
     const occupiedUnit = Object.values(s0.units).find((u) => u.side === side)
     if (!occupiedUnit) throw new Error('missing occupied unit')
@@ -98,11 +99,11 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
       turn: { side, phase: 'necro' as const },
       corpsesByPos: {
         ...s0.corpsesByPos,
-        [`${pos.x},${pos.y}`]: [{ ownerSide: side, base: 'soldier' }] as any,
+        [`${pos.x},${pos.y}`]: [{ ownerSide: side, base: 'soldier' as const }],
       },
     }
 
-    const res = reduce(s1 as any, { type: 'REVIVE', pos } as any)
+    const res = reduce(s1 as GameState, { type: 'REVIVE', pos })
     expect(res.ok).toBe(false)
     if (res.ok) return
     expect(res.error).toContain('目標位置已有單位')
@@ -115,7 +116,7 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
 
     const oldAbilities = auraCard.abilities
     try {
-      const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } as any })
+      const s0 = createInitialState({ rules: { startGoldFirst: 999, startGoldSecond: 999 } })
 
       const auraUnit0 = Object.values(s0.units).find((u) => u.side === 'black' && u.base === 'advisor')
       const target0 = Object.values(s0.units).find((u) => u.side === 'black' && u.base === 'rook')
@@ -139,17 +140,17 @@ describe('AURA_STAT_BONUS hp healCurrent (conservative)', () => {
 
       // Baseline (without injected AURA_STAT_BONUS)
       auraCard.abilities = oldAbilities
-      const atkBase = getAtkPanelBreakdownInState(baseState as any, target0.id)
-      const defBase = getDefPanelBreakdownInState(baseState as any, target0.id)
+      const atkBase = getAtkPanelBreakdownInState(baseState as GameState, target0.id)
+      const defBase = getDefPanelBreakdownInState(baseState as GameState, target0.id)
 
       // With injected numeric bonuses
       auraCard.abilities = [
         ...oldAbilities,
-        { type: 'AURA_STAT_BONUS', for: 'ALLIES_IN_PALACE', bonus: { atk: 2, def: 1 } } as any,
+        { type: 'AURA_STAT_BONUS', for: 'ALLIES_IN_PALACE', bonus: { atk: 2, def: 1 } } as SoulAbility,
       ]
 
-      const atkAfter = getAtkPanelBreakdownInState(baseState as any, target0.id)
-      const defAfter = getDefPanelBreakdownInState(baseState as any, target0.id)
+      const atkAfter = getAtkPanelBreakdownInState(baseState as GameState, target0.id)
+      const defAfter = getDefPanelBreakdownInState(baseState as GameState, target0.id)
 
       expect(atkAfter.total - atkBase.total).toBe(2)
       expect(defAfter.phys.total - defBase.phys.total).toBe(1)

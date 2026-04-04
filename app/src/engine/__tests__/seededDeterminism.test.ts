@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { createInitialState, reduce } from '../index'
+import { createInitialState, reduce, type GameState } from '../index'
 
 describe('seeded determinism (smoke)', () => {
   test('same matchSeed + same action sequence => same final state', () => {
@@ -8,7 +8,7 @@ describe('seeded determinism (smoke)', () => {
         rules: {
           rngMode: 'seeded',
           matchSeed: 'seed-determinism-1',
-        } as any,
+        },
       })
       const side = s0.turn.side
       const enemySide = side === 'red' ? 'black' : 'red'
@@ -23,12 +23,12 @@ describe('seeded determinism (smoke)', () => {
       }
     }
 
-    const run = (baseState: any) => {
+    const run = (baseState: GameState) => {
       const a1 = reduce(baseState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
       expect(a1.ok).toBe(true)
       if (!a1.ok) throw new Error(a1.error)
 
-      const a2 = reduce(a1.state as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
+      const a2 = reduce(a1.state, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
       expect(a2.ok).toBe(true)
       if (!a2.ok) throw new Error(a2.error)
 

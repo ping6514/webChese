@@ -7,6 +7,8 @@ import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import type { GameState, Unit } from '../engine/state'
 import { getSoulCard } from '../engine/cards'
 import type { SoulAbility } from '../engine/cards'
+import type { SoulAbilityCondition } from '../engine/abilityTypes'
+import { findAbility } from '../engine/abilityTypes'
 import { countSoldiers, countCorpses } from '../engine/corpses'
 
 const props = defineProps<{
@@ -77,146 +79,124 @@ function isResonanceActive(state: GameState, side: 'red' | 'black', clan: string
   return count >= need
 }
 
+function getAbWhen(ab: SoulAbility): SoulAbilityCondition | undefined {
+  return (ab as { when?: SoulAbilityCondition }).when
+}
+
+function getAbPerTurn(ab: SoulAbility): number {
+  return Number((ab as { perTurn?: number }).perTurn ?? 0)
+}
+
 function getAbilityLabel(ab: SoulAbility): string {
-  const perT = Number((ab as any).perTurn ?? 0)
+  const perT = getAbPerTurn(ab)
   const perS = perT > 0 ? `（每回合 ${perT} 次）` : ''
   switch (ab.type) {
-    case 'SOLDIERS_TIERED_DAMAGE_BONUS': {
-      const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
-      return `軍勢：卒達門檻時傷害提升（${tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
-    }
-    case 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS': {
-      const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
-      return `軍勢氣場：全軍攻擊力提升（${tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
-    }
-    case 'SOLDIERS_TIERED_DMG_REDUCTION_AURA': {
-      const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
-      return `軍勢氣場：全軍減傷（${tiers.map((t) => `≥${t.count}→−${t.amount}`).join(' / ')}）`
-    }
+    case 'SOLDIERS_TIERED_DAMAGE_BONUS':
+      return `軍勢：卒達門檻時傷害提升（${ab.tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
+    case 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS':
+      return `軍勢氣場：全軍攻擊力提升（${ab.tiers.map((t) => `≥${t.count}→+${t.amount}`).join(' / ')}）`
+    case 'SOLDIERS_TIERED_DMG_REDUCTION_AURA':
+      return `軍勢氣場：全軍減傷（${ab.tiers.map((t) => `≥${t.count}→−${t.amount}`).join(' / ')}）`
     case 'IGNORE_BLOCKING': return `無視阻擋${condLabel(ab)}`
     case 'FREE_SHOOT': return `免費射擊${perS}${condLabel(ab)}`
-    case 'CHAIN': return `連鎖（範圍 ${(ab as any).radius ?? 1}）${perS}${condLabel(ab)}`
+    case 'CHAIN': return `連鎖（範圍 ${ab.radius}）${perS}${condLabel(ab)}`
     case 'MOVE_THEN_SHOOT': return `移動後射擊${perS}${condLabel(ab)}`
     case 'DAMAGE_BONUS':
     case 'DAMAGE_MODIFIER':
-      return `傷害 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
+      return `傷害 +${ab.amount}${condLabel(ab)}`
     case 'ARMY_RALLY': return '軍援：射擊聯動相鄰卒追加攻擊'
-    case 'FORMATION_COMMAND': return `整編：相鄰 ${(ab as any).radius ?? 1} 格的卒可免費移動${perS}`
+    case 'FORMATION_COMMAND': return `整編：相鄰卒可免費移動${perS}`
     case 'LOGISTICS_REVIVE': return `後勤：免費復活卒${perS}`
-    case 'PALACE_GUARD': return `宮護：帥被攻擊時減傷 ${(ab as any).amount ?? 1} 點${perS}`
-    case 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER': return `每相鄰卒 +${(ab as any).amountPer ?? 1} 傷（上限 +${(ab as any).max ?? '∞'}）`
+    case 'PALACE_GUARD': return `宮護：帥被攻擊時減傷 ${ab.amount} 點${perS}`
+    case 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER': return `每相鄰卒 +${ab.amountPer} 傷（上限 +${ab.max}）`
     case 'CROSS_RIVER': return '過河後效果生效'
     case 'MINGLEI': return '冥雷：穿透魔法防禦，過河目標額外傷害'
     case 'AURA_DAMAGE_BONUS':
     case 'AURA_DAMAGE_MODIFIER':
-      return `氣場：友軍攻擊傷害 +${(ab as any).amount ?? '?'}`
-    case 'TARGET_DEF_MINUS': {
-      const k = String((ab as any).key ?? '')
-      return `穿透防禦（${DEF_KEY_LABEL[k] ?? k}）${condLabel(ab)}`
-    }
+      return `氣場：友軍攻擊傷害 +${ab.amount ?? '?'}`
+    case 'TARGET_DEF_MINUS':
+      return `穿透防禦（${DEF_KEY_LABEL[ab.key] ?? ab.key}）${condLabel(ab)}`
     case 'IGNORE_PATH_BLOCKING': return `無視路徑阻擋${condLabel(ab)}`
-    case 'SPLASH': return `濺射（範圍 ${(ab as any).radius ?? 1}）${perS}${condLabel(ab)}`
+    case 'SPLASH': return `濺射（範圍 ${ab.radius}）${perS}${condLabel(ab)}`
     case 'AURA_IGNORE_BLOCKING': return `氣場：友軍射擊無視阻擋`
     case 'DAMAGE_SHARE': return `傷害轉移：帥受傷分攤給自身${condLabel(ab)}`
     case 'COUNTER_ON_KING_DAMAGED': return `反擊：帥受傷時對攻擊者反擊${condLabel(ab)}`
-    case 'RESONANCE': return `共鳴：同族單位達 ${(ab as any).need ?? 3} 名時生效`
+    case 'RESONANCE': return `共鳴：同族單位達 ${ab.need} 名時生效`
     case 'PIERCE': return `貫穿：射擊穿透目標${condLabel(ab)}`
     case 'SACRIFICE_SHOT_BUFF': {
-      const buff = (ab as any).buff ?? {}
+      const buff = ab.buff
       const parts: string[] = []
       if (buff.ignoreBlockingAll) parts.push('無視全部阻擋')
       if (buff.chainRadius != null) parts.push('連鎖')
       if (buff.damageBonusPerCorpsesCap != null) parts.push(`傷害依屍骸數 +1（上限 +${buff.damageBonusPerCorpsesCap}）`)
       return `獻祭：摧毀友軍後本回合下次射擊${parts.length ? '：' + parts.join('、') : '獲得強化'}`
     }
-    case 'ON_DEATH_FIXED_DAMAGE': return `冥土歸還：死亡時對周圍 ${(ab as any).radius ?? 1} 格敵方造成 ${(ab as any).amount ?? '?'} 固定傷害（無視防禦）`
-    case 'AURA_DEF_BONUS': return `氣場：友軍防禦 +${(ab as any).amount ?? '?'}`
-    case 'HEAL_KING_ON_KILL': return `擊殺後：帥回復 ${(ab as any).amount ?? '?'} HP`
-    case 'HEAL_SELF_AND_KING_ON_KILL': return `血回：擊殺後自身回復 ${(ab as any).selfAmount ?? '?'} HP，帥回復 ${(ab as any).kingAmount ?? '?'} HP`
+    case 'ON_DEATH_FIXED_DAMAGE': return `冥土歸還：死亡時對周圍 ${ab.radius} 格敵方造成 ${ab.amount} 固定傷害（無視防禦）`
+    case 'AURA_DEF_BONUS': return `氣場：友軍防禦 +${ab.amount}`
+    case 'HEAL_KING_ON_KILL': return `擊殺後：帥回復 ${ab.amount} HP`
+    case 'HEAL_SELF_AND_KING_ON_KILL': return `血回：擊殺後自身回復 ${ab.selfAmount} HP，帥回復 ${ab.kingAmount} HP`
     case 'PALACE_ONLY': return `僅在九宮格內生效`
-    case 'ATK_BONUS': return `攻擊力 +${(ab as any).amount ?? '?'}${condLabel(ab)}`
+    case 'ATK_BONUS': return `攻擊力 +${ab.amount}${condLabel(ab)}`
     case 'AURA_HP_REGEN_ON_KILL': return `氣場：友軍擊殺後回復 HP`
-    case 'KILL_MANA_GAIN': return `擊殺後獲得 ${(ab as any).amount ?? '?'} 魔力`
-    case 'FIRST_DAMAGED_REDUCTION': return `首次受傷減傷 ${(ab as any).amount ?? '?'}${perS}`
-    case 'COUNTER': return `反擊：自身或帥受傷時對攻擊者造成 1d${(ab as any).damage?.dice ?? 6} 傷害${perS}`
+    case 'KILL_MANA_GAIN': return `擊殺後獲得 ${ab.amount} 魔力`
+    case 'FIRST_DAMAGED_REDUCTION': return `首次受傷減傷 ${ab.amount}${perS}`
+    case 'COUNTER': return `反擊：自身或帥受傷時對攻擊者造成 1d${ab.damage.dice} 傷害${perS}`
     case 'BELOW_MAX_HP_DEFENSE_BONUS': {
-      const defBonus = ((ab as any).defBonus ?? []) as { key: string; value: number }[]
-      const label = defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
+      const label = ab.defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
       return `末命：HP 低於上限時，${label || '雙防提升'}`
     }
     case 'ITEM_VALUE_AURA': {
-      const threshold = (ab as any).threshold ?? '?'
-      const bonus = (ab as any).bonus as { atk?: number; def?: { phys?: number; magic?: number } } | undefined
-      if (bonus?.atk != null) return `展示收藏（攻）：道具費用 ≥ ${threshold} 時，全軍 ATK +${bonus.atk}`
+      const threshold = ab.threshold
+      const bonus = ab.bonus
+      if (typeof bonus.atk === 'number') return `展示收藏（攻）：道具費用 ≥ ${threshold} 時，全軍 ATK +${bonus.atk}`
       if (bonus?.def) return `展示收藏（守）：道具費用 ≥ ${threshold} 時，全軍雙防 +${bonus.def.phys ?? 0}/+${bonus.def.magic ?? 0}`
       return `展示收藏：道具費用 ≥ ${threshold} 時生效`
     }
-    case 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD': {
-      const thr = (ab as any).threshold ?? '?'
-      const amt = (ab as any).amount ?? '?'
-      return `逐利：首次攻擊時若財力 < ${thr}，獲得 ${amt} 財力${perS}`
-    }
-    case 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD': {
-      const thr = (ab as any).threshold ?? '?'
-      const amt = (ab as any).amount ?? '?'
-      return `回扣：首次使用道具後若財力 < ${thr}，獲得 ${amt} 財力${perS}`
-    }
+    case 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD':
+      return `逐利：首次攻擊時若財力 < ${ab.threshold}，獲得 ${ab.amount} 財力${perS}`
+    case 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD':
+      return `回扣：首次使用道具後若財力 < ${ab.threshold}，獲得 ${ab.amount} 財力${perS}`
     case 'SACRIFICE_SELF_APPLY_STATUS': return `獻祭自身：使己方帥進入無敵（直到下回合開始）`
     case 'UNIT_COUNT_ADVANTAGE_AURA': {
-      const margin = (ab as any).margin ?? 2
-      const defBonus = ((ab as any).defBonus ?? []) as { key: string; value: number }[]
-      const defLabel = defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
-      const atkBonus = (ab as any).atkBonus
-      const effectLabel = atkBonus != null ? `ATK +${atkBonus}` : defLabel || '提升'
-      return `盛勢：己方單位數比敵方多 ${margin} 以上時，全軍 ${effectLabel}`
+      const defLabel = ab.defBonus.map((d) => `${DEF_KEY_LABEL[d.key] ?? d.key}防 +${d.value}`).join('、')
+      return `盛勢：己方單位數比敵方多 ${ab.margin} 以上時，全軍 ${defLabel || '提升'}`
     }
-    case 'UNIT_COUNT_UNDERDOG_AURA': {
-      const margin = (ab as any).margin ?? 2
-      const atkBonus = (ab as any).atkBonus ?? '?'
-      return `逆勢：己方單位數比敵方少 ${margin} 以上時，全軍 ATK +${atkBonus}`
-    }
+    case 'UNIT_COUNT_UNDERDOG_AURA':
+      return `逆勢：己方單位數比敵方少 ${ab.margin} 以上時，全軍 ATK +${ab.atkBonus}`
     // ── 死誓氏族 ──────────────────────────────────────────────────────────
     case 'FREE_SHOOT_DRAIN': return '透支：射擊不消耗魔力（下回合魔力回復 −1）'
     case 'BLOOD_TITHE_ON_KILL': return '血什一稅：擊殺附魂敵方後帥回復 HP'
     case 'BLOOD_SACRIFICE': {
-      const hpCost = Number((ab as any).hpCost ?? 1)
-      const onActivate = (ab as any).onActivate as SoulAbility | undefined
-      const inner = onActivate ? `→ ${getAbilityLabel(onActivate)}` : ''
-      return `血祭（帥 −${hpCost} HP）${inner}`
+      const inner = `→ ${getAbilityLabel(ab.onActivate as SoulAbility)}`
+      return `血祭（帥 −${ab.hpCost} HP）${inner}`
     }
     case 'DEATH_COUNTER': return '最後一搏：死前對擊殺者反擊'
     case 'UNDERDOG_AURA': {
-      const scope = String((ab as any).scope ?? 'self')
-      const scopeLabel = scope === 'global' ? '全場' : '自身'
+      const scopeLabel = ab.scope === 'global' ? '全場' : '自身'
       return `逆境（${scopeLabel}）：己方劣勢時攻擊力提升`
     }
     case 'BLOOD_RAGE_AURA': {
-      const scope = String((ab as any).scope ?? 'self')
-      const scopeLabel = scope === 'global' ? '全場' : '自身'
+      const scopeLabel = ab.scope === 'global' ? '全場' : '自身'
       return `血憤（${scopeLabel}）：帥 HP 低時攻擊力提升`
     }
     // ── 金傭氏族 ──────────────────────────────────────────────────────────
-    case 'KILL_GOLD_GAIN': return `血金掠奪：擊殺敵方獲得 ${(ab as any).amount ?? '?'} 財力`
-    case 'GOLD_FOR_DAMAGE': return `以財傷敵：可消耗 ${(ab as any).goldCost ?? '?'} 財力，傷害 +${(ab as any).damageBonus ?? '?'}`
-    case 'ITEM_VALUE_ATK_BONUS': return `高價震懾：道具總費用 ≥ ${(ab as any).threshold ?? '?'} 時攻擊力 +${(ab as any).atkBonus ?? '?'}`
+    case 'KILL_GOLD_GAIN': return `血金掠奪：擊殺敵方獲得 ${ab.amount} 財力`
+    case 'GOLD_FOR_DAMAGE': return `以財傷敵：可消耗 ${ab.goldCost} 財力，傷害 +${ab.damageBonus}`
+    case 'ITEM_VALUE_ATK_BONUS': return `高價震懾：道具總費用 ≥ ${ab.threshold} 時攻擊力 +${ab.atkBonus}`
     case 'GOLD_THRESHOLD_ATK': {
-      const threshold = (ab as any).threshold ?? '?'
-      const atkBonus = (ab as any).atkBonus
-      const defBonus = (ab as any).defBonus as { phys?: number; magic?: number } | undefined
-      const scope = String((ab as any).scope ?? 'self')
-      const scopeLabel = scope === 'global' ? '全體' : '自身'
-      if (atkBonus != null) return `財力共鳴：持有 ≥ ${threshold} 財力，${scopeLabel}攻擊力 +${atkBonus}`
-      if (defBonus) return `財力護甲：持有 ≥ ${threshold} 財力，${scopeLabel}防禦 +${defBonus.phys ?? 0}/+${defBonus.magic ?? 0}`
-      return `財力門檻（≥ ${threshold}）：效果生效`
+      const scopeLabel = (ab.scope ?? 'self') === 'global' ? '全體' : '自身'
+      if (ab.atkBonus != null) return `財力共鳴：持有 ≥ ${ab.threshold} 財力，${scopeLabel}攻擊力 +${ab.atkBonus}`
+      if (ab.defBonus) return `財力護甲：持有 ≥ ${ab.threshold} 財力，${scopeLabel}防禦 +${ab.defBonus.phys ?? 0}/+${ab.defBonus.magic ?? 0}`
+      return `財力門檻（≥ ${ab.threshold}）：效果生效`
     }
     case 'ITEM_COUNT_ATK_BONUS': return '道具備戰：攻擊力 +（手牌道具數）'
-    case 'INCOME_BONUS': return `財源廣進：每回合財力收入 +${(ab as any).amount ?? '?'}`
+    case 'INCOME_BONUS': return `財源廣進：每回合財力收入 +${ab.amount}`
     default: return String(ab.type)
   }
 }
 
 function condLabel(ab: SoulAbility): string {
-  const when = (ab as any).when
+  const when = getAbWhen(ab)
   if (!when) return ''
   if (when.type === 'SOLDIERS_GTE') return `（卒 ≥ ${when.count}）`
   if (when.type === 'CORPSES_GTE') return `（屍骸 ≥ ${when.count}）`
@@ -233,7 +213,7 @@ function condLabel(ab: SoulAbility): string {
 }
 
 function whenStatus(state: GameState, unit: Unit, ab: SoulAbility): { active: boolean; note: string } | null {
-  const when = (ab as any).when
+  const when = getAbWhen(ab)
   if (!when) return null
 
   if (when.type === 'SOLDIERS_GTE') {
@@ -275,8 +255,8 @@ function whenStatus(state: GameState, unit: Unit, ab: SoulAbility): { active: bo
   if (when.type === 'RESONANCE_ACTIVE') {
     const myCard = getSoulCard(unit.enchant?.soulId ?? '')
     const clan = String(myCard?.clan ?? '')
-    const res = (myCard?.abilities ?? []).find((x: any) => x.type === 'RESONANCE') as any
-    const need = Number(res?.need ?? 0)
+    const res = findAbility(myCard?.abilities ?? [], 'RESONANCE')
+    const need = res?.need ?? 0
     const resClan = String(res?.clan ?? clan)
     const ok = isResonanceActive(state, unit.side, resClan, need)
     const count = resClan
@@ -302,14 +282,14 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
 
   // GOLD_THRESHOLD_ATK: active if gold >= threshold
   if (ab.type === 'GOLD_THRESHOLD_ATK') {
-    const threshold = Number((ab as any).threshold ?? 0)
+    const threshold = ab.threshold
     if (gold >= threshold) return { active: true, note: `財力 ${gold}/${threshold}` }
     return { active: false, note: `財力 ${gold}/${threshold}` }
   }
 
   // UNDERDOG_AURA: active if enemy has more living units
   if (ab.type === 'UNDERDOG_AURA') {
-    const stages = ((ab as any).stages ?? []) as { margin?: number; atkBonus: number }[]
+    const stages = ab.stages
     const myCount = Object.values(state.units).filter(u => u.side === side).length
     const enemyCount = Object.values(state.units).filter(u => u.side !== side).length
     const margin = enemyCount - myCount
@@ -321,7 +301,7 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
 
   // BLOOD_RAGE_AURA: active if king HP <= threshold
   if (ab.type === 'BLOOD_RAGE_AURA') {
-    const stages = ((ab as any).stages ?? []) as { threshold: number; atkBonus: number }[]
+    const stages = ab.stages
     const king = Object.values(state.units).find(u => u.side === side && u.base === 'king')
     const kingHp = king?.hpCurrent ?? 999
     const hit = [...stages].sort((a, b) => a.threshold - b.threshold).find(s => kingHp <= s.threshold)
@@ -332,7 +312,7 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
 
   // RESONANCE: active if same-clan units >= need
   if (ab.type === 'RESONANCE') {
-    const need = Number((ab as any).need ?? 3)
+    const need = ab.need
     const myCard = getSoulCard(unit.enchant?.soulId ?? '')
     const clan = myCard?.clan
     const count = clan
@@ -344,7 +324,7 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
 
   // Tiered abilities: active if at least one tier met
   if (ab.type === 'SOLDIERS_TIERED_DAMAGE_BONUS' || ab.type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS' || ab.type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
-    const tiers = ((ab as any).tiers ?? []) as { count: number; amount: number }[]
+    const tiers = ab.tiers
     const hit = highestTier(tiers, soldiers)
     if (hit) return { active: true, note: `+${hit.amount}（卒：${soldiers}）` }
     const minTier = [...tiers].sort((a, b) => a.count - b.count)[0]
@@ -362,7 +342,7 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
   if (ws) return ws
 
   // Check `when` condition
-  const when = (ab as any).when
+  const when = getAbWhen(ab)
   if (when) {
     if (when.type === 'SOLDIERS_GTE') {
       const need = Number(when.count ?? 0)
@@ -377,7 +357,7 @@ function getAbilityStatus(ab: SoulAbility, state: GameState, unit: Unit): { acti
   }
 
   // perTurn usage check
-  const perTurn = Number((ab as any).perTurn ?? 0)
+  const perTurn = getAbPerTurn(ab)
   if (perTurn > 0) {
     const key = `${unit.id}:${ab.type}`
     const used = state.turnFlags.abilityUsed?.[key] ?? 0

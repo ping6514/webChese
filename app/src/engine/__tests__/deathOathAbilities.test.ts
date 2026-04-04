@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest'
 import { createInitialState, type GameState, soulCardsById } from '..'
+import type { SoulAbility } from '../abilityTypes'
+import type { DamageDealtEvent } from '../events'
 import { buildShotPlan, executeShotPlan } from '../shotPlan'
 import { getDefPanelBreakdownInState } from '../stats'
 
@@ -22,9 +24,9 @@ describe('death oath abilities', () => {
 
     const oldAbilities = card.abilities
     try {
-      card.abilities = [{ type: 'HEAL_SELF_AND_KING_ON_KILL', selfAmount: 2, kingAmount: 2 } as any]
+      card.abilities = [{ type: 'HEAL_SELF_AND_KING_ON_KILL', selfAmount: 2, kingAmount: 2 } as SoulAbility]
 
-      const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 6 } as any })
+      const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 6 } })
       s.turn.phase = 'combat'
       s.turn.side = 'red'
 
@@ -54,7 +56,7 @@ describe('death oath abilities', () => {
 
       expect(res.state.units[redRookId]?.hpCurrent).toBe(10)
       expect(res.state.units[redKingId]?.hpCurrent).toBe(12)
-      expect(res.events.some((e: any) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'HEAL_SELF_AND_KING_ON_KILL')).toBe(true)
+      expect(res.events.some((e) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'HEAL_SELF_AND_KING_ON_KILL')).toBe(true)
     } finally {
       card.abilities = oldAbilities
     }
@@ -72,11 +74,11 @@ describe('death oath abilities', () => {
           targets: [{ type: 'SELF' }, { type: 'ALLY_BASE', base: 'king' }],
           damage: { dice: 6, atkKey: 'phys', atkValue: 0 },
           perTurn: 1,
-        } as any,
+        } as SoulAbility,
         {
           type: 'BELOW_MAX_HP_DEFENSE_BONUS',
           defBonus: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }],
-        } as any,
+        } as SoulAbility,
       ]
 
       const s = createInitialState()
@@ -84,9 +86,9 @@ describe('death oath abilities', () => {
       enchantUnit(s, advisorId, 'death_oath_advisor_moming')
       s.units[advisorId] = { ...s.units[advisorId]!, hpCurrent: 8 }
 
-      const full = getDefPanelBreakdownInState(s as any, advisorId)
+      const full = getDefPanelBreakdownInState(s as GameState, advisorId)
       s.units[advisorId] = { ...s.units[advisorId]!, hpCurrent: s.units[advisorId]!.hpCurrent - 1 }
-      const hurt = getDefPanelBreakdownInState(s as any, advisorId)
+      const hurt = getDefPanelBreakdownInState(s as GameState, advisorId)
 
       expect(hurt.phys.total - full.phys.total).toBe(2)
       expect(hurt.magic.total - full.magic.total).toBe(2)
@@ -102,13 +104,13 @@ describe('death oath abilities', () => {
     const oldAbilities = card.abilities
     try {
       card.abilities = [
-        { type: 'BLOOD_SACRIFICE', hpCost: 2, onActivate: { type: 'FREE_SHOOT', perTurn: 1 } } as any,
+        { type: 'BLOOD_SACRIFICE', hpCost: 2, onActivate: { type: 'FREE_SHOOT', perTurn: 1 } } as SoulAbility,
         {
           type: 'UNIT_COUNT_ADVANTAGE_AURA',
           scope: 'global',
           margin: 2,
           defBonus: [{ key: 'phys', value: 2 }, { key: 'magic', value: 2 }],
-        } as any,
+        } as SoulAbility,
       ]
 
       const s = createInitialState()
@@ -116,14 +118,14 @@ describe('death oath abilities', () => {
       const rookId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'rook')!.id
 
       enchantUnit(s, elephantId, 'death_oath_elephant_fenhun')
-      const before = getDefPanelBreakdownInState(s as any, rookId)
+      const before = getDefPanelBreakdownInState(s as GameState, rookId)
 
       const blackSoldierId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'soldier')!.id
       const blackAdvisorId = Object.values(s.units).find((u) => u.side === 'black' && u.base === 'advisor')!.id
       delete s.units[blackSoldierId]
       delete s.units[blackAdvisorId]
 
-      const after = getDefPanelBreakdownInState(s as any, rookId)
+      const after = getDefPanelBreakdownInState(s as GameState, rookId)
       expect(after.phys.total - before.phys.total).toBe(2)
       expect(after.magic.total - before.magic.total).toBe(2)
     } finally {
@@ -132,7 +134,7 @@ describe('death oath abilities', () => {
   })
 
   test('UNIT_COUNT_UNDERDOG_AURA grants allied attack when behind by margin', () => {
-    const base = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const base = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     base.turn.phase = 'combat'
     base.turn.side = 'red'
 
@@ -172,8 +174,8 @@ describe('death oath abilities', () => {
     expect(res1.ok).toBe(true)
     if (!res1.ok) return
 
-    const dmg0 = res0.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackSoldierId) as any
-    const dmg1 = res1.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackSoldierId) as any
+    const dmg0 = res0.events.find((e): e is DamageDealtEvent => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackSoldierId)
+    const dmg1 = res1.events.find((e): e is DamageDealtEvent => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackSoldierId)
     expect((dmg1?.amount ?? 0) - (dmg0?.amount ?? 0)).toBe(2)
   })
 
@@ -181,7 +183,7 @@ describe('death oath abilities', () => {
     // P1 (red) 的士附魔鐵誓（有 PALACE_GUARD）
     // P1 的車攻打 P2 (black) 的帥
     // 期望：PALACE_GUARD 不應觸發，黑方帥不應減傷
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -203,7 +205,7 @@ describe('death oath abilities', () => {
     // 不附魔版本（基準傷害）
     const sWithout = JSON.parse(JSON.stringify(s)) as GameState
     const advisorWithout = sWithout.units[redAdvisorId]
-    if (advisorWithout) delete (advisorWithout as any).enchant
+    if (advisorWithout) delete advisorWithout.enchant
 
     const plan0 = buildShotPlan(sWithout, redRookId, blackKingId)
     expect(plan0.ok).toBe(true)
@@ -211,7 +213,7 @@ describe('death oath abilities', () => {
     const res0 = executeShotPlan(sWithout, plan0.plan)
     expect(res0.ok).toBe(true)
     if (!res0.ok) return
-    const dmg0 = res0.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId) as any
+    const dmg0 = res0.events.find((e): e is DamageDealtEvent => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId)
 
     // 附魔版本
     const plan1 = buildShotPlan(s, redRookId, blackKingId)
@@ -220,13 +222,13 @@ describe('death oath abilities', () => {
     const res1 = executeShotPlan(s, plan1.plan)
     expect(res1.ok).toBe(true)
     if (!res1.ok) return
-    const dmg1 = res1.events.find((e: any) => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId) as any
+    const dmg1 = res1.events.find((e): e is DamageDealtEvent => e.type === 'DAMAGE_DEALT' && e.targetUnitId === blackKingId)
 
     // PALACE_GUARD 不應保護黑帥 → 傷害應相同
     expect(dmg0?.amount).toBe(dmg1?.amount)
 
     // 確認 PALACE_GUARD 事件沒有被觸發在這次攻擊中
-    const guardTriggered = res1.events.some((e: any) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'PALACE_GUARD')
+    const guardTriggered = res1.events.some((e) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'PALACE_GUARD')
     expect(guardTriggered).toBe(false)
   })
 })

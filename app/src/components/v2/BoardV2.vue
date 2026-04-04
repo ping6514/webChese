@@ -125,13 +125,13 @@ const shootDetailsOpen = ref(false)
 const shootConfirmTitle = computed(() => {
   const g = shootPreviewGuard.value
   if (g.ok) return ''
-  return String((g as any).reason ?? '')
+  return g.reason
 })
 
 const shootManaCost = computed<number | null>(() => {
   const info = shootPreviewInfo.value
   if (!info?.ok) return null
-  const cost = Number((info as any).cost ?? NaN)
+  const cost = Number(info.cost ?? NaN)
   return Number.isFinite(cost) ? cost : state.value.rules.shootManaCost
 })
 
@@ -143,8 +143,7 @@ const shootPreviewPierceMarks = computed<Record<string, number>>(() => {
   const unitIds: string[] = []
   for (const e of (info.effects ?? []) as ShotPreviewEffect[]) {
     if (e.kind !== 'PIERCE') continue
-    const ids = Array.isArray((e as any).targetUnitIds) ? ((e as any).targetUnitIds as string[]) : []
-    for (const id of ids) unitIds.push(id)
+    for (const id of e.targetUnitIds) unitIds.push(id)
   }
 
   const marks: Record<string, number> = {}
@@ -367,6 +366,13 @@ const sacrificeOverlayVisible = computed(() =>
   ui.interactionMode.kind === 'idle'
 )
 
+const sacrificeBuffPending = computed(() =>
+  state.value.turn.phase === 'combat' &&
+  !!selectedUnit.value &&
+  selectedUnit.value.side === state.value.turn.side &&
+  !!state.value.status.sacrificeBuffByUnitId?.[selectedUnit.value.id]
+)
+
 // ── Corpse targetable positions ───────────────────────────────────────────────
 const corpseTargetablePosKeys = computed(() => {
   if (ui.interactionMode.kind !== 'use_item_target_corpse') return []
@@ -389,16 +395,15 @@ const shootChainEligibleEnemyIds = computed(() => {
   const card = getSoulCard(soulId)
   if (!card) return []
   const chain = card.abilities.find((a) => a.type === 'CHAIN')
-  const radius0 = Number((chain as any)?.radius ?? 0)
+  const radius0 = chain?.type === 'CHAIN' ? chain.radius : 0
   const sb = state.value.status.sacrificeBuffByUnitId?.[attacker.id] ?? null
-  const sbRadius = Number.isFinite(sb?.chainRadius as any) && Number((sb as any).chainRadius) > 0
-    ? Number((sb as any).chainRadius) : 0
+  const sbRadius = (sb?.chainRadius != null && sb.chainRadius > 0) ? sb.chainRadius : 0
   // Also check BLOOD_SACRIFICE → CHAIN when sacrifice toggle is active
   let bsRadius = 0
   if (shootSacrificeHp.value) {
     const bsAb = card.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
-    if (bsAb && (bsAb as any).onActivate?.type === 'CHAIN') {
-      bsRadius = Number((bsAb as any).onActivate?.radius ?? 0)
+    if (bsAb?.type === 'BLOOD_SACRIFICE' && bsAb.onActivate.type === 'CHAIN') {
+      bsRadius = bsAb.onActivate.radius
     }
   }
   const radius = Math.max(radius0, sbRadius, bsRadius)
@@ -436,13 +441,19 @@ function showSacrificeConfirmPanel(action: { type: 'SACRIFICE'; sourceUnitId: st
   const tgtUnit = state.value.units[action.targetUnitId]
   const srcName = srcUnit?.enchant?.soulId ? (getSoulCard(srcUnit.enchant.soulId)?.name ?? srcUnit.base) : (srcUnit?.base ?? action.sourceUnitId)
   const tgtName = tgtUnit?.enchant?.soulId ? (getSoulCard(tgtUnit.enchant.soulId)?.name ?? tgtUnit.base) : (tgtUnit?.base ?? action.targetUnitId)
-  const targetScreenPos = tgtUnit ? pixiBoardRef.value?.getCellScreenPos(tgtUnit.pos.x, tgtUnit.pos.y) : undefined
+  const isSelf = action.sourceUnitId === action.targetUnitId
+  const posUnit = isSelf ? srcUnit : tgtUnit
+  const targetScreenPos = posUnit ? pixiBoardRef.value?.getCellScreenPos(posUnit.pos.x, posUnit.pos.y) : undefined
   pixiBoardRef.value?.showAttackConfirm({
     title: '確認獻祭',
-    summary: `${srcName} 獻祭 → ${tgtName}`,
+    summary: isSelf ? `${srcName} 獻祭自身：帥進入無敵` : `${srcName} 獻祭 → ${tgtName}`,
     confirmLabel: '確認獻祭',
     targetScreenPos,
-    onConfirm: () => { ctx.dispatch(action) },
+    onConfirm: () => {
+      ctx.dispatch(action)
+      // For buff-shot sacrifice, auto-select source so shoot overlay appears immediately
+      if (!isSelf) ui.setSelectedUnitId(action.sourceUnitId)
+    },
     onCancel: () => {},
   })
 }
@@ -466,6 +477,14 @@ const { boneRefineChoicePos, onUseItem, onCellClick, boneRefineChoose, cancelBon
 
 function startSacrificeMode(sourceUnitId: string, range?: number) {
   if (state.value.turn.phase !== 'combat') return
+  const unit = state.value.units[sourceUnitId]
+  const card = unit?.enchant?.soulId ? getSoulCard(unit.enchant.soulId) : null
+  const isSelfSacrifice = card?.abilities.some((a) => a.type === 'SACRIFICE_SELF_APPLY_STATUS') ?? false
+  if (isSelfSacrifice) {
+    // Target is always self — skip target selection and go straight to confirm
+    showSacrificeConfirmPanel({ type: 'SACRIFICE', sourceUnitId, targetUnitId: sourceUnitId, range: range ?? 1 })
+    return
+  }
   ui.startSacrificeSelectTarget(sourceUnitId, range)
 }
 watch(boneRefineChoicePos, (v) => { if (v) boneRefineResetDrag() })
@@ -620,6 +639,10 @@ defineExpose({ onUseItem })
     <div v-else-if="sacrificeMode" class="actionBar">
       <span>獻祭（範圍 {{ sacrificeRange }}）選擇目標</span>
       <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
+    </div>
+    <div v-else-if="sacrificeBuffPending" class="actionBar actionBarSacrifice">
+      <span>獻祭完成！選擇射擊目標使用增強效果</span>
+      <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
     </div>
     <div v-else-if="ui.interactionMode.kind === 'use_item_target_unit'" class="actionBar">
       <span>道具：選擇目標單位 — {{ getItemCard(ui.interactionMode.itemId)?.name ?? '' }}</span>
@@ -868,6 +891,7 @@ defineExpose({ onUseItem })
   cursor: pointer;
 }
 .actionBar button:hover { background: rgba(255, 255, 255, 0.12); }
+.actionBarSacrifice { background: rgba(60, 20, 20, 0.92); border-bottom-color: rgba(220, 80, 80, 0.3); }
 
 /* ── Scale bar ── */
 .boardScaleBar {

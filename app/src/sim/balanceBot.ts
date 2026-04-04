@@ -1,4 +1,4 @@
-import type { Action, GameState, Side } from '../engine'
+import type { Action, GameState, Side, Unit, PieceBase, UseItemFromHandAction } from '../engine'
 import { countCorpses } from '../engine/corpses'
 import { canSacrifice } from '../engine/guards'
 import {
@@ -15,6 +15,8 @@ import {
   getSoulCard,
   BASE_STATS,
 } from '../engine'
+import type { SoulAbility } from '../engine/abilityTypes'
+import { findAbility } from '../engine/abilityTypes'
 import { getMergedWeights } from './botWeights'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -83,17 +85,17 @@ function tryUseItem(
   extra: Record<string, unknown> = {},
 ): { ok: boolean; state: GameState } {
   if (!canUseItemFromHand(state, itemId).ok) return { ok: false, state }
-  const r = reduce(state, { type: 'USE_ITEM_FROM_HAND', itemId, ...extra } as any)
+  const r = reduce(state, { type: 'USE_ITEM_FROM_HAND', itemId, ...extra } as UseItemFromHandAction)
   if (!r.ok) return { ok: false, state }
   return { ok: true, state: r.state }
 }
 
 /** King HP ratio for checking damage */
 function kingHpRatio(state: GameState, side: Side): number {
-  const king = Object.values(state.units).find((u) => u.side === side && u.base === 'king') as any
+  const king = Object.values(state.units).find((u) => u.side === side && u.base === 'king')
   if (!king) return 1
-  const maxHp = king.enchant ? (getSoulCard(king.enchant.soulId as string)?.stats?.hp ?? BASE_STATS.king.hp) : BASE_STATS.king.hp
-  return (king.hpCurrent as number) / maxHp
+  const maxHp = king.enchant ? (getSoulCard(king.enchant.soulId)?.stats?.hp ?? BASE_STATS.king.hp) : BASE_STATS.king.hp
+  return king.hpCurrent / maxHp
 }
 
 // ─── Scoring helpers (higher score = better choice) ──────────────────────────
@@ -101,7 +103,7 @@ function kingHpRatio(state: GameState, side: Side): number {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type W = any  // getMergedWeights() returns any; named alias for clarity
 
-function scoreShootTarget(W: W, target: any, myCorpses: number): number {
+function scoreShootTarget(W: W, target: Unit, myCorpses: number): number {
   const sw = W.shootScoring
   let score = 0
   if (target.base === 'king')
@@ -109,30 +111,32 @@ function scoreShootTarget(W: W, target: any, myCorpses: number): number {
   if (target.base === 'rook' || target.base === 'cannon' || target.base === 'knight')
     score += Math.abs(sw.targetIsHighValueBase)        // 8000
   const tgtPriority: number = target.enchant?.soulId
-    ? (W.buyPriority[target.enchant.soulId as string] ?? 0)
+    ? (W.buyPriority[target.enchant.soulId] ?? 0)
     : 0
   if (tgtPriority > 50)
     score += Math.abs(sw.targetHasHighPrioritySoul)    // 5000
   // Lower HP → easier kill → more score
-  score += (100 - ((target.hpCurrent as number) ?? 100)) * Math.abs(sw.targetHpPerPoint) / 10
+  score += (100 - target.hpCurrent) * Math.abs(sw.targetHpPerPoint) / 10
   // More my corpses → more score (corpse-synergy payoff)
   score += Math.floor(myCorpses / 10) * Math.abs(sw.myCorpsesBonusPer10)
   return score
 }
 
-function scoreMoveTarget(W: W, to: { x: number; y: number }, enemies: any[]): number {
+function scoreMoveTarget(W: W, to: { x: number; y: number }, enemies: Unit[]): number {
   const mw = W.moveScoring
-  let enemyKing: any = null
+  let enemyKing: Unit | undefined
   for (let i = 0; i < enemies.length; i++) {
-    if ((enemies[i] as any).base === 'king') { enemyKing = enemies[i]; break }
+    const u = enemies[i]
+    if (u?.base === 'king') { enemyKing = u; break }
   }
   const distToKing = enemyKing
-    ? Math.abs((enemyKing.pos.x as number) - to.x) + Math.abs((enemyKing.pos.y as number) - to.y)
+    ? Math.abs(enemyKing.pos.x - to.x) + Math.abs(enemyKing.pos.y - to.y)
     : 20
   let distToNearest = 20
   for (let i = 0; i < enemies.length; i++) {
-    const e = enemies[i] as any
-    const d = Math.abs((e.pos.x as number) - to.x) + Math.abs((e.pos.y as number) - to.y)
+    const e = enemies[i]
+    if (!e) continue
+    const d = Math.abs(e.pos.x - to.x) + Math.abs(e.pos.y - to.y)
     if (d < distToNearest) distToNearest = d
   }
   // Negate distances: closer → higher score
@@ -163,12 +167,11 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
   switch (state.turn.phase) {
     case 'buy': {
       // Score display cards by buyPriority weight, use Object.keys for ES5 compat
-      type DisplayCandidate = { base: string; soulId: string; score: number }
+      type DisplayCandidate = { base: PieceBase; soulId: string; score: number }
       const displayCandidates: DisplayCandidate[] = []
-      const displayByBase = state.displayByBase as Record<string, string>
-      for (const base of Object.keys(displayByBase)) {
-        const soulId = displayByBase[base]
-        if (soulId && canBuySoulFromDisplay(state, base as any).ok) {
+      for (const base of Object.keys(state.displayByBase) as PieceBase[]) {
+        const soulId = state.displayByBase[base]
+        if (soulId && canBuySoulFromDisplay(state, base).ok) {
           const score: number = (W.buyPriority[soulId] ?? W.buyPriority['default'] ?? 10) as number
           displayCandidates.push({ base, soulId, score })
         }
@@ -177,7 +180,7 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       let bought = false
       const chosen = pickEpsilonGreedy(displayCandidates, c => c.score, rng, epsilon)
       if (chosen) {
-        actions.push({ type: 'BUY_SOUL_FROM_DISPLAY', base: chosen.base as any })
+        actions.push({ type: 'BUY_SOUL_FROM_DISPLAY', base: chosen.base })
         boughtSoulIds.push(chosen.soulId)
         soulBuyGoldSpent += state.rules.buySoulFromDisplayGoldCost
         bought = true
@@ -211,29 +214,29 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         if (itemId === 'item_lingxue_holy_grail') {
           // Heal king if HP below 70%
           if (kingHpRatio(state, side) < 0.7) {
-            const king = Object.values(state.units).find((u: any) => u.side === side && u.base === 'king') as any
+            const king = Object.values(state.units).find((u) => u.side === side && u.base === 'king')
             if (king && canUseItemFromHand(state, itemId).ok)
-              actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: king.id as string } as any)
+              actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: king.id })
           }
         } else if (itemId === 'item_bone_refine') {
           // Convert own corpse to gold
           const myCorpseKey = Object.keys(state.corpsesByPos).find(k => {
-            const stack = (state.corpsesByPos as Record<string, any[]>)[k]
-            return stack?.some((c: any) => c.ownerSide === side)
+            const stack = state.corpsesByPos[k]
+            return stack?.some((c) => c.ownerSide === side)
           })
           if (myCorpseKey && canUseItemFromHand(state, itemId).ok) {
             const parts = myCorpseKey.split(',')
             const targetPos = { x: Number(parts[0]), y: Number(parts[1]) }
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetPos, choice: 'gold' } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetPos, choice: 'gold' })
           }
         } else if (itemId === 'item_dark_moon_scope' || itemId === 'item_wizard_greed') {
           // Refresh display (always useful)
           if (canUseItemFromHand(state, itemId).ok)
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId })
         } else if (itemId === 'item_cage_plunder') {
           // Steal enemy soul 40% of the time
           if (rng() < 0.4 && canUseItemFromHand(state, itemId).ok)
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId })
         }
       }
 
@@ -242,40 +245,39 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
     }
 
     case 'necro': {
-      const units = state.units as Record<string, any>
-      const myUnits: any[] = Object.keys(units).map(id => units[id]).filter((u: any) => u.side === side)
+      const myUnits: Unit[] = Object.values(state.units).filter((u) => u.side === side)
       const necroItemHand = (state.hands[side].items ?? []) as string[]
 
       // Item: soul_detach_needle — strip most valuable enemy enchant
       for (const itemId of necroItemHand) {
         if (itemId === 'item_soul_detach_needle' && canUseItemFromHand(state, itemId).ok) {
-          const enemyEnchanted = Object.values(state.units).filter((u: any) => u.side !== side && u.enchant) as any[]
+          const enemyEnchanted = Object.values(state.units).filter((u) => u.side !== side && u.enchant)
           if (enemyEnchanted.length > 0) {
-            const target = enemyEnchanted.reduce((best: any, u: any) => {
+            const target = enemyEnchanted.reduce((best: Unit, u: Unit) => {
               const sa = (W.buyPriority[u.enchant?.soulId ?? ''] ?? 0) as number
               const sb = (W.buyPriority[best.enchant?.soulId ?? ''] ?? 0) as number
               return sa > sb ? u : best
             })
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: target.id as string } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: target.id })
           }
           break
         }
       }
 
       // Sacrifice logic (eternal_night synergy)
-      const hasEternalNight = myUnits.some((u: any) => getSoulCard((u.enchant?.soulId as string) ?? '')?.clan === 'eternal_night')
+      const hasEternalNight = myUnits.some((u) => getSoulCard(u.enchant?.soulId ?? '')?.clan === 'eternal_night')
       if (hasEternalNight) {
         type SacrificePair = { sourceUnitId: string; targetUnitId: string }
         const sacrificePairs: SacrificePair[] = []
         for (const src of myUnits) {
-          const srcCard = getSoulCard((src.enchant?.soulId as string) ?? '')
+          const srcCard = getSoulCard(src.enchant?.soulId ?? '')
           if (
             srcCard?.clan === 'eternal_night'
-            && srcCard.abilities.some((a: any) => a.type === 'SACRIFICE_SHOT_BUFF' || a.type === 'SACRIFICE_SELF_APPLY_STATUS')
+            && srcCard.abilities.some((a: SoulAbility) => a.type === 'SACRIFICE_SHOT_BUFF' || a.type === 'SACRIFICE_SELF_APPLY_STATUS')
           ) {
             for (const tgt of myUnits) {
-              if (canSacrifice(state, src.id as string, tgt.id as string).ok)
-                sacrificePairs.push({ sourceUnitId: src.id as string, targetUnitId: tgt.id as string })
+              if (canSacrifice(state, src.id, tgt.id).ok)
+                sacrificePairs.push({ sourceUnitId: src.id, targetUnitId: tgt.id })
             }
           }
         }
@@ -286,7 +288,7 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       // Item: soul_infusion — extra necro action + enchant gold discount
       for (const itemId of necroItemHand) {
         if (itemId === 'item_soul_infusion' && state.hands[side].souls.length > 0 && canUseItemFromHand(state, itemId).ok) {
-          actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any)
+          actions.push({ type: 'USE_ITEM_FROM_HAND', itemId })
           break
         }
       }
@@ -298,9 +300,9 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       for (const unit of myUnits) {
         if (unit.enchant) continue
         for (const soulId of soulHand) {
-          if (canEnchant(state, unit.id as string, soulId).ok) {
+          if (canEnchant(state, unit.id, soulId).ok) {
             const score: number = (W.buyPriority[soulId] ?? W.buyPriority['default'] ?? 10) as number
-            enchantCandidates.push({ unitId: unit.id as string, soulId, score })
+            enchantCandidates.push({ unitId: unit.id, soulId, score })
           }
         }
       }
@@ -312,16 +314,16 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         enchantGoldSpent += getSoulCard(p.soulId)?.costGold ?? 0
       } else {
         // Fallback: prefer soldier corpses if any ally has a tiered aura (iron_guard synergy)
-        const hasTieredAura = myUnits.some((u: any) => {
-          const card = getSoulCard((u.enchant?.soulId as string) ?? '')
-          return card?.abilities.some((a: any) =>
+        const hasTieredAura = myUnits.some((u) => {
+          const card = getSoulCard(u.enchant?.soulId ?? '')
+          return card?.abilities.some((a: SoulAbility) =>
             a.type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS' || a.type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA'
           )
         })
         const corpseKeys = Object.keys(state.corpsesByPos)
         const soldierCorpseKeys = hasTieredAura
           ? corpseKeys.filter(k => {
-              const stack = (state.corpsesByPos as Record<string, any[]>)[k]
+              const stack = state.corpsesByPos[k]
               const top = stack?.[stack.length - 1]
               return top?.base === 'soldier' && top?.ownerSide === side
             })
@@ -340,20 +342,19 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
 
       // LOGISTICS_REVIVE: 召侍允許免費額外復活卒，不消耗死靈術次數
       // 若己方有可用的 LOGISTICS_REVIVE，嘗試再復活一個卒
-      const lrUnit = myUnits.find((u: any) => {
-        const card = getSoulCard((u.enchant?.soulId as string) ?? '')
+      const lrUnit = myUnits.find((u) => {
+        const card = getSoulCard(u.enchant?.soulId ?? '')
         if (!card) return false
-        return card.abilities.some((a: any) => {
-          if (a.type !== 'LOGISTICS_REVIVE') return false
-          const perTurn = Number(a.perTurn ?? 1)
-          const used = (state.turnFlags.abilityUsed as Record<string, number>)?.[`${u.id as string}:LOGISTICS_REVIVE`] ?? 0
-          return used < perTurn
-        })
+        const lrAb = findAbility(card.abilities, 'LOGISTICS_REVIVE')
+        if (!lrAb) return false
+        const perTurn = Number(lrAb.perTurn ?? 1)
+        const used = state.turnFlags.abilityUsed[`${u.id}:LOGISTICS_REVIVE`] ?? 0
+        return used < perTurn
       })
       if (lrUnit) {
         // Find a soldier corpse owned by this side
         const soldierKey = Object.keys(state.corpsesByPos).find(k => {
-          const stack = (state.corpsesByPos as Record<string, any[]>)[k]
+          const stack = state.corpsesByPos[k]
           const top = stack?.[stack.length - 1]
           return top?.base === 'soldier' && top?.ownerSide === side
         })
@@ -372,7 +373,7 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       for (const itemId of necroItemHand) {
         if (itemId === 'item_last_stand_contract' && canUseItemFromHand(state, itemId).ok) {
           if (countCorpses(state, side) > 0)
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId })
           break
         }
       }
@@ -380,9 +381,9 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       // Item: dead_return_path — protect enchanted king if HP critically low
       for (const itemId of necroItemHand) {
         if (itemId === 'item_dead_return_path' && kingHpRatio(state, side) < 0.35 && canUseItemFromHand(state, itemId).ok) {
-          const kingUnit = Object.values(state.units).find((u: any) => u.side === side && u.base === 'king' && u.enchant) as any
+          const kingUnit = Object.values(state.units).find((u) => u.side === side && u.base === 'king' && u.enchant)
           if (kingUnit)
-            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: kingUnit.id as string } as any)
+            actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: kingUnit.id })
           break
         }
       }
@@ -400,22 +401,22 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         if (itemId === 'item_soul_overload' && canUseItemFromHand(tmp, itemId).ok) {
           // Free shoot bonus — always useful in combat
           const r = tryUseItem(tmp, itemId)
-          if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any); tmp = r.state }
+          if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId }); tmp = r.state }
         } else if (itemId === 'item_death_chain' && canUseItemFromHand(tmp, itemId).ok) {
           // Mana on kills — useful in aggressive turns
           const r = tryUseItem(tmp, itemId)
-          if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId } as any); tmp = r.state }
+          if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId }); tmp = r.state }
         } else if (itemId === 'item_nether_seal' && canUseItemFromHand(tmp, itemId).ok) {
           // Lock down most dangerous enemy unit
-          const enemies = Object.values(tmp.units).filter((u: any) => u.side !== side) as any[]
+          const enemies = Object.values(tmp.units).filter((u) => u.side !== side)
           if (enemies.length > 0) {
-            const target = enemies.reduce((best: any, u: any) => {
+            const target = enemies.reduce((best: Unit, u: Unit) => {
               const sa = u.base === 'king' ? 10000 : ((W.buyPriority[u.enchant?.soulId ?? ''] ?? 0) as number)
               const sb = best.base === 'king' ? 10000 : ((W.buyPriority[best.enchant?.soulId ?? ''] ?? 0) as number)
               return sa > sb ? u : best
             })
-            const r = tryUseItem(tmp, itemId, { targetUnitId: target.id as string })
-            if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: target.id as string } as any); tmp = r.state }
+            const r = tryUseItem(tmp, itemId, { targetUnitId: target.id })
+            if (r.ok) { actions.push({ type: 'USE_ITEM_FROM_HAND', itemId, targetUnitId: target.id }); tmp = r.state }
           }
         }
       }
@@ -423,11 +424,8 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
       const maxActions = 5
 
       for (let i = 0; i < maxActions; i++) {
-        const allUnits = state.units as Record<string, any>
-        const tmpUnits = tmp.units as Record<string, any>
-        const myUnits: any[] = Object.keys(tmpUnits).map(id => tmpUnits[id]).filter((u: any) => u.side === side)
-        const enemies: any[] = Object.keys(tmpUnits).map(id => tmpUnits[id]).filter((u: any) => u.side !== side)
-        void allUnits  // suppress unused warning
+        const myUnits: Unit[] = Object.values(tmp.units).filter((u) => u.side === side)
+        const enemies: Unit[] = Object.values(tmp.units).filter((u) => u.side !== side)
         if (enemies.length === 0) break
 
         const myCorpses = countCorpses(tmp, side)
@@ -437,24 +435,24 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
         const shootCandidates: Candidate[] = []
         for (const a of myUnits) {
           for (const t of enemies) {
-            if (canShootAction(tmp, a.id as string, t.id as string, null).ok) {
+            if (canShootAction(tmp, a.id, t.id, null).ok) {
               const baseScore = scoreShootTarget(W, t, myCorpses)
               shootCandidates.push({
-                action: { type: 'SHOOT', attackerId: a.id as string, targetUnitId: t.id as string },
+                action: { type: 'SHOOT', attackerId: a.id, targetUnitId: t.id },
                 score: baseScore,
               })
               // GOLD_FOR_DAMAGE: if attacker has this ability and we have enough gold, also consider spending gold
-              const aSoulId = (a.enchant?.soulId as string) ?? ''
+              const aSoulId = a.enchant?.soulId ?? ''
               if (aSoulId) {
                 const aCard = getSoulCard(aSoulId)
-                const goldAb = aCard?.abilities.find((ab: any) => ab.type === 'GOLD_FOR_DAMAGE')
+                const goldAb = aCard ? findAbility(aCard.abilities, 'GOLD_FOR_DAMAGE') : null
                 if (goldAb) {
-                  const goldCost = Number((goldAb as any).goldCost ?? 0)
+                  const goldCost = Number(goldAb.goldCost ?? 0)
                   if ((tmp.resources[side].gold as number) >= goldCost) {
                     // Higher-value targets (king or enchanted) warrant spending gold
                     if ((t.base === 'king' || t.enchant) && rng() < 0.7) {
                       shootCandidates.push({
-                        action: { type: 'SHOOT', attackerId: a.id as string, targetUnitId: t.id as string, spendGoldForDamage: true } as Action,
+                        action: { type: 'SHOOT', attackerId: a.id, targetUnitId: t.id, spendGoldForDamage: true },
                         score: baseScore + 200,
                       })
                     }
@@ -471,15 +469,15 @@ export function decideActions(state: GameState, side: Side, ctx: BotContext): Bo
 
         // If no shoot, score move candidates
         if (!act) {
-          const movers = myUnits.filter((u: any) => getLegalMoves(tmp, u.id as string).length > 0)
+          const movers = myUnits.filter((u) => getLegalMoves(tmp, u.id).length > 0)
           const mover = pick(movers, rng)
           if (mover) {
             type MoveCandidate = { to: { x: number; y: number }; score: number }
-            const moveCandidates: MoveCandidate[] = getLegalMoves(tmp, mover.id as string)
-              .filter(to => canMove(tmp, mover.id as string, to).ok)
+            const moveCandidates: MoveCandidate[] = getLegalMoves(tmp, mover.id)
+              .filter(to => canMove(tmp, mover.id, to).ok)
               .map(to => ({ to, score: scoreMoveTarget(W, to, enemies) }))
             const bestMove = pickEpsilonGreedy(moveCandidates, c => c.score, rng, epsilon)
-            if (bestMove) act = { type: 'MOVE', unitId: mover.id as string, to: bestMove.to }
+            if (bestMove) act = { type: 'MOVE', unitId: mover.id, to: bestMove.to }
           }
         }
 

@@ -96,23 +96,20 @@ function executeItemAbilitiesA1(
   let nextState = state
   const events: Event[] = []
 
-  for (const ab of abs as any[]) {
-    const type = String(ab?.type ?? '')
-    if (!type) return { ok: false, error: '道具 abilities 缺少 type' }
-
-    if (type === 'HEAL_UNIT') {
-      const amount = Math.floor(Number(ab?.amount ?? 0))
+  for (const ab of abs) {
+    if (ab.type === 'HEAL_UNIT') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'HEAL_UNIT amount 無效' }
-      const targetRes = resolveTargetUnit(nextState, action, ab?.target)
+      const targetRes = resolveTargetUnit(nextState, action, ab.target)
       if (!targetRes.ok) {
-        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
+        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: ab.type, reason: targetRes.reason }
         if ('error' in targetRes) return { ok: false, error: targetRes.error }
         return { ok: false, error: '目標解析失敗' }
       }
       const unit = targetRes.unit
       const baseStats = BASE_STATS[unit.base]
       const hpMax = unit.enchant ? (getSoulCard(unit.enchant.soulId)?.stats.hp ?? baseStats.hp) : baseStats.hp
-      const capToMaxHp = ab?.capToMaxHp === true
+      const capToMaxHp = ab.capToMaxHp
       const from = unit.hpCurrent
       const to = capToMaxHp ? Math.min(hpMax, unit.hpCurrent + amount) : (unit.hpCurrent + amount)
       nextState = {
@@ -123,8 +120,8 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'GRANT_FREE_SHOOT') {
-      const amount = Math.floor(Number(ab?.amount ?? 0))
+    if (ab.type === 'GRANT_FREE_SHOOT') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'GRANT_FREE_SHOOT amount 無效' }
       nextState = {
         ...nextState,
@@ -138,10 +135,10 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'DETACH_SOUL') {
-      const targetRes = resolveTargetUnit(nextState, action, ab?.target)
+    if (ab.type === 'DETACH_SOUL') {
+      const targetRes = resolveTargetUnit(nextState, action, ab.target)
       if (!targetRes.ok) {
-        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
+        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: ab.type, reason: targetRes.reason }
         if ('error' in targetRes) return { ok: false, error: targetRes.error }
         return { ok: false, error: '目標解析失敗' }
       }
@@ -150,10 +147,10 @@ function executeItemAbilitiesA1(
 
       const strippedSoulId = target.enchant.soulId
       const baseStats = BASE_STATS[target.base]
-      const resetToBaseStats = ab?.resetUnit?.toBaseStats === true
-      const healToFull = ab?.resetUnit?.healToFull === true
+      const resetToBaseStats = ab.resetUnit.toBaseStats === true
+      const healToFull = ab.resetUnit.healToFull === true
       if (!(resetToBaseStats && healToFull)) {
-        return { ok: false, unsupported: true, abilityType: type, reason: 'resetUnit 目前僅支援 toBaseStats+healToFull' }
+        return { ok: false, unsupported: true, abilityType: ab.type, reason: 'resetUnit 目前僅支援 toBaseStats+healToFull' }
       }
 
       const strippedUnit = {
@@ -164,9 +161,9 @@ function executeItemAbilitiesA1(
         enchant: undefined,
       }
 
-      const returnToType = String(ab?.returnTo?.type ?? '')
+      const returnToType = ab.returnTo.type
       if (returnToType !== 'ALLY_CAGE' && returnToType !== 'ENEMY_CAGE') {
-        return { ok: false, unsupported: true, abilityType: type, reason: `returnTo.type 未支援: ${returnToType}` }
+        return { ok: false, unsupported: true, abilityType: ab.type, reason: `returnTo.type 未支援: ${returnToType}` }
       }
       const cageSide = returnToType === 'ALLY_CAGE' ? nextState.turn.side : target.side
 
@@ -185,10 +182,10 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'DISABLE_UNIT_ACTIONS') {
-      const targetRes = resolveTargetUnit(nextState, action, ab?.target)
+    if (ab.type === 'DISABLE_UNIT_ACTIONS') {
+      const targetRes = resolveTargetUnit(nextState, action, ab.target)
       if (!targetRes.ok) {
-        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: type, reason: targetRes.reason }
+        if ('unsupported' in targetRes) return { ok: false, unsupported: true, abilityType: ab.type, reason: targetRes.reason }
         if ('error' in targetRes) return { ok: false, error: targetRes.error }
         return { ok: false, error: '目標解析失敗' }
       }
@@ -205,7 +202,7 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'REMOVE_CORPSE') {
+    if (ab.type === 'REMOVE_CORPSE') {
       if (!action.targetPos) return { ok: false, error: '需要目標位置' }
       const posKey = `${action.targetPos.x},${action.targetPos.y}`
       const stack = nextState.corpsesByPos[posKey]
@@ -226,14 +223,14 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'CHOICE_GAIN_RESOURCE') {
+    if (ab.type === 'CHOICE_GAIN_RESOURCE') {
       const choice = String(action.choice ?? '')
       if (choice !== 'gold' && choice !== 'mana') return { ok: false, error: '需要選擇增益' }
-      const opts = (ab?.options ?? []) as Array<{ resource: string; amount: number }>
+      const opts = ab.options
       if (!Array.isArray(opts) || opts.length === 0) return { ok: false, error: 'CHOICE_GAIN_RESOURCE options 無效' }
-      const picked = opts.find((o) => String(o?.resource ?? '') === choice)
+      const picked = opts.find((o) => o.resource === choice)
       if (!picked) return { ok: false, error: 'CHOICE_GAIN_RESOURCE 選項無效' }
-      const amount = Math.floor(Number(picked.amount ?? 0))
+      const amount = Math.floor(picked.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'CHOICE_GAIN_RESOURCE amount 無效' }
       const side = nextState.turn.side
       const r = nextState.resources[side]
@@ -254,10 +251,10 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'PLUNDER_CAGE_SOUL') {
-      const amount = Math.floor(Number(ab?.amount ?? 1))
+    if (ab.type === 'PLUNDER_CAGE_SOUL') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'PLUNDER_CAGE_SOUL amount 無效' }
-      if (amount !== 1) return { ok: false, unsupported: true, abilityType: type, reason: `amount 未支援: ${amount}` }
+      if (amount !== 1) return { ok: false, unsupported: true, abilityType: ab.type, reason: `amount 未支援: ${amount}` }
 
       const side = nextState.turn.side
       const enemySide = side === 'red' ? 'black' : 'red'
@@ -292,7 +289,7 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'REFRESH_ITEM_DISPLAY') {
+    if (ab.type === 'REFRESH_ITEM_DISPLAY') {
       // Refresh item display: move existing items to discard, draw new ones
       let s = nextState
       for (let slot = 0; slot < s.itemDisplay.length; slot++) {
@@ -318,7 +315,7 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'REFRESH_SOUL_DISPLAY_ALL') {
+    if (ab.type === 'REFRESH_SOUL_DISPLAY_ALL') {
       const bases: PieceBase[] = ['king', 'advisor', 'elephant', 'rook', 'knight', 'cannon', 'soldier']
       let s = nextState
       for (const base of bases) {
@@ -339,8 +336,8 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'GAIN_NECRO_ACTION') {
-      const amount = Math.floor(Number(ab?.amount ?? 0))
+    if (ab.type === 'GAIN_NECRO_ACTION') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'GAIN_NECRO_ACTION amount 無效' }
       nextState = {
         ...nextState,
@@ -354,11 +351,10 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'ENCHANT_GOLD_DISCOUNT') {
-      const amount = Math.floor(Number(ab?.amount ?? 0))
+    if (ab.type === 'ENCHANT_GOLD_DISCOUNT') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'ENCHANT_GOLD_DISCOUNT amount 無效' }
-      const scope = String(ab?.scope ?? 'NEXT_ENCHANT')
-      if (scope !== 'NEXT_ENCHANT') return { ok: false, error: `ENCHANT_GOLD_DISCOUNT scope 未支援: ${scope}` }
+      if (ab.scope !== 'NEXT_ENCHANT') return { ok: false, error: `ENCHANT_GOLD_DISCOUNT scope 未支援: ${ab.scope}` }
       nextState = {
         ...nextState,
         turnFlags: {
@@ -371,16 +367,16 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'GRANT_REVIVE_BONUS') {
-      const amount = Math.floor(Number(ab?.amount ?? 0))
+    if (ab.type === 'GRANT_REVIVE_BONUS') {
+      const amount = Math.floor(ab.amount)
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'GRANT_REVIVE_BONUS amount 無效' }
 
       // Match existing legacy behavior: just mark contract bonus and let REVIVE reducer consume it.
       // We only support the "free + ignoreNecroActionLimit" flavor for now.
-      const free = ab?.revive?.free === true
-      const ignoreNecro = ab?.revive?.ignoreNecroActionLimit === true
+      const free = ab.revive.free === true
+      const ignoreNecro = ab.revive.ignoreNecroActionLimit === true
       if (!(free && ignoreNecro)) {
-        return { ok: false, unsupported: true, abilityType: type, reason: 'revive 目前僅支援 free+ignoreNecroActionLimit' }
+        return { ok: false, unsupported: true, abilityType: ab.type, reason: 'revive 目前僅支援 free+ignoreNecroActionLimit' }
       }
 
       nextState = {
@@ -395,12 +391,11 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    if (type === 'ON_KILL_GAIN_RESOURCE') {
-      const resource = String(ab?.resource ?? '')
-      const amount = Math.floor(Number(ab?.amount ?? 0))
-      const perTurnCap = Math.floor(Number(ab?.perTurnCap ?? 0))
+    if (ab.type === 'ON_KILL_GAIN_RESOURCE') {
+      const resource = ab.resource
+      const amount = Math.floor(ab.amount)
+      const perTurnCap = Math.floor(ab.perTurnCap)
 
-      if (!resource) return { ok: false, error: 'ON_KILL_GAIN_RESOURCE resource 無效' }
       if (!Number.isFinite(amount) || amount <= 0) return { ok: false, error: 'ON_KILL_GAIN_RESOURCE amount 無效' }
       if (!Number.isFinite(perTurnCap) || perTurnCap <= 0) return { ok: false, error: 'ON_KILL_GAIN_RESOURCE perTurnCap 無效' }
 
@@ -418,7 +413,7 @@ function executeItemAbilitiesA1(
       continue
     }
 
-    return { ok: false, unsupported: true, abilityType: type, reason: 'ability type 未實作' }
+    return { ok: false, unsupported: true, abilityType: (ab as { type?: string }).type ?? 'unknown', reason: 'ability type 未實作' }
   }
 
   return { ok: true, state: nextState, events }

@@ -5,6 +5,7 @@ import { getSoulCard } from '../engine'
 import { DEATH_CHAIN_MAX_KILLS } from '../engine/gameConfig'
 import { countCorpses } from '../engine/corpses'
 import { getItemCard } from '../engine/items'
+import { findAbility } from '../engine/abilityTypes'
 
 export type BuffEntry = { label: string; kind: 'aura' | 'free' | 'buff' }
 
@@ -78,165 +79,154 @@ export function useActiveBuffs(state: Ref<GameState>) {
       if (!card) continue
 
       for (const ab of card.abilities) {
-        const type = ab.type
 
         // ── Global aura: soldiers tiered ATK ────────────────────────────────
-        if (type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') {
-          const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (ab.type === 'SOLDIERS_TIERED_AURA_DAMAGE_BONUS') {
+          const amt = highestTierAmount(ab.tiers, soldierCount)
           if (amt > 0) buffs.push({ label: `${card.name}：全軍 ATK +${amt}`, kind: 'aura' })
         }
 
         // ── Global aura: soldiers tiered DMG reduction ───────────────────────
-        if (type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
-          const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (ab.type === 'SOLDIERS_TIERED_DMG_REDUCTION_AURA') {
+          const amt = highestTierAmount(ab.tiers, soldierCount)
           if (amt > 0) buffs.push({ label: `${card.name}：全軍 減傷 -${amt}`, kind: 'aura' })
         }
 
         // ── Per-unit tiered damage bonus (like 軍華/騎兵靈) ─────────────────
-        if (type === 'SOLDIERS_TIERED_DAMAGE_BONUS' && phase === 'combat') {
-          const amt = highestTierAmount((ab as any).tiers ?? [], soldierCount)
+        if (ab.type === 'SOLDIERS_TIERED_DAMAGE_BONUS' && phase === 'combat') {
+          const amt = highestTierAmount(ab.tiers, soldierCount)
           if (amt > 0) buffs.push({ label: `${card.name}：卒 ${soldierCount} 個 → 傷害 +${amt}`, kind: 'buff' })
         }
 
         // ── FORMATION_COMMAND ───────────────────────────────────────────────
-        if (type === 'FORMATION_COMMAND' && phase === 'combat') {
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'FORMATION_COMMAND' && phase === 'combat') {
+          const perTurn = ab.perTurn
           const used = s.turnFlags.abilityUsed?.[`${u.id}:FORMATION_COMMAND`] ?? 0
           if (used < perTurn) buffs.push({ label: `${card.name}（整編）：相鄰卒可免費移動`, kind: 'free' })
         }
 
         // ── LOGISTICS_REVIVE ────────────────────────────────────────────────
-        if (type === 'LOGISTICS_REVIVE' && phase === 'necro') {
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'LOGISTICS_REVIVE' && phase === 'necro') {
+          const perTurn = ab.perTurn
           const used = s.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
           if (used < perTurn) buffs.push({ label: `${card.name}（後勤）：可免費復活 1 個卒`, kind: 'free' })
         }
 
         // ── PALACE_GUARD ────────────────────────────────────────────────────
-        if (type === 'PALACE_GUARD') {
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'PALACE_GUARD') {
+          const perTurn = ab.perTurn
           const used = s.turnFlags.abilityUsed?.[`${u.id}:PALACE_GUARD`] ?? 0
-          const amount = Number((ab as any).amount ?? 0)
+          const amount = ab.amount
           if (used < perTurn)
             buffs.push({ label: `${card.name}（宮護）：帥受傷 -${amount}（剩 ${perTurn - used} 次）`, kind: 'buff' })
         }
 
         // ── FREE_SHOOT ──────────────────────────────────────────────────────
-        if (type === 'FREE_SHOOT' && phase === 'combat') {
-          const when = (ab as any).when
+        if (ab.type === 'FREE_SHOOT' && phase === 'combat') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'SOLDIERS_GTE') ok = soldierCount >= Number(when.count ?? 0)
-            else if (wt === 'CORPSES_GTE') ok = corpseCount >= Number(when.count ?? 0)
-            else if (wt === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
+          if (!ok && when) {
+            if (when.type === 'SOLDIERS_GTE') ok = soldierCount >= when.count
+            else if (when.type === 'CORPSES_GTE') ok = corpseCount >= when.count
+            else if (when.type === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
           }
           if (ok) {
-            const perTurn = Number((ab as any).perTurn ?? 1)
+            const perTurn = ab.perTurn
             const used = s.turnFlags.abilityUsed?.[`${u.id}:FREE_SHOOT`] ?? 0
             if (used < perTurn) buffs.push({ label: `${card.name}：可免費射擊 ×${perTurn - used}`, kind: 'free' })
           }
         }
 
         // ── EXTRA_SHOT (額外射擊機會) ────────────────────────────────────────
-        if (type === 'EXTRA_SHOT' && phase === 'combat') {
-          const when = (ab as any).when
+        if (ab.type === 'EXTRA_SHOT' && phase === 'combat') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
-            else if (wt === 'SOLDIERS_GTE') ok = soldierCount >= Number(when.count ?? 0)
-            else if (wt === 'CORPSES_GTE') ok = corpseCount >= Number(when.count ?? 0)
+          if (!ok && when) {
+            if (when.type === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
+            else if (when.type === 'SOLDIERS_GTE') ok = soldierCount >= when.count
+            else if (when.type === 'CORPSES_GTE') ok = corpseCount >= when.count
           }
           if (ok) {
-            const perTurn = Number((ab as any).perTurn ?? 1)
+            const perTurn = ab.perTurn
             const used = s.turnFlags.abilityUsed?.[`${u.id}:EXTRA_SHOT`] ?? 0
             if (used < perTurn) buffs.push({ label: `${card.name}：可額外射擊 ×${perTurn - used}`, kind: 'free' })
           }
         }
 
         // ── IGNORE_BLOCKING ─────────────────────────────────────────────────
-        if (type === 'IGNORE_BLOCKING' && phase === 'combat') {
-          const when = (ab as any).when
+        if (ab.type === 'IGNORE_BLOCKING' && phase === 'combat') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'SOLDIERS_GTE') ok = soldierCount >= Number(when.count ?? 0)
-            else if (wt === 'CORPSES_GTE') ok = corpseCount >= Number(when.count ?? 0)
-            else if (wt === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
+          if (!ok && when) {
+            if (when.type === 'SOLDIERS_GTE') ok = soldierCount >= when.count
+            else if (when.type === 'CORPSES_GTE') ok = corpseCount >= when.count
+            else if (when.type === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
           }
           if (ok) {
-            const mode = String((ab as any).mode ?? '')
-            const label = mode === 'all' ? `${card.name}：無視全部阻擋` : `${card.name}：無視阻擋`
+            const label = ab.mode === 'all' ? `${card.name}：無視全部阻擋` : `${card.name}：無視阻擋`
             buffs.push({ label, kind: 'buff' })
           }
         }
 
         // ── IGNORE_PATH_BLOCKING (移動穿透) ─────────────────────────────────
-        if (type === 'IGNORE_PATH_BLOCKING') {
-          const when = (ab as any).when
+        if (ab.type === 'IGNORE_PATH_BLOCKING') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
+          if (!ok && when) {
+            if (when.type === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
           }
           if (ok) {
-            const count = (ab as any).count
-            const label = count ? `${card.name}：移動穿透 ${count} 個阻擋` : `${card.name}：移動無視所有阻擋`
+            const label = ab.count ? `${card.name}：移動穿透 ${ab.count} 個阻擋` : `${card.name}：移動無視所有阻擋`
             buffs.push({ label, kind: 'buff' })
           }
         }
 
         // ── AURA_IGNORE_BLOCKING (友軍射擊無視阻擋) ─────────────────────────
-        if (type === 'AURA_IGNORE_BLOCKING' && phase === 'combat') {
-          const when = (ab as any).when
+        if (ab.type === 'AURA_IGNORE_BLOCKING' && phase === 'combat') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'ATTACKER_IN_PALACE') ok = true // applies when any attacker is in palace
-            else if (wt === 'RESONANCE_ACTIVE') {
-              const resAb = card.abilities.find((a) => a.type === 'RESONANCE') as any
-              ok = isResonanceActive(s, u.id, Number(resAb?.need ?? 0), String(resAb?.clan ?? ''))
+          if (!ok && when) {
+            if (when.type === 'ATTACKER_IN_PALACE') ok = true // applies when any attacker is in palace
+            else if (when.type === 'RESONANCE_ACTIVE') {
+              const resAb = findAbility(card.abilities, 'RESONANCE')
+              ok = isResonanceActive(s, u.id, resAb?.need ?? 0, resAb?.clan ?? '')
             }
           }
           if (ok) {
-            const perTurn = Number((ab as any).perTurn ?? 1)
+            const perTurn = ab.perTurn
             const used = s.turnFlags.abilityUsed?.[`${u.id}:AURA_IGNORE_BLOCKING`] ?? 0
             if (used < perTurn) {
-              const count = (ab as any).count
-              const lbl = count ? `${card.name}：友軍忽略 ${count} 阻擋` : `${card.name}：友軍無視阻擋`
-              const condNote = String(when?.type ?? '') === 'ATTACKER_IN_PALACE' ? '（宮內攻擊者）' : ''
+              const lbl = ab.count ? `${card.name}：友軍忽略 ${ab.count} 阻擋` : `${card.name}：友軍無視阻擋`
+              const condNote = when?.type === 'ATTACKER_IN_PALACE' ? '（宮內攻擊者）' : ''
               buffs.push({ label: lbl + condNote, kind: 'aura' })
             }
           }
         }
 
         // ── SPLASH (濺射) ───────────────────────────────────────────────────
-        if (type === 'SPLASH' && phase === 'combat') {
-          const when = (ab as any).when
+        if (ab.type === 'SPLASH' && phase === 'combat') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
+          if (!ok && when) {
+            if (when.type === 'AFTER_CROSS_RIVER') ok = crossedRiver(u.side, u.pos.y)
           }
           if (ok) {
-            const perTurn = Number((ab as any).perTurn ?? 0)
+            const perTurn = ab.perTurn
             const used = perTurn > 0 ? (s.turnFlags.abilityUsed?.[`${u.id}:SPLASH`] ?? 0) : 0
             if (perTurn <= 0 || used < perTurn) {
-              const fd = Number((ab as any).fixedDamage ?? 0)
+              const fd = ab.fixedDamage ?? 0
               buffs.push({ label: `${card.name}：射擊產生濺射（鄰格 ${fd} 固定傷害）`, kind: 'buff' })
             }
           }
         }
 
         // ── DAMAGE_SHARE (傷害分攤) ──────────────────────────────────────────
-        if (type === 'DAMAGE_SHARE') {
-          const when = (ab as any).when
+        if (ab.type === 'DAMAGE_SHARE') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'ALLIES_IN_PALACE_GTE') {
-              const need = Number(when.count ?? 0)
+          if (!ok && when) {
+            if (when.type === 'ALLIES_IN_PALACE_GTE') {
+              const need = when.count
               const inPalace = Object.values(s.units).filter(
                 (unit) => unit.side === side && palaceContains(side, unit.pos)
               ).length
@@ -244,51 +234,50 @@ export function useActiveBuffs(state: Ref<GameState>) {
             }
           }
           if (ok) {
-            const amount = Number((ab as any).amount ?? 0)
-            buffs.push({ label: `${card.name}：分攤 ${amount} 傷害（宮內 ≥${(ab as any).when?.count ?? 0} 單位）`, kind: 'aura' })
+            const whenCount = when?.type === 'ALLIES_IN_PALACE_GTE' ? when.count : 0
+            buffs.push({ label: `${card.name}：分攤 ${ab.amount} 傷害（宮內 ≥${whenCount} 單位）`, kind: 'aura' })
           }
         }
 
         // ── COUNTER (反擊) ───────────────────────────────────────────────────
-        if (type === 'COUNTER') {
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'COUNTER') {
+          const perTurn = ab.perTurn
           const used = s.turnFlags.abilityUsed?.[`${u.id}:COUNTER`] ?? 0
           if (used < perTurn)
             buffs.push({ label: `${card.name}：反擊（剩 ${perTurn - used} 次）`, kind: 'buff' })
         }
 
         // ── FIRST_DAMAGED_REDUCTION (首傷減免) ───────────────────────────────
-        if (type === 'FIRST_DAMAGED_REDUCTION') {
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'FIRST_DAMAGED_REDUCTION') {
+          const perTurn = ab.perTurn
           const used = s.turnFlags.abilityUsed?.[`${u.id}:FIRST_DAMAGED_REDUCTION`] ?? 0
-          const amount = Number((ab as any).amount ?? 0)
+          const amount = ab.amount
           if (used < perTurn)
             buffs.push({ label: `${card.name}：首次受傷 -${amount}（剩 ${perTurn - used} 次）`, kind: 'buff' })
         }
 
         // ── AURA_DAMAGE_BONUS (友軍傷害光環) ────────────────────────────────
-        if (type === 'AURA_DAMAGE_BONUS') {
-          const when = (ab as any).when
+        if (ab.type === 'AURA_DAMAGE_BONUS') {
+          const when = ab.when
           let ok = !when
-          if (!ok) {
-            const wt = String(when?.type ?? '')
-            if (wt === 'RESONANCE_ACTIVE') {
-              const resAb = card.abilities.find((a) => a.type === 'RESONANCE') as any
-              ok = isResonanceActive(s, u.id, Number(resAb?.need ?? 0), String(resAb?.clan ?? ''))
-            } else if (wt === 'CORPSES_GTE') {
-              ok = corpseCount >= Number(when.count ?? 0)
+          if (!ok && when) {
+            if (when.type === 'RESONANCE_ACTIVE') {
+              const resAb = findAbility(card.abilities, 'RESONANCE')
+              ok = isResonanceActive(s, u.id, resAb?.need ?? 0, resAb?.clan ?? '')
+            } else if (when.type === 'CORPSES_GTE') {
+              ok = corpseCount >= when.count
             }
           }
           if (ok) {
-            const per = (ab as any).per
+            const per = ab.per
             if (per?.type === 'CORPSES_PER') {
-              const perCount = Number(per.count ?? 1)
-              const amountPer = Number((ab as any).amountPer ?? 1)
+              const perCount = per.count
+              const amountPer = ab.amountPer ?? 1
               const bonus = Math.floor(corpseCount / perCount) * amountPer
               if (bonus > 0)
                 buffs.push({ label: `${card.name}：友軍傷害 +${bonus}（屍骸 ${corpseCount} 具）`, kind: 'aura' })
             } else {
-              const amount = Number((ab as any).amount ?? 0)
+              const amount = ab.amount ?? 0
               if (amount > 0)
                 buffs.push({ label: `${card.name}：友軍傷害 +${amount}`, kind: 'aura' })
             }
@@ -296,15 +285,15 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── ARMY_RALLY (軍援) ────────────────────────────────────────────────
-        if (type === 'ARMY_RALLY' && phase === 'combat') {
+        if (ab.type === 'ARMY_RALLY' && phase === 'combat') {
           buffs.push({ label: `${card.name}：射擊聯動卒追擊`, kind: 'aura' })
         }
 
         // ── DAMAGE_BONUS_PER_ADJACENT_SOLDIER (周圍卒加成) ───────────────────
-        if (type === 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER' && phase === 'combat') {
-          const radius = Number((ab as any).radius ?? 1)
-          const amountPer = Number((ab as any).amountPer ?? 1)
-          const cap = Number((ab as any).max ?? Infinity)
+        if (ab.type === 'DAMAGE_BONUS_PER_ADJACENT_SOLDIER' && phase === 'combat') {
+          const radius = ab.radius
+          const amountPer = ab.amountPer
+          const cap = ab.max
           const adjSoldiers = Object.values(s.units).filter((unit) => {
             if (unit.side !== side || unit.base !== 'soldier') return false
             const dx = Math.abs(unit.pos.x - u.pos.x)
@@ -317,44 +306,44 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── INCOME_BONUS (收入加成) ──────────────────────────────────────────
-        if (type === 'INCOME_BONUS') {
-          const amount = Number((ab as any).amount ?? 0)
+        if (ab.type === 'INCOME_BONUS') {
+          const amount = ab.amount
           if (amount > 0)
             buffs.push({ label: `${card.name}：每回合財力 +${amount}`, kind: 'aura' })
         }
 
         // ── KILL_GOLD_GAIN ───────────────────────────────────────────────────
-        if (type === 'KILL_GOLD_GAIN') {
-          const amount = Number((ab as any).amount ?? 0)
+        if (ab.type === 'KILL_GOLD_GAIN') {
+          const amount = ab.amount
           if (amount > 0)
             buffs.push({ label: `${card.name}：擊殺 → +${amount} 財力`, kind: 'aura' })
         }
 
         // ── KILL_MANA_GAIN ───────────────────────────────────────────────────
-        if (type === 'KILL_MANA_GAIN') {
-          const amount = Number((ab as any).amount ?? 0)
+        if (ab.type === 'KILL_MANA_GAIN') {
+          const amount = ab.amount
           if (amount > 0)
             buffs.push({ label: `${card.name}：擊殺 → +${amount} 魔力`, kind: 'aura' })
         }
 
         // ── HEAL_SELF_AND_KING_ON_KILL ───────────────────────────────────────
-        if (type === 'HEAL_SELF_AND_KING_ON_KILL' && phase === 'combat') {
-          const selfAmt = Number((ab as any).selfAmount ?? 0)
-          const kingAmt = Number((ab as any).kingAmount ?? 0)
+        if (ab.type === 'HEAL_SELF_AND_KING_ON_KILL' && phase === 'combat') {
+          const selfAmt = ab.selfAmount
+          const kingAmt = ab.kingAmount
           buffs.push({ label: `${card.name}：擊殺 → 自身+${selfAmt} HP，帥+${kingAmt} HP`, kind: 'aura' })
         }
 
         // ── DEATH_COUNTER (最後一搏) ─────────────────────────────────────────
-        if (type === 'DEATH_COUNTER') {
+        if (ab.type === 'DEATH_COUNTER') {
           buffs.push({ label: `${card.name}：最後一搏（死亡時反擊）`, kind: 'buff' })
         }
 
         // ── GOLD_THRESHOLD_ATK self scope ────────────────────────────────────
-        if (type === 'GOLD_THRESHOLD_ATK') {
-          const scope = String((ab as any).scope ?? 'self')
+        if (ab.type === 'GOLD_THRESHOLD_ATK') {
+          const scope = ab.scope ?? 'self'
           if (scope === 'self') {
-            const threshold = Number((ab as any).threshold ?? 0)
-            const atkBonus = Number((ab as any).atkBonus ?? 0)
+            const threshold = ab.threshold
+            const atkBonus = ab.atkBonus ?? 0
             if (goldCurrent >= threshold && atkBonus > 0)
               buffs.push({ label: `${card.name}：財力≥${threshold} → ATK +${atkBonus}`, kind: 'buff' })
           }
@@ -362,23 +351,23 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── ITEM_COUNT_ATK_BONUS ─────────────────────────────────────────────
-        if (type === 'ITEM_COUNT_ATK_BONUS') {
+        if (ab.type === 'ITEM_COUNT_ATK_BONUS') {
           if (itemHandCount > 0)
             buffs.push({ label: `${card.name}：持有 ${itemHandCount} 張道具 → ATK +${itemHandCount}`, kind: 'buff' })
         }
 
         // ── ITEM_VALUE_ATK_BONUS ─────────────────────────────────────────────
-        if (type === 'ITEM_VALUE_ATK_BONUS') {
-          const threshold = Number((ab as any).threshold ?? 0)
-          const atkBonus = Number((ab as any).atkBonus ?? 0)
+        if (ab.type === 'ITEM_VALUE_ATK_BONUS') {
+          const threshold = ab.threshold
+          const atkBonus = ab.atkBonus
           if (itemHandValue >= threshold && atkBonus > 0)
             buffs.push({ label: `${card.name}：道具費≥${threshold} → ATK +${atkBonus}`, kind: 'buff' })
         }
 
         // ── ITEM_VALUE_AURA (全隊道具費光環) ────────────────────────────────
-        if (type === 'ITEM_VALUE_AURA') {
-          const threshold = Number((ab as any).threshold ?? 0)
-          const bonus = (ab as any).bonus ?? {}
+        if (ab.type === 'ITEM_VALUE_AURA') {
+          const threshold = ab.threshold
+          const bonus = ab.bonus
           if (itemHandValue >= threshold) {
             const atkBonus = Number(bonus.atk ?? 0)
             if (atkBonus > 0)
@@ -393,11 +382,11 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD ───────────────────────────────
-        if (type === 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') {
-          const threshold = Number((ab as any).threshold ?? 0)
-          const amount = Number((ab as any).amount ?? 0)
-          const perTurn = Number((ab as any).perTurn ?? 1)
-          const scope = String((ab as any).scope ?? 'self')
+        if (ab.type === 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD') {
+          const threshold = ab.threshold
+          const amount = ab.amount
+          const perTurn = ab.perTurn
+          const scope = ab.scope
           if (goldCurrent < threshold) {
             const key = scope === 'global'
               ? `${u.id}:FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD:global`
@@ -409,10 +398,10 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD ─────────────────────────────
-        if (type === 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD') {
-          const threshold = Number((ab as any).threshold ?? 0)
-          const amount = Number((ab as any).amount ?? 0)
-          const perTurn = Number((ab as any).perTurn ?? 1)
+        if (ab.type === 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD') {
+          const threshold = ab.threshold
+          const amount = ab.amount
+          const perTurn = ab.perTurn
           if (goldCurrent < threshold) {
             const used = s.turnFlags.abilityUsed?.[`${u.id}:FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD`] ?? 0
             if (used < perTurn)
@@ -421,9 +410,9 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── UNDERDOG_AURA (逆境) ─────────────────────────────────────────────
-        if (type === 'UNDERDOG_AURA') {
-          const stages = (ab as any).stages as Array<{ margin: number; atkBonus: number }> | undefined
-          const scope = String((ab as any).scope ?? 'self')
+        if (ab.type === 'UNDERDOG_AURA') {
+          const stages = ab.stages
+          const scope = ab.scope
           if (stages && unitDeficit > 0) {
             const sorted = [...stages].sort((a, b) => a.margin - b.margin)
             let bestBonus = 0
@@ -436,9 +425,9 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── BLOOD_RAGE_AURA (血憤) ───────────────────────────────────────────
-        if (type === 'BLOOD_RAGE_AURA' && king) {
-          const stages = (ab as any).stages as Array<{ threshold: number; atkBonus: number }> | undefined
-          const scope = String((ab as any).scope ?? 'self')
+        if (ab.type === 'BLOOD_RAGE_AURA' && king) {
+          const stages = ab.stages
+          const scope = ab.scope
           if (stages) {
             const sorted = [...stages].sort((a, b) => b.threshold - a.threshold)
             let bestBonus = 0
@@ -454,24 +443,21 @@ export function useActiveBuffs(state: Ref<GameState>) {
         }
 
         // ── UNIT_COUNT_ADVANTAGE_AURA (盛勢) ─────────────────────────────────
-        if (type === 'UNIT_COUNT_ADVANTAGE_AURA') {
-          const margin = Number((ab as any).margin ?? 1)
-          const defBonus = (ab as any).defBonus
+        if (ab.type === 'UNIT_COUNT_ADVANTAGE_AURA') {
+          const margin = ab.margin
+          const defBonus = ab.defBonus
           if (unitDelta >= margin && defBonus) {
-            const defArr: { key: string; value: number }[] = Array.isArray(defBonus)
-              ? defBonus
-              : Object.entries(defBonus).map(([key, value]) => ({ key, value: Number(value) }))
-            const physAmt = defArr.find((d) => d.key === 'phys')?.value ?? 0
-            const magicAmt = defArr.find((d) => d.key === 'magic')?.value ?? 0
+            const physAmt = defBonus.find((d) => d.key === 'phys')?.value ?? 0
+            const magicAmt = defBonus.find((d) => d.key === 'magic')?.value ?? 0
             const defLabel = physAmt === magicAmt ? `雙防 +${physAmt}` : `物防 +${physAmt}/魔防 +${magicAmt}`
             buffs.push({ label: `${card.name}：盛勢 → 全軍 ${defLabel}`, kind: 'aura' })
           }
         }
 
         // ── UNIT_COUNT_UNDERDOG_AURA (逆勢) ──────────────────────────────────
-        if (type === 'UNIT_COUNT_UNDERDOG_AURA') {
-          const margin = Number((ab as any).margin ?? 1)
-          const atkBonus = Number((ab as any).atkBonus ?? 0)
+        if (ab.type === 'UNIT_COUNT_UNDERDOG_AURA') {
+          const margin = ab.margin
+          const atkBonus = ab.atkBonus
           if (unitDeficit >= margin && atkBonus > 0)
             buffs.push({ label: `${card.name}：逆勢 → 全軍 ATK +${atkBonus}`, kind: 'buff' })
         }
@@ -485,13 +471,13 @@ export function useActiveBuffs(state: Ref<GameState>) {
       if (!auraSoulId) continue
       const auraCard = getSoulCard(auraSoulId)
       if (!auraCard) continue
-      for (const ab of auraCard.abilities as any[]) {
+      for (const ab of auraCard.abilities) {
         if (ab.type !== 'GOLD_THRESHOLD_ATK') continue
-        const scope = String(ab.scope ?? 'self')
+        const scope = ab.scope ?? 'self'
         if (scope !== 'global') continue
-        const threshold = Number(ab.threshold ?? 0)
+        const threshold = ab.threshold
         if (goldCurrent < threshold) continue
-        const atkBonus = Number(ab.atkBonus ?? 0)
+        const atkBonus = ab.atkBonus ?? 0
         const defBonus = ab.defBonus
         if (atkBonus > 0)
           buffs.push({ label: `${auraCard.name}：財力≥${threshold} → 全軍 ATK +${atkBonus}`, kind: 'aura' })
@@ -542,7 +528,7 @@ export function useActiveBuffs(state: Ref<GameState>) {
       buffs.push({ label: `死戰契約：可免費復活 ×${s.turnFlags.lastStandContractBonus}`, kind: 'free' })
     if (s.turnFlags.deathChainActive) {
       const used = s.turnFlags.deathChainKillCount ?? 0
-      const cfg = (s.turnFlags as any).onKillGainResource as { resource: string; amount: number; perTurnCap: number } | undefined
+      const cfg = s.turnFlags.onKillGainResource
       const cap = Math.max(0, Math.floor(Number(cfg?.perTurnCap ?? DEATH_CHAIN_MAX_KILLS)))
       const amt = Math.max(0, Math.floor(Number(cfg?.amount ?? 1)))
       const resKey = String(cfg?.resource ?? 'mana')
@@ -559,10 +545,10 @@ export function useActiveBuffs(state: Ref<GameState>) {
       if (bsUnit?.side === side) {
         const bsCard = bsUnit.enchant?.soulId ? getSoulCard(bsUnit.enchant.soulId) : null
         const bsName = bsCard?.name ?? '血祭'
-        const effType = String((bsEffect.effect as any)?.type ?? '')
+        const effType = String(bsEffect.effect.type ?? '')
         const effLabels: Record<string, string> = {
           PIERCE: '貫穿', CHAIN: '連鎖', IGNORE_BLOCKING: '無視阻擋',
-          FREE_SHOOT: '免費射擊', DAMAGE_BONUS: `傷害 +${(bsEffect.effect as any)?.amount ?? '?'}`,
+          FREE_SHOOT: '免費射擊', DAMAGE_BONUS: `傷害 +${bsEffect.effect.amount ?? '?'}`,
           MOVE_THEN_SHOOT: '移動後射',
         }
         const effLabel = effLabels[effType] ?? effType

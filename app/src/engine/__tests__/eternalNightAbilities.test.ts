@@ -44,7 +44,7 @@ function clearCells(s: GameState, cells: Array<{ x: number; y: number }>, keep: 
 
 describe('eternal night abilities', () => {
   test('xuegu: shooting once blocks a second shot (no EXTRA_SHOT)', () => {
-    const s0 = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s0 = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s0.turn.phase = 'combat'
     s0.turn.side = 'red'
 
@@ -77,7 +77,7 @@ describe('eternal night abilities', () => {
   })
 
   test('suigu CHAIN requires corpses>=3 to add chain instance', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -113,7 +113,7 @@ describe('eternal night abilities', () => {
     const p0 = buildShotPlan(s, attackerId, targetId, extraId)
     expect(p0.ok).toBe(true)
     if (!p0.ok) return
-    const chain0 = p0.plan.instances.filter((i) => (i as any).kind === 'chain').map((i) => i.targetUnitId)
+    const chain0 = p0.plan.instances.filter((i) => i.kind === 'chain').map((i) => i.targetUnitId)
     expect(chain0).toEqual([])
 
     // corpses>=3: chain should be added.
@@ -121,7 +121,7 @@ describe('eternal night abilities', () => {
     const p1 = buildShotPlan(s, attackerId, targetId, extraId)
     expect(p1.ok).toBe(true)
     if (!p1.ok) return
-    const chain1 = p1.plan.instances.filter((i) => (i as any).kind === 'chain').map((i) => i.targetUnitId)
+    const chain1 = p1.plan.instances.filter((i) => i.kind === 'chain').map((i) => i.targetUnitId)
     expect(chain1).toEqual([extraId])
   })
 })

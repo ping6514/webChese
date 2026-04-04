@@ -203,7 +203,7 @@ export function useInteractionMode(opts: {
             const ab = card.abilities.find((a) => a.type === 'LOGISTICS_REVIVE')
             if (!ab) return false
             const used = state.value.turnFlags.abilityUsed?.[`${u.id}:LOGISTICS_REVIVE`] ?? 0
-            return used < Number((ab as any).perTurn ?? 1)
+            return ab.type === 'LOGISTICS_REVIVE' && used < ab.perTurn
           })
           const cost = getReviveGoldCost(corpse?.base ?? 'soldier')
           const isFree = isContract || isLogistics

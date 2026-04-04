@@ -10,7 +10,7 @@ function setUnitPos(s: GameState, unitId: string, x: number, y: number) {
 
 describe('advisor shooting rules', () => {
   test('advisor can shoot diagonal-1 targets outside palace', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
     s.resources.red = { ...s.resources.red, mana: 999 }

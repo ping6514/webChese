@@ -95,7 +95,7 @@ export function useCardDetailModal(opts: {
     const g = opts.getBuyEnemyGraveGuard()
     const cost = opts.getBuyEnemyGraveGoldCost()
     const actionDisabled = !g.ok
-    const actionTitle = !g.ok && 'reason' in g ? String((g as any).reason) : ''
+    const actionTitle = !g.ok ? g.reason : ''
 
     onAction.value = () => opts.buyFromEnemyGraveyard()
     ui.openDetailModal({

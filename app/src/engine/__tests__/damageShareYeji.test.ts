@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { buildShotPlan, createInitialState, executeShotPlan, getSoulCard } from '../index'
+import { findAbility } from '../abilityTypes'
 
 describe('DAMAGE_SHARE: dark_moon_advisor_yeji shares damage', () => {
   it('does not share when allies in palace < when.count', () => {
@@ -21,7 +22,7 @@ describe('DAMAGE_SHARE: dark_moon_advisor_yeji shares damage', () => {
 
     const card = getSoulCard('dark_moon_advisor_yeji')
     if (!card) throw new Error('Missing soul card')
-    const ab = card.abilities.find((a) => a.type === 'DAMAGE_SHARE') as any
+    const ab = findAbility(card.abilities, 'DAMAGE_SHARE')
     const shareN = Number(ab?.amount ?? 0)
     if (!Number.isFinite(shareN) || shareN <= 0) throw new Error('Invalid DAMAGE_SHARE amount')
 
@@ -140,7 +141,7 @@ describe('DAMAGE_SHARE: dark_moon_advisor_yeji shares damage', () => {
 
     const card = getSoulCard('dark_moon_advisor_yeji')
     if (!card) throw new Error('Missing soul card')
-    const ab = card.abilities.find((a) => a.type === 'DAMAGE_SHARE') as any
+    const ab = findAbility(card.abilities, 'DAMAGE_SHARE')
     const shareN = Number(ab?.amount ?? 0)
     if (!Number.isFinite(shareN) || shareN <= 0) throw new Error('Invalid DAMAGE_SHARE amount')
 

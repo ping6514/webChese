@@ -3,6 +3,7 @@ import { buildShotPlan, executeShotPlan } from '../shotPlan'
 import { buildShotPreview } from '../shotPreview'
 import { createInitialState, reduce, type GameState } from '..'
 import { getSoulCard } from '../cards'
+import type { AbilityTriggeredEvent } from '../events'
 
 function cloneState(s: GameState): GameState {
   return JSON.parse(JSON.stringify(s))
@@ -39,7 +40,7 @@ function moveUnitAwayFromLine(s: GameState, x: number, yMin: number, yMax: numbe
 
 describe('styx abilities', () => {
   test('TARGET_DEF_MINUS + DAMAGE_BONUS(target cross river) are applied in preview', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -74,7 +75,7 @@ describe('styx abilities', () => {
   })
 
   test('RESONANCE(styx>=3) grants free shoot and free move at turn start (via Styx elephants)', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
 
     // Trigger turn start for black by ending red's turn.
     s.turn.phase = 'turnEnd'
@@ -97,7 +98,7 @@ describe('styx abilities', () => {
   })
 
   test('KILL_MANA_GAIN grants mana on kill and does not exceed max mana', () => {
-    const s = createInitialState({ rules: { diceFixed: 6 } as any })
+    const s = createInitialState({ rules: { diceFixed: 6 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -137,7 +138,7 @@ describe('styx abilities', () => {
     // shoot cost is deducted first, then KILL_MANA_GAIN is applied
     const expectedMana = Math.min(after.limits.manaMax, Math.max(0, manaStart - planRes.plan.cost) + 1)
     expect(after.resources.red.mana).toBe(expectedMana)
-    const abEvents = exec.events.filter((e) => e.type === 'ABILITY_TRIGGERED') as any[]
+    const abEvents = exec.events.filter((e): e is AbilityTriggeredEvent => e.type === 'ABILITY_TRIGGERED')
     expect(abEvents.some((e) => e.abilityType === 'KILL_MANA_GAIN')).toBe(true)
 
     // cap check: set mana to max, then perform another kill and assert mana doesn't exceed max.
@@ -175,7 +176,7 @@ describe('styx abilities', () => {
   })
 
   test('PIERCE(LINE_ENEMIES,count=2) hits the first 2 enemies on the line (including target)', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -210,7 +211,7 @@ describe('styx abilities', () => {
 
     // Should contain one extra pierce instance for enemy2
     const instances = planRes.plan.instances
-    const pierceTargets = instances.filter((i) => (i as any).kind === 'pierce').map((i) => i.targetUnitId)
+    const pierceTargets = instances.filter((i) => i.kind === 'pierce').map((i) => i.targetUnitId)
     expect(pierceTargets).toEqual([enemy2])
 
     // Make both enemies 1 hp; both should die after execute
@@ -231,7 +232,7 @@ describe('styx abilities', () => {
   })
 
   test('PIERCE(CANNON_SCREEN_AND_TARGET) adds damage to the screen enemy when cannon shoots with 1 screen', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -257,7 +258,7 @@ describe('styx abilities', () => {
 
     expect(planRes.plan.cost).toBe(2)
 
-    const pierceTargets = planRes.plan.instances.filter((i) => (i as any).kind === 'pierce').map((i) => i.targetUnitId)
+    const pierceTargets = planRes.plan.instances.filter((i) => i.kind === 'pierce').map((i) => i.targetUnitId)
     expect(pierceTargets).toEqual([screenId])
 
     const exec = executeShotPlan(s, planRes.plan)
@@ -267,7 +268,7 @@ describe('styx abilities', () => {
   })
 
   test('CHAIN: extraTargetUnitId adds a chain instance with equal damage', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -288,7 +289,7 @@ describe('styx abilities', () => {
     expect(planRes.ok).toBe(true)
     if (!planRes.ok) return
 
-    const chainTargets = planRes.plan.instances.filter((i) => (i as any).kind === 'chain').map((i) => i.targetUnitId)
+    const chainTargets = planRes.plan.instances.filter((i) => i.kind === 'chain').map((i) => i.targetUnitId)
     expect(chainTargets).toEqual([extraId])
   })
 })

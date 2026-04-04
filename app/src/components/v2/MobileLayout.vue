@@ -107,14 +107,14 @@ function returnSoul(soulId: string) { ctx.dispatch({ type: 'RETURN_SOUL_TO_DECK_
 function discardItem(itemId: string) {
   const card = getItemCard(itemId)
   ui.setPendingConfirm({
-    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId } as any,
+    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId },
     title: '確認棄置',
     detail: ['確認將道具卡棄置到棄牌堆', card ? `道具：${card.name}` : `id: ${itemId}`].filter(Boolean).join('\n'),
   })
 }
 function getUnitHpMax(unit: GameState['units'][string]) {
   const soul = unit.enchant?.soulId ? getSoulCard(unit.enchant.soulId) : null
-  return soul?.stats.hp ?? (BASE_STATS as any)[unit.base]?.hp ?? 10
+  return soul?.stats.hp ?? BASE_STATS[unit.base]?.hp ?? 10
 }
 function useItem(itemId: string) {
   const side = state.value.turn.side
@@ -138,7 +138,7 @@ function useItem(itemId: string) {
     }
     default: {
       const item = getItemCard(itemId)
-      ui.setPendingConfirm({ action: { type: 'USE_ITEM_FROM_HAND', itemId } as any, title: item?.name ?? itemId, detail: item?.text ?? '' })
+      ui.setPendingConfirm({ action: { type: 'USE_ITEM_FROM_HAND', itemId }, title: item?.name ?? itemId, detail: item?.text ?? '' })
     }
   }
 }
@@ -152,7 +152,7 @@ function showHandItemDetail(itemId: string) {
   lines.push(`timing: ${BASE_TIMING_LABEL[item.timing ?? ''] ?? item.timing ?? '—'}`)
   lines.push(`cost: ${item.costGold ?? 0} 財力`)
   if (item.text) lines.push(`text: ${item.text}`)
-  ui.openDetailModal({ title: item.name, image: (item as any).image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
+  ui.openDetailModal({ title: item.name, image: item.image || null, detail: lines.join('\n'), actionLabel: null, actionDisabled: false, actionTitle: '' })
 }
 
 const BASE_NAMES: Record<string, string> = {
@@ -252,7 +252,7 @@ function surrender() {
   closeGear()
   if (setup.mode === 'online' || setup.mode === 'pve') {
     const side = (setup.mode === 'online' && conn.side) ? conn.side : currentSide.value
-    ctx.dispatch({ type: 'SURRENDER', side } as any)
+    ctx.dispatch({ type: 'SURRENDER', side })
     return
   }
   const winner = currentSide.value === 'red' ? 'black' : 'red'

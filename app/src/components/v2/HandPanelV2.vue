@@ -100,7 +100,7 @@ function onSoulDragEnd() {
 function returnSoul(soulId: string) {
   const card = getSoulCard(soulId)
   ui.setPendingConfirm({
-    action: { type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId } as any,
+    action: { type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId },
     title: '確認歸還',
     detail: [
       '確認歸還靈魂卡到棋種牌組下方',
@@ -114,7 +114,7 @@ function returnSoul(soulId: string) {
 function discardItem(itemId: string) {
   const card = getItemCard(itemId)
   ui.setPendingConfirm({
-    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId } as any,
+    action: { type: 'DISCARD_ITEM_FROM_HAND', itemId },
     title: '確認棄置',
     detail: [
       '確認將道具卡棄置到棄牌堆',
@@ -125,7 +125,7 @@ function discardItem(itemId: string) {
 
 function getUnitHpMax(unit: GameState['units'][string]): number {
   const soul = unit.enchant?.soulId ? getSoulCard(unit.enchant.soulId) : null
-  return soul?.stats.hp ?? (BASE_STATS as any)[unit.base]?.hp ?? 10
+  return soul?.stats.hp ?? BASE_STATS[unit.base]?.hp ?? 10
 }
 
 function useItem(itemId: string) {
@@ -166,7 +166,7 @@ function useItem(itemId: string) {
     default: {
       const item = getItemCard(itemId)
       ui.setPendingConfirm({
-        action: { type: 'USE_ITEM_FROM_HAND', itemId } as any,
+        action: { type: 'USE_ITEM_FROM_HAND', itemId },
         title: item?.name ?? itemId,
         detail: item?.text ?? '',
       })

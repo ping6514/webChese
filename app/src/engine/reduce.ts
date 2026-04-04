@@ -328,16 +328,17 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
     if (!isResonanceActive(next, side, need, clan)) continue
 
     for (const ab of card.abilities) {
-      if (String((ab as { when?: { type?: string } }).when?.type ?? '') !== 'RESONANCE_ACTIVE') continue
-      const perTurn = Number((ab as { perTurn?: number }).perTurn ?? 0)
+      if (ab.type !== 'AURA_GRANT_FREE_SHOOT' && ab.type !== 'AURA_GRANT_FREE_MOVE') continue
+      if (ab.when?.type !== 'RESONANCE_ACTIVE') continue
+      const perTurn = ab.perTurn
       if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+      const amount = Math.floor(ab.amount)
+      if (!(Number.isFinite(amount) && amount > 0)) continue
 
       if (ab.type === 'AURA_GRANT_FREE_SHOOT') {
         const key = `${u.id}:AURA_GRANT_FREE_SHOOT`
         const used = Number(next.turnFlags.abilityUsed?.[key] ?? 0)
         if (used >= perTurn) continue
-        const amount = Math.floor(Number(ab?.amount ?? 0))
-        if (!(Number.isFinite(amount) && amount > 0)) continue
         freeShootBonus += amount
         next = {
           ...next,
@@ -353,8 +354,6 @@ function autoTurnStart(state: GameState, events: Event[]): GameState {
         const key = `${u.id}:AURA_GRANT_FREE_MOVE`
         const used = Number(next.turnFlags.abilityUsed?.[key] ?? 0)
         if (used >= perTurn) continue
-        const amount = Math.floor(Number(ab?.amount ?? 0))
-        if (!(Number.isFinite(amount) && amount > 0)) continue
         freeMoveBonus += amount
         next = {
           ...next,

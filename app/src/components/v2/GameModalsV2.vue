@@ -55,7 +55,7 @@ const enemyGraveyard = computed(() => state.value.graveyard[enemySide.value])
 
 const buyEnemyGraveGuard = computed(() => canBuySoulFromEnemyGraveyard(state.value))
 const buyItemGuards = computed(() => [0, 1, 2].map((slot) => canBuyItemFromDisplay(state.value, slot)))
-const itemDeckCount = computed(() => (state.value as any).itemDeck?.length ?? 0)
+const itemDeckCount = computed(() => state.value.itemDeck.length)
 
 // ── AllUnits computed ──────────────────────────────────────────────────────────
 function toUnitRow(u: GameState['units'][string]) {
@@ -68,13 +68,15 @@ function toUnitRow(u: GameState['units'][string]) {
   }
 }
 
-const myUnitRows = computed(() => {
+type UnitRow = ReturnType<typeof toUnitRow> & { dead?: boolean }
+
+const myUnitRows = computed((): UnitRow[] => {
   const side = mySide.value
-  const alive = Object.values(state.value.units)
+  const alive: UnitRow[] = Object.values(state.value.units)
     .filter((u) => u.side === side)
     .map(toUnitRow)
     .sort((a, b) => a.id.localeCompare(b.id))
-  const dead: ReturnType<typeof toUnitRow>[] = []
+  const dead: UnitRow[] = []
   for (const [posKey, stack] of Object.entries(state.value.corpsesByPos)) {
     for (let i = stack.length - 1; i >= 0; i--) {
       const corpse = stack[i]
@@ -84,19 +86,19 @@ const myUnitRows = computed(() => {
         id: `dead:${posKey}:${i}`, side,
         base: corpse.base, hpCurrent: 0, name: corpse.base,
         image: BASE_IMAGES[corpse.base], pos: { x: Number(xs), y: Number(ys) }, dead: true,
-      } as any)
+      })
     }
   }
   return [...alive, ...dead]
 })
 
-const enemyUnitRows = computed(() => {
+const enemyUnitRows = computed((): UnitRow[] => {
   const side = enemySide.value
-  const alive = Object.values(state.value.units)
+  const alive: UnitRow[] = Object.values(state.value.units)
     .filter((u) => u.side === side)
     .map(toUnitRow)
     .sort((a, b) => a.id.localeCompare(b.id))
-  const dead: ReturnType<typeof toUnitRow>[] = []
+  const dead: UnitRow[] = []
   for (const [posKey, stack] of Object.entries(state.value.corpsesByPos)) {
     for (let i = stack.length - 1; i >= 0; i--) {
       const corpse = stack[i]
@@ -106,7 +108,7 @@ const enemyUnitRows = computed(() => {
         id: `dead:${posKey}:${i}`, side,
         base: corpse.base, hpCurrent: 0, name: corpse.base,
         image: BASE_IMAGES[corpse.base], pos: { x: Number(xs), y: Number(ys) }, dead: true,
-      } as any)
+      })
     }
   }
   return [...alive, ...dead]
@@ -215,7 +217,7 @@ function showEnemyGraveTopDetail() {
     detail: buildSoulDetail(c),
     actionLabel: guard.ok ? `盜取 (${cost}G)` : null,
     actionDisabled: !guard.ok,
-    actionTitle: guard.ok ? '' : ((guard as any).reason ?? ''),
+    actionTitle: guard.ok ? '' : guard.reason,
   })
 }
 

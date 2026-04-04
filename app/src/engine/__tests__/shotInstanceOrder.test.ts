@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { executeShotPlan } from '../shotPlan'
 import { createInitialState, type GameState } from '..'
+import type { ShotPlan } from '../effects'
+import type { DamageDealtEvent } from '../events'
 
 function cloneState(s: GameState): GameState {
   return JSON.parse(JSON.stringify(s))
@@ -14,7 +16,7 @@ function setUnitPos(s: GameState, unitId: string, x: number, y: number) {
 
 describe('shot instance execution order', () => {
   test('instances are executed in deterministic kind priority order', () => {
-    const s = createInitialState({ rules: { diceFixed: 1 } as any })
+    const s = createInitialState({ rules: { diceFixed: 1 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -50,13 +52,13 @@ describe('shot instance execution order', () => {
         { kind: 'direct', sourceUnitId: attackerId, targetUnitId: tDirect, fixedDamage: 1 },
       ],
       abilityUses: [],
-    } as any
+    } as ShotPlan
 
     const exec = executeShotPlan(cloneState(s), plan)
     expect(exec.ok).toBe(true)
     if (!exec.ok) return
 
-    const damageEvents = exec.events.filter((e) => e.type === 'DAMAGE_DEALT') as any[]
+    const damageEvents = exec.events.filter((e): e is DamageDealtEvent => e.type === 'DAMAGE_DEALT')
 
     const firstFourTargets = damageEvents
       .map((e) => e.targetUnitId)

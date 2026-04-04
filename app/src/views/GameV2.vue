@@ -41,7 +41,7 @@ const state = ref<GameState>(
         enabledClans: setup.enabledClans,
         rngMode: 'seeded',
         matchSeed: String(setup.matchSeed ?? 'default'),
-      } as any,
+      },
     })
 )
 

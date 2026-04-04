@@ -78,7 +78,7 @@ export const useConnection = defineStore('connection', {
 
       const safeClans = enabledClans.filter(c => ALL_CLANS.includes(c))
       const initial = createInitialState({
-        rules: { firstSide, enabledClans: safeClans.length ? safeClans : ALL_CLANS } as any,
+        rules: { firstSide, enabledClans: safeClans.length ? safeClans : ALL_CLANS },
       })
       this.gameState    = initial
       this.localVersion = 0

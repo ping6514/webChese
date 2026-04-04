@@ -14,8 +14,8 @@ function setUnitPos(s: GameState, unitId: string, x: number, y: number) {
 
 describe('rng mode', () => {
   test('seeded mode: initial decks/displays and first combat dice are reproducible for same matchSeed', () => {
-    const s1 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'm1' } as any })
-    const s2 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'm1' } as any })
+    const s1 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'm1' } })
+    const s2 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'm1' } })
 
     expect(s1.displayByBase).toEqual(s2.displayByBase)
     expect(s1.itemDisplay).toEqual(s2.itemDisplay)
@@ -50,16 +50,16 @@ describe('rng mode', () => {
     expect(e2.ok).toBe(true)
     if (!e1.ok || !e2.ok) return
 
-    const d1 = e1.events.find((e) => e.type === 'DICE_ROLLED') as any
-    const d2 = e2.events.find((e) => e.type === 'DICE_ROLLED') as any
-    expect(d1.value).toBe(d2.value)
+    const d1 = e1.events.find((e) => e.type === 'DICE_ROLLED')
+    const d2 = e2.events.find((e) => e.type === 'DICE_ROLLED')
+    expect(d1?.type === 'DICE_ROLLED' ? d1.value : undefined).toBe(d2?.type === 'DICE_ROLLED' ? d2.value : undefined)
 
     expect(e1.state.rngState).not.toBeNull()
     expect(e2.state.rngState).not.toBeNull()
   })
 
   test('fixed mode: rngState stays null', () => {
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     expect(s.rngState).toBeNull()
 
     s.turn.phase = 'combat'

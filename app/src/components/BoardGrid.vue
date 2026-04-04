@@ -309,7 +309,7 @@ export default defineComponent({
 
       const res = canMove(props.state, u.id, { x, y })
       if (res.ok === true) return ''
-      return (res as any).reason ?? (res as any).error ?? ''
+      return res.reason
     }
 
     function enchantDragUnitReason(unitId: string): string {
@@ -322,7 +322,7 @@ export default defineComponent({
 
       const g = canEnchant(props.state, unitId, soulId)
       if (g.ok) return 'Drop to enchant'
-      return (g as any).reason ?? (g as any).error ?? ''
+      return g.reason
     }
 
     function cellClass(x: number, y: number): Record<string, boolean> {

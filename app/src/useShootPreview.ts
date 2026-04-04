@@ -1,6 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { buildShotPreview, canDispatch, getSoulCard, getDefValueInState, type GuardResult, type GameState, type PieceBase } from './engine'
+import { findAbility } from './engine/abilityTypes'
 import { useUiStore } from './stores/ui'
 
 type UnitPreview = {
@@ -59,7 +60,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
 
   function translateGuard(g: GuardResult): GuardResult {
     if (g.ok) return g
-    return { ok: false as const, reason: translateGuardReason((g as any).reason ?? '') }
+    return { ok: false as const, reason: translateGuardReason(g.reason) }
   }
 
   function openShootPreview(attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null) {
@@ -118,20 +119,20 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     if (!u?.enchant?.soulId) return null
     const card = getSoulCard(u.enchant.soulId)
     if (!card) return null
-    const ab = card.abilities.find((a) => a.type === 'BLOOD_SACRIFICE')
+    const ab = findAbility(card.abilities, 'BLOOD_SACRIFICE')
     if (!ab) return null
-    const hpCost = Number((ab as any).hpCost ?? 1)
+    const hpCost = ab.hpCost
     const king = Object.values(s.units).find((unit) => unit.side === s.turn.side && unit.base === 'king')
     if (!king || king.hpCurrent <= hpCost) return null
-    const onActivate = (ab as any).onActivate as Record<string, unknown> | undefined
-    if (!onActivate) return null
+    const onActivate = ab.onActivate
+    const damageAmount = onActivate.type === 'DAMAGE_BONUS' ? onActivate.amount : '?'
     const typeMap: Record<string, string> = {
       PIERCE: '貫穿', CHAIN: '連鎖', IGNORE_BLOCKING: '無視阻擋',
-      DAMAGE_BONUS: `傷害+${(onActivate as any).amount ?? '?'}`,
+      DAMAGE_BONUS: `傷害+${damageAmount}`,
       MOVE_THEN_SHOOT: '移動後射',
     }
-    const label = typeMap[String(onActivate.type ?? '')] ?? String(onActivate.type ?? '')
-    return { onActivateType: String(onActivate.type ?? ''), label, hpCost }
+    const label = typeMap[onActivate.type] ?? onActivate.type
+    return { onActivateType: onActivate.type, label, hpCost }
   })
 
   const goldForDamageInfo = computed<{ goldCost: number; damageBonus: number } | null>(() => {
@@ -142,9 +143,9 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     const card = getSoulCard(u.enchant.soulId)
     if (!card) return null
     const ab = card.abilities.find((a) => a.type === 'GOLD_FOR_DAMAGE')
-    if (!ab) return null
-    const goldCost = Number((ab as any).goldCost ?? 0)
-    const damageBonus = Number((ab as any).damageBonus ?? 0)
+    if (!ab || ab.type !== 'GOLD_FOR_DAMAGE') return null
+    const goldCost = Number(ab.goldCost)
+    const damageBonus = Number(ab.damageBonus)
     if (s.resources[u.side].gold < goldCost) return null
     return { goldCost, damageBonus }
   })
@@ -186,9 +187,9 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       false,
     )
     if (!res.ok) return null
-    const pierce = (res.effects ?? []).find((e) => e.kind === 'PIERCE') as any
-    if (!pierce) return null
-    const count = Array.isArray(pierce.targetUnitIds) ? pierce.targetUnitIds.length : 0
+    const pierce = (res.effects ?? []).find((e) => e.kind === 'PIERCE')
+    if (!pierce || pierce.kind !== 'PIERCE') return null
+    const count = pierce.targetUnitIds.length
     return count > 0 ? { targetCount: count } : null
   })
 

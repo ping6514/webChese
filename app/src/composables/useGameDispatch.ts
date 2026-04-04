@@ -2,6 +2,7 @@ import { ref, watch, nextTick } from 'vue'
 import type { Ref } from 'vue'
 import { reduce } from '../engine'
 import type { GameState } from '../engine'
+import type { Event } from '../engine/events'
 import { getSoulCard } from '../engine/cards'
 import type { useGameEffects } from './useGameEffects'
 import type { useGameSetup } from '../stores/gameSetup'
@@ -23,19 +24,19 @@ function unitLabel(unit: { side: string; base: string } | undefined | null, fall
 }
 
 function eventToText(
-  e: Record<string, unknown>,
+  e: Event,
   getState: () => GameState,
   getPrevState?: () => GameState | undefined,
 ): string {
-  const s = (side: unknown) => side === 'red' ? '🔴紅' : '⚫黑'
+  const s = (side: string | undefined) => side === 'red' ? '🔴紅' : '⚫黑'
   const findUnit = (unitId: string) => {
-    const u = (getState().units as any)[unitId]
+    const u = getState().units[unitId]
     if (u) return u
-    return getPrevState ? (getPrevState()?.units as any)?.[unitId] ?? null : null
+    return getPrevState ? getPrevState()?.units[unitId] ?? null : null
   }
   switch (e.type) {
     case 'PHASE_CHANGED': {
-      const to = e.to as string
+      const to = e.to
       if (to === 'buy' || to === 'necro' || to === 'combat')
         return `── ${s(e.side)}方 ${PHASE_LABELS[to] ?? to}階段 ──`
       if (to === 'turnStart') return `──────── 換手 ────────`
@@ -44,30 +45,29 @@ function eventToText(
     case 'SOUL_BOUGHT':
       return `${s(e.side)}方 購買靈魂「${e.soulName}」(${e.base}) [${e.source === 'deck' ? '盲抽' : e.source === 'display' ? '展示' : '盜取'}]`
     case 'ENCHANTED': {
-      const unit = findUnit(e.unitId as string)
-      const soulName = getSoulCard(e.soulId as string)?.name ?? String(e.soulId)
-      return `${s(unit?.side)}方 附魔 ${unitLabel(unit, String(e.unitId))} ← 「${soulName}」`
+      const unit = findUnit(e.unitId)
+      const soulName = getSoulCard(e.soulId)?.name ?? e.soulId
+      return `${s(unit?.side)}方 附魔 ${unitLabel(unit, e.unitId)} ← 「${soulName}」`
     }
     case 'REVIVED': {
-      const unit = findUnit(e.unitId as string)
-      const pos = e.pos as any
-      return `${s(unit?.side ?? (e.unitId as string).split(':')[0])}方 復活 ${unitLabel(unit, String(e.unitId))} @ (${pos?.x},${pos?.y})`
+      const unit = findUnit(e.unitId)
+      return `${s(unit?.side ?? e.unitId.split(':')[0])}方 復活 ${unitLabel(unit, e.unitId)} @ (${e.pos.x},${e.pos.y})`
     }
     case 'UNIT_MOVED': {
-      const unit = findUnit(e.unitId as string)
-      return `${unitLabel(unit, String(e.unitId))} 移動 (${(e.from as any)?.x},${(e.from as any)?.y})→(${(e.to as any)?.x},${(e.to as any)?.y})`
+      const unit = findUnit(e.unitId)
+      return `${unitLabel(unit, e.unitId)} 移動 (${e.from.x},${e.from.y})→(${e.to.x},${e.to.y})`
     }
     case 'SHOT_FIRED': {
-      const atk = findUnit(e.attackerId as string)
-      const tgt = findUnit(e.targetUnitId as string)
-      return `${unitLabel(atk, String(e.attackerId))} 射擊 ${unitLabel(tgt, String(e.targetUnitId))}`
+      const atk = findUnit(e.attackerId)
+      const tgt = findUnit(e.targetUnitId)
+      return `${unitLabel(atk, e.attackerId)} 射擊 ${unitLabel(tgt, e.targetUnitId)}`
     }
     case 'DAMAGE_DEALT': {
-      const atkUnit = findUnit(e.attackerId as string)
-      const tgtUnit = findUnit(e.targetUnitId as string)
-      const atkName = unitLabel(atkUnit, String(e.attackerId ?? '?'))
-      const tgtName = unitLabel(tgtUnit, String(e.targetUnitId ?? '?'))
-      const bd = (e as any).breakdown as Array<{ label: string; amount: number }> | undefined
+      const atkUnit = findUnit(e.attackerId)
+      const tgtUnit = findUnit(e.targetUnitId)
+      const atkName = unitLabel(atkUnit, e.attackerId)
+      const tgtName = unitLabel(tgtUnit, e.targetUnitId)
+      const bd = e.breakdown
       if (bd?.length) {
         const formula = bd.map((b) => (b.amount > 0 ? `+${b.amount}${b.label}` : `${b.amount}${b.label}`)).join(' ')
         return `⚔ ${atkName} → ${tgtName}：${formula} = ${e.amount}`
@@ -75,13 +75,13 @@ function eventToText(
       return `⚔ ${atkName} → ${tgtName}：${e.amount} 傷`
     }
     case 'UNIT_HP_CHANGED': {
-      const unit = findUnit(e.unitId as string)
-      const delta = (e.to as number) - (e.from as number)
-      return `${unitLabel(unit, String(e.unitId))} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`
+      const unit = findUnit(e.unitId)
+      const delta = e.to - e.from
+      return `${unitLabel(unit, e.unitId)} HP ${delta > 0 ? '+' : ''}${delta}（${e.from}→${e.to}）`
     }
     case 'UNIT_KILLED': {
-      const unit = findUnit(e.unitId as string)
-      return `💀 ${unitLabel(unit, String(e.unitId))} 陣亡`
+      const unit = findUnit(e.unitId)
+      return `💀 ${unitLabel(unit, e.unitId)} 陣亡`
     }
     case 'ABILITY_TRIGGERED':
       return `⚡ ${e.text ?? e.abilityType ?? e.unitId}`
@@ -106,11 +106,11 @@ export function useGameDispatch(opts: {
   const lastEvents = ref<string[]>([])
   const onlineWaiting = ref(false)
 
-  function toText(e: Record<string, unknown>, prevState?: GameState): string {
+  function toText(e: Event, prevState?: GameState): string {
     return eventToText(e, () => state.value, prevState ? () => prevState : undefined)
   }
 
-  function processEvents(events: unknown[], nextState: GameState, prevState?: GameState) {
+  function processEvents(events: Event[], nextState: GameState, prevState?: GameState) {
     processEventFx(events, nextState, prevState)
   }
 
@@ -121,9 +121,9 @@ export function useGameDispatch(opts: {
       if (!gs || setup.mode !== 'online') return
       state.value = gs
       if (conn.pollEvents.length > 0) {
-        const evts = conn.pollEvents as Record<string, unknown>[]
+        const evts = conn.pollEvents as Event[]
         conn.pollEvents = []  // clear before processing to prevent re-play if watch fires again
-        processEvents(evts as unknown[], state.value, undefined)
+        processEvents(evts, state.value, undefined)
         const lines = evts.map((e) => toText(e)).filter(Boolean)
         lastEvents.value = [...lastEvents.value, ...lines].slice(-300)
       }
@@ -133,8 +133,8 @@ export function useGameDispatch(opts: {
 
   async function dispatchOnline(action: Parameters<typeof reduce>[1]) {
     if (onlineWaiting.value || conn.isSyncing || conn.isSendingAction) return
-    const onlineAction = { ...(action as any), expectedVersion: conn.localVersion } as Parameters<typeof reduce>[1]
-    const isSurrender = (action as any)?.type === 'SURRENDER'
+    const onlineAction = { ...action, expectedVersion: conn.localVersion } as unknown as Parameters<typeof reduce>[1]
+    const isSurrender = action.type === 'SURRENDER'
     if (!isSurrender && conn.side !== state.value.turn.side) {
       lastError.value = '現在是對手的回合'
       return
@@ -145,7 +145,7 @@ export function useGameDispatch(opts: {
     onlineWaiting.value = false
     if (!result.ok) {
       // sendAction already called _fetchState() on failure; no extra resync needed
-      if ((result as any).code === 'VERSION_MISMATCH') {
+      if (result.code === 'VERSION_MISMATCH') {
         lastError.value = '狀態已過期，正在重新同步最新戰局…'
       } else {
         lastError.value = result.error ?? '操作失敗，已重新同步'
@@ -154,10 +154,11 @@ export function useGameDispatch(opts: {
     }
     lastError.value = null
     if (conn.gameState) state.value = conn.gameState
-    processEvents(conn.lastEvents as unknown[], state.value, prevState)
+    const lastEvts = conn.lastEvents as Event[]
+    processEvents(lastEvts, state.value, prevState)
     lastEvents.value = [
       ...lastEvents.value,
-      ...(conn.lastEvents as Record<string, unknown>[]).map((e) => toText(e, prevState)).filter(Boolean),
+      ...lastEvts.map((e) => toText(e, prevState)).filter(Boolean),
     ].slice(-300)
   }
 
@@ -183,8 +184,8 @@ export function useGameDispatch(opts: {
     lastError.value = null
     state.value = res.state
 
-    processEvents(res.events as unknown[], res.state, prevState)
-    lastEvents.value = [...lastEvents.value, ...(res.events as Record<string, unknown>[]).map((e) => toText(e, prevState)).filter(Boolean)].slice(-300)
+    processEvents(res.events, res.state, prevState)
+    lastEvents.value = [...lastEvents.value, ...res.events.map((e) => toText(e, prevState)).filter(Boolean)].slice(-300)
   }
 
   return { dispatch, lastError, lastEvents, onlineWaiting }

@@ -1,5 +1,5 @@
 import { describe, it } from 'vitest'
-import type { Side } from '../engine'
+import type { Side, GameState } from '../engine'
 import { listSoulCards, getSoulCard } from '../engine'
 import { decideActions, type BotContext } from './balanceBot'
 import { runMatch } from './balanceRunner'
@@ -92,7 +92,7 @@ describe('sim: balance report + history', () => {
 
       const keyEvents: MatchHistory['keyEvents'] = []
 
-      const stepper = (state: any, side: Side) => {
+      const stepper = (state: GameState, side: Side) => {
         const res = decideActions(state, side, ctxBySide[side])
 
         // 記錄買入與附魔事件（可再擴充其他）

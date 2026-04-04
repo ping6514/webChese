@@ -1,7 +1,7 @@
 import type { Phase, PieceBase, Pos, Side } from './types'
 import { listSoulCards } from './cards'
 import { listItemDeckIds } from './items'
-import { DEFAULT_CONFIG, type GameConfig, type GameRules } from './gameConfig'
+import { DEFAULT_CONFIG, type GameConfig, type GameRules, type GameLimits, type PhaseActionLimits } from './gameConfig'
 import { createRngState, shuffle, type RngState } from '../serverSim'
 
 export type StatKey = string
@@ -179,7 +179,13 @@ function makeUnitsForSide(side: Side): Unit[] {
   return units
 }
 
-export function createInitialState(config?: Partial<GameConfig>): GameState {
+export type InitialStateConfig = {
+  limits?: Partial<GameLimits>
+  rules?: Partial<GameRules>
+  phaseActionLimits?: Partial<PhaseActionLimits>
+}
+
+export function createInitialState(config?: InitialStateConfig): GameState {
   const unitsArr = [...makeUnitsForSide('red'), ...makeUnitsForSide('black')]
   const units: Record<string, Unit> = Object.fromEntries(unitsArr.map((u) => [u.id, u]))
 

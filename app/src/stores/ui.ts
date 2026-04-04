@@ -133,7 +133,7 @@ export const useUiStore = defineStore('ui', {
     },
 
     startSacrificeSelectTarget: function (sourceUnitId: string, range?: number) {
-      const r = Number.isFinite(range as any) ? Math.max(0, Math.floor(range as number)) : 1
+      const r = Number.isFinite(range) ? Math.max(0, Math.floor(range!)) : 1
       this.interactionMode = { kind: 'sacrifice_select_target', sourceUnitId, range: r }
     },
 

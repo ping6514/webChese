@@ -1,6 +1,7 @@
 import type { GameState, Unit } from './state'
 import { BASE_STATS } from './state'
 import { getSoulCard, findAbility } from './cards'
+import type { SoulAbility, DefBonus } from './abilityTypes'
 import { getItemCard } from './items'
 import { countCorpses } from './corpses'
 import { countSoldiers } from './corpses'
@@ -58,54 +59,56 @@ function auraWhenOk(state: GameState, auraUnit: Unit, when: any, clanFallback: s
   return true
 }
 
-function getAuraStatBonusAtkAmountForKey(ab: any, unitAtkKey: string): number {
-  const raw = ab?.bonus?.atk
+type AuraStatBonusAb = Extract<SoulAbility, { type: 'AURA_STAT_BONUS' }>
+
+function getAuraStatBonusAtkAmountForKey(ab: AuraStatBonusAb, unitAtkKey: string): number {
+  const raw = ab.bonus.atk
   if (typeof raw === 'number') {
     return Number.isFinite(raw) ? Math.floor(raw) : 0
   }
-  if (!raw || typeof raw !== 'object') return 0
-  const atkKey = String((raw as any)?.key ?? '')
+  if (!raw) return 0
+  const atkKey = raw.key
   if (atkKey && atkKey !== unitAtkKey) return 0
-  const amount = Number((raw as any)?.value ?? 0)
-  return Number.isFinite(amount) ? Math.floor(amount) : 0
+  return Number.isFinite(raw.value) ? Math.floor(raw.value) : 0
 }
 
-function getAuraStatBonusDefAmounts(ab: any): { phys: number; magic: number } {
-  const raw = ab?.bonus?.def
+function getAuraStatBonusDefAmounts(ab: AuraStatBonusAb): { phys: number; magic: number } {
+  const raw = ab.bonus.def
   if (typeof raw === 'number') {
     const v = Number.isFinite(raw) ? Math.floor(raw) : 0
     return { phys: v, magic: v }
   }
-  if (!raw || typeof raw !== 'object') return { phys: 0, magic: 0 }
-  const phys = Number((raw as any).phys ?? 0)
-  const magic = Number((raw as any).magic ?? 0)
+  if (!raw) return { phys: 0, magic: 0 }
+  // DefBonus[] — find phys and magic entries by key
+  const physEntry = raw.find((d) => d.key === 'phys')
+  const magicEntry = raw.find((d) => d.key === 'magic')
   return {
-    phys: Number.isFinite(phys) ? Math.floor(phys) : 0,
-    magic: Number.isFinite(magic) ? Math.floor(magic) : 0,
+    phys: physEntry && Number.isFinite(physEntry.value) ? Math.floor(physEntry.value) : 0,
+    magic: magicEntry && Number.isFinite(magicEntry.value) ? Math.floor(magicEntry.value) : 0,
   }
 }
 
-function getDefBonusAmountByKey(raw: any, key: string): number {
+function getDefBonusAmountByKey(raw: DefBonus[] | Record<string, number | undefined> | number | null | undefined, key: string): number {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? Math.floor(raw) : 0
+  if (!raw) return 0
   if (Array.isArray(raw)) {
-    const found = raw.find((x: any) => String(x?.key ?? '') === key)
-    const value = Number(found?.value ?? 0)
-    return Number.isFinite(value) ? Math.floor(value) : 0
+    const found = raw.find((x) => x.key === key)
+    return found && Number.isFinite(found.value) ? Math.floor(found.value) : 0
   }
-  if (!raw || typeof raw !== 'object') return 0
-  const value = Number(raw[key] ?? 0)
-  return Number.isFinite(value) ? Math.floor(value) : 0
+  const value = raw[key] ?? 0
+  return Number.isFinite(value) ? Math.floor(value as number) : 0
 }
 
-function getDefBonusPair(raw: any): { phys: number; magic: number } {
+function getDefBonusPair(raw: DefBonus[] | Record<string, number | undefined> | number | null | undefined): { phys: number; magic: number } {
   return {
     phys: getDefBonusAmountByKey(raw, 'phys'),
     magic: getDefBonusAmountByKey(raw, 'magic'),
   }
 }
 
-function auraForKeysOk(targetUnit: Unit, ab: any): boolean {
-  const forRaw = ab?.for
-  const forKeys = Array.isArray(forRaw) ? (forRaw.map((x: any) => String(x ?? '')).filter(Boolean)) : [String(forRaw ?? '')].filter(Boolean)
+function auraForKeysOk(targetUnit: Unit, ab: { for?: string | string[]; clan?: string; excludeBase?: string }): boolean {
+  const forRaw = ab.for
+  const forKeys = Array.isArray(forRaw) ? forRaw.filter(Boolean) : [forRaw ?? ''].filter(Boolean)
   if (forKeys.length === 0) return false
 
   for (const forKey of forKeys) {

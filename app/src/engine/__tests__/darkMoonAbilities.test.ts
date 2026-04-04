@@ -21,7 +21,7 @@ function enchantUnit(s: GameState, unitId: string, soulId: string) {
 
 describe('dark moon missing abilities', () => {
   test('IGNORE_PATH_BLOCKING(for MOVE) allows knight to move even if leg is blocked', () => {
-    const base = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const base = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     base.turn.phase = 'combat'
     base.turn.side = 'red'
 
@@ -42,7 +42,7 @@ describe('dark moon missing abilities', () => {
   })
 
   test('EXTRA_SHOT allows one extra shot per turn after crossing river (perTurn=1)', () => {
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
     s.resources.red.mana = 999
@@ -66,24 +66,28 @@ describe('dark moon missing abilities', () => {
     // First shot
     const p1 = buildShotPlan(s, redKnightId, blackSoldierId)
     expect(p1.ok).toBe(true)
-    const e1 = executeShotPlan(s, (p1 as any).plan)
+    if (!p1.ok) return
+    const e1 = executeShotPlan(s, p1.plan)
     expect(e1.ok).toBe(true)
+    if (!e1.ok) return
 
     // Second shot should still be allowed due to EXTRA_SHOT
-    const after1 = (e1 as any).state as GameState
+    const after1 = e1.state
     const p2 = buildShotPlan(after1, redKnightId, blackSoldierId)
     expect(p2.ok).toBe(true)
-    const e2 = executeShotPlan(after1, (p2 as any).plan)
+    if (!p2.ok) return
+    const e2 = executeShotPlan(after1, p2.plan)
     expect(e2.ok).toBe(true)
+    if (!e2.ok) return
 
     // Third shot should fail
-    const after2 = (e2 as any).state as GameState
+    const after2 = e2.state
     const p3 = buildShotPlan(after2, redKnightId, blackSoldierId)
     expect(p3.ok).toBe(false)
   })
 
   test('COUNTER_ON_KING_DAMAGED damages attacker when king takes damage', () => {
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -110,16 +114,18 @@ describe('dark moon missing abilities', () => {
 
     const plan = buildShotPlan(s, redRookId, blackKingId)
     expect(plan.ok).toBe(true)
-    const res = executeShotPlan(s, (plan as any).plan)
+    if (!plan.ok) return
+    const res = executeShotPlan(s, plan.plan)
     expect(res.ok).toBe(true)
+    if (!res.ok) return
 
-    const after = (res as any).state as GameState
+    const after = res.state
     const attackerHp1 = after.units[redRookId]?.hpCurrent ?? 0
     expect(attackerHp1).toBeLessThan(attackerHp0)
   })
 
   test('COUNTER damages attacker when yingji itself takes damage (targets include SELF)', () => {
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -142,18 +148,18 @@ describe('dark moon missing abilities', () => {
     const plan = buildShotPlan(s, redRookId, blackAdvisorId)
     expect(plan.ok).toBe(true)
     if (!plan.ok) return
-    const res = executeShotPlan(s, (plan as any).plan)
+    const res = executeShotPlan(s, plan.plan)
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
-    const after = (res as any).state as GameState
+    const after = res.state
     const attackerHp1 = after.units[redRookId]?.hpCurrent ?? 0
     expect(after.units[blackAdvisorId]?.hpCurrent).toBe(s.units[blackAdvisorId]!.hpCurrent)
     expect(attackerHp1).toBe(attackerHp0)
   })
 
   test('yingji reduces the first damage taken each turn by 3, then takes normal damage on the second hit', () => {
-    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -205,7 +211,7 @@ describe('dark moon missing abilities', () => {
   })
 
   test('AURA_DAMAGE_BONUS adds +1 to cross-river unit damage when resonance is active', () => {
-    const s = createInitialState({ rules: { diceFixed: 3 } as any })
+    const s = createInitialState({ rules: { diceFixed: 3 } })
     s.turn.phase = 'combat'
     s.turn.side = 'red'
 
@@ -240,9 +246,10 @@ describe('dark moon missing abilities', () => {
 
     const preview = buildShotPreview(s, redRookId, blackSoldierId)
     expect(preview.ok).toBe(true)
+    if (!preview.ok) return
 
     // Baseline damage without aura would be: diceFixed(3) + atk(2) - def(0) = 5
     // With yueji AURA_DAMAGE_BONUS +2 (amount=2, resonance need=3 with 4 dark_moon units): 7
-    expect((preview as any).rawDamage).toBe(7)
+    expect(preview.rawDamage).toBe(7)
   })
 })

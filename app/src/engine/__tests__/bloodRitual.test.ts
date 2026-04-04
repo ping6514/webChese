@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, reduce } from '../index'
+import { createInitialState, reduce, type GameState } from '../index'
+import type { Phase } from '../types'
 
-function setPhase(s: ReturnType<typeof createInitialState>, phase: any) {
+function setPhase(s: ReturnType<typeof createInitialState>, phase: Phase): GameState {
   return { ...s, turn: { ...s.turn, phase } }
 }
 

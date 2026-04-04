@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import type { GameState, DamageBreakdownItem, IncomeReportItem } from '../engine'
+import type { Event } from '../engine/events'
 import { getSoulCard } from '../engine'
 import { getItemCard } from '../engine/items'
 import type { ItemCard } from '../engine/items'
@@ -90,16 +91,15 @@ export function useGameEffects() {
     }, ms)
   }
 
-  function processEventFx(events: unknown[], nextState: GameState, prevState?: GameState) {
+  function processEventFx(events: Event[], nextState: GameState, prevState?: GameState) {
     for (const e of events) {
-      const type = (e as any).type
 
-      if (type === 'ITEM_USED') {
-        const itemId = String((e as any).itemId ?? '')
-        const itemName = String((e as any).itemName ?? '')
-        const usedSide = String((e as any).side ?? nextState.turn.side)
-        const targetUnitId = String((e as any).targetUnitId ?? '')
-        const targetPosKey = String((e as any).targetPosKey ?? '')
+      if (e.type === 'ITEM_USED') {
+        const itemId = e.itemId
+        const itemName = e.itemName
+        const usedSide = e.side
+        const targetUnitId = e.targetUnitId ?? ''
+        const targetPosKey = ''
         const king = Object.values(nextState.units).find((u) => u.side === usedSide && u.base === 'king')
         if (king && itemName) {
           addFloatText(`${king.pos.x},${king.pos.y}`, itemName, 'heal', FX_ITEM_FLOAT_MS)
@@ -150,9 +150,9 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'ABILITY_TRIGGERED') {
-        const unitId = String((e as any).unitId ?? '')
-        const text = String((e as any).text ?? (e as any).abilityType ?? '')
+      if (e.type === 'ABILITY_TRIGGERED') {
+        const unitId = e.unitId
+        const text = e.text ?? e.abilityType
         const u = unitId ? nextState.units[unitId] : null
         if (u && text) {
           addUnitIdFx(fxAbilityUnitIds, unitId, FX_ABILITY_MS)
@@ -160,9 +160,9 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'SHOT_FIRED') {
-        const attackerId = String((e as any).attackerId ?? '')
-        const targetId = String((e as any).targetUnitId ?? '')
+      if (e.type === 'SHOT_FIRED') {
+        const attackerId = e.attackerId
+        const targetId = e.targetUnitId
         const attacker = attackerId ? nextState.units[attackerId] : null
         // Try nextState first, then prevState (in case target was killed)
         const target = targetId ? (nextState.units[targetId] || prevState?.units[targetId]) : null
@@ -178,10 +178,10 @@ export function useGameEffects() {
         if (targetId) addUnitIdFx(fxHitUnitIds, targetId, FX_HIT_MS)
       }
 
-      if (type === 'DAMAGE_DEALT') {
-        const attackerId = String((e as any).attackerId ?? '')
-        const targetId = String((e as any).targetUnitId ?? '')
-        const amount = Number((e as any).amount ?? 0)
+      if (e.type === 'DAMAGE_DEALT') {
+        const attackerId = e.attackerId
+        const targetId = e.targetUnitId
+        const amount = e.amount
         if (attackerId) addUnitIdFx(fxAttackUnitIds, attackerId, FX_ATTACK_MS)
         if (targetId) addUnitIdFx(fxHitUnitIds, targetId, FX_HIT_MS)
         const u = targetId ? nextState.units[targetId] : null
@@ -189,7 +189,7 @@ export function useGameEffects() {
           addFloatText(`${u.pos.x},${u.pos.y}`, amount > 0 ? `-${amount}` : `${amount}`, 'damage', FX_FLOAT_MS)
         }
         // Toast：只有含 breakdown 的主目標事件才顯示
-        const breakdown = (e as any).breakdown
+        const breakdown = e.breakdown
         if (Array.isArray(breakdown) && breakdown.length > 0 && amount > 0) {
           const toastId = `${Date.now()}-${Math.random()}`
           damageToasts.value = [...damageToasts.value, {
@@ -205,10 +205,10 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'UNIT_HP_CHANGED') {
-        const unitId = String((e as any).unitId ?? '')
-        const from = Number((e as any).from ?? 0)
-        const to = Number((e as any).to ?? 0)
+      if (e.type === 'UNIT_HP_CHANGED') {
+        const unitId = e.unitId
+        const from = e.from
+        const to = e.to
         const delta = to - from
         const u = unitId ? nextState.units[unitId] : null
         if (u && Number.isFinite(delta) && delta > 0) {
@@ -216,8 +216,8 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'UNIT_KILLED') {
-        const unitId = String((e as any).unitId ?? '')
+      if (e.type === 'UNIT_KILLED') {
+        const unitId = e.unitId
         if (unitId) {
           addUnitIdFx(fxKilledUnitIds, unitId, FX_KILL_MS)
           const pos = prevState?.units[unitId]?.pos
@@ -225,16 +225,16 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'REVIVED') {
-        const pos = (e as any).pos
+      if (e.type === 'REVIVED') {
+        const pos = e.pos
         if (pos && Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
           addPosKeyFx(fxRevivedPosKeys, `${pos.x},${pos.y}`, FX_REVIVE_MS)
         }
       }
 
-      if (type === 'ENCHANTED') {
-        const unitId = String((e as any).unitId ?? '')
-        const soulId = String((e as any).soulId ?? '')
+      if (e.type === 'ENCHANTED') {
+        const unitId = e.unitId
+        const soulId = e.soulId
         const u = unitId ? nextState.units[unitId] : null
         if (u) addPosKeyFx(fxEnchantedPosKeys, `${u.pos.x},${u.pos.y}`, FX_ENCHANT_MS)
         
@@ -255,9 +255,9 @@ export function useGameEffects() {
         }
       }
 
-      if (type === 'INCOME_REPORT') {
-        const side = (e as any).side as 'red' | 'black'
-        const items = (e as any).items as IncomeReportItem[]
+      if (e.type === 'INCOME_REPORT') {
+        const side = e.side
+        const items = e.items
         const toastId = `${Date.now()}-${Math.random()}`
         incomeToasts.value = [...incomeToasts.value, { id: toastId, side, items }]
         window.setTimeout(() => {

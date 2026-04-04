@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import { createInitialState, reduce, soulCardsById, type GameState } from '..'
+import type { SoulAbility } from '../abilityTypes'
 import { getAtkPanelBreakdownInState, getDefPanelBreakdownInState } from '../stats'
 
 function setUnitPos(s: GameState, unitId: string, x: number, y: number) {
@@ -21,9 +22,9 @@ describe('gold merc new abilities', () => {
 
     const oldAbilities = card.abilities
     try {
-      card.abilities = [{ type: 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD', threshold: 8, amount: 1, perTurn: 1 } as any]
+      card.abilities = [{ type: 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD', scope: 'self', threshold: 8, amount: 1, perTurn: 1 } as SoulAbility]
 
-      const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 6 } as any })
+      const s = createInitialState({ rules: { rngMode: 'fixed', diceFixed: 6 } })
       s.turn.phase = 'combat'
       s.turn.side = 'red'
 
@@ -39,12 +40,12 @@ describe('gold merc new abilities', () => {
         if (u.pos.x === 4 && u.pos.y > 1 && u.pos.y < 4) setUnitPos(s, u.id, 0, 0)
       }
 
-      const res = reduce(s as any, { type: 'SHOOT', attackerId, targetUnitId: targetId })
+      const res = reduce(s as GameState, { type: 'SHOOT', attackerId, targetUnitId: targetId })
       expect(res.ok).toBe(true)
       if (!res.ok) return
 
       expect(res.state.resources.red.gold).toBe(8)
-      expect(res.events.some((e: any) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD')).toBe(true)
+      expect(res.events.some((e) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'FIRST_ATTACK_IF_GOLD_LT_GAIN_GOLD')).toBe(true)
     } finally {
       card.abilities = oldAbilities
     }
@@ -56,7 +57,7 @@ describe('gold merc new abilities', () => {
 
     const oldAbilities = card.abilities
     try {
-      card.abilities = [{ type: 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD', threshold: 7, amount: 1, perTurn: 1 } as any]
+      card.abilities = [{ type: 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD', threshold: 7, amount: 1, perTurn: 1 } as SoulAbility]
 
       const s = createInitialState()
       s.turn.phase = 'buy'
@@ -70,12 +71,12 @@ describe('gold merc new abilities', () => {
       const targetId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'rook')!.id
       s.units[targetId] = { ...s.units[targetId]!, hpCurrent: 1 }
 
-      const res = reduce(s as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_lingxue_holy_grail', targetUnitId: targetId })
+      const res = reduce(s as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_lingxue_holy_grail', targetUnitId: targetId })
       expect(res.ok).toBe(true)
       if (!res.ok) return
 
       expect(res.state.resources.red.gold).toBe(7)
-      expect(res.events.some((e: any) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD')).toBe(true)
+      expect(res.events.some((e) => e.type === 'ABILITY_TRIGGERED' && e.abilityType === 'FIRST_ITEM_USE_IF_GOLD_LT_GAIN_GOLD')).toBe(true)
     } finally {
       card.abilities = oldAbilities
     }
@@ -87,7 +88,7 @@ describe('gold merc new abilities', () => {
 
     const oldAbilities = card.abilities
     try {
-      card.abilities = [{ type: 'ITEM_VALUE_AURA', threshold: 8, scope: 'global', bonus: { def: { phys: 1, magic: 1 } } } as any]
+      card.abilities = [{ type: 'ITEM_VALUE_AURA', threshold: 8, scope: 'global', bonus: { def: { phys: 1, magic: 1 } } } as SoulAbility]
 
       const s = createInitialState()
       const auraId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'elephant')!.id
@@ -95,7 +96,7 @@ describe('gold merc new abilities', () => {
       enchantUnit(s, auraId, 'gold_merc_elephant_shoujin')
       s.hands.red.items = ['item_soul_overload', 'item_bone_refine']
 
-      const panel = getDefPanelBreakdownInState(s as any, targetId)
+      const panel = getDefPanelBreakdownInState(s as GameState, targetId)
       expect(panel.phys.total - panel.phys.base).toBe(1)
       expect(panel.magic.total - panel.magic.base).toBe(1)
     } finally {
@@ -109,7 +110,7 @@ describe('gold merc new abilities', () => {
 
     const oldAbilities = card.abilities
     try {
-      card.abilities = [{ type: 'ITEM_VALUE_AURA', threshold: 8, scope: 'global', bonus: { atk: 1 } } as any]
+      card.abilities = [{ type: 'ITEM_VALUE_AURA', threshold: 8, scope: 'global', bonus: { atk: 1 } } as SoulAbility]
 
       const s = createInitialState()
       const auraId = Object.values(s.units).find((u) => u.side === 'red' && u.base === 'elephant')!.id
@@ -117,7 +118,7 @@ describe('gold merc new abilities', () => {
       enchantUnit(s, auraId, 'gold_merc_elephant_caishi')
       s.hands.red.items = ['item_soul_overload', 'item_bone_refine']
 
-      const panel = getAtkPanelBreakdownInState(s as any, targetId)
+      const panel = getAtkPanelBreakdownInState(s as GameState, targetId)
       expect(panel.total - panel.base).toBe(1)
     } finally {
       card.abilities = oldAbilities

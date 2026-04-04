@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialState, reduce } from '../index'
+import { createInitialState, reduce, type GameState } from '../index'
 import { createRngState, nextU32 } from '../../serverSim'
 
 describe('items: abilities executor (A1)', () => {
@@ -29,7 +29,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_lingxue_holy_grail', targetUnitId: target0.id })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_lingxue_holy_grail', targetUnitId: target0.id })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -58,7 +58,7 @@ describe('items: abilities executor (A1)', () => {
       itemDiscard: [],
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_dark_moon_scope' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_dark_moon_scope' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -98,7 +98,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, {
+    const res = reduce(baseState as GameState, {
       type: 'USE_ITEM_FROM_HAND',
       itemId: 'item_bone_refine',
       targetPos: { x: 0, y: 0 },
@@ -143,7 +143,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, {
+    const res = reduce(baseState as GameState, {
       type: 'USE_ITEM_FROM_HAND',
       itemId: 'item_bone_refine',
       targetPos: { x: 0, y: 0 },
@@ -181,7 +181,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_soul_infusion' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_soul_infusion' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -212,7 +212,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_soul_overload' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_soul_overload' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -255,7 +255,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, {
+    const res = reduce(baseState as GameState, {
       type: 'SHOOT',
       attackerId: attacker0.id,
       targetUnitId: target0.id,
@@ -289,7 +289,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_nether_seal', targetUnitId: target0.id })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_nether_seal', targetUnitId: target0.id })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -318,7 +318,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_last_stand_contract' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_last_stand_contract' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -342,7 +342,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const rBlocked = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
+    const rBlocked = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
     expect(rBlocked.ok).toBe(false)
 
     const okState = {
@@ -353,7 +353,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const rOk = reduce(okState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
+    const rOk = reduce(okState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
     expect(rOk.ok).toBe(true)
     if (!rOk.ok) return
 
@@ -365,7 +365,7 @@ describe('items: abilities executor (A1)', () => {
 
   it('PLUNDER_CAGE_SOUL: item_cage_plunder uses rngState in seeded mode (deterministic)', () => {
     const rng0 = createRngState('seed-plunder-1')
-    const s0 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'seed-plunder-1' } as any })
+    const s0 = createInitialState({ rules: { rngMode: 'seeded', matchSeed: 'seed-plunder-1' } })
     const side = s0.turn.side
     const enemySide = side === 'red' ? 'black' : 'red'
 
@@ -384,7 +384,7 @@ describe('items: abilities executor (A1)', () => {
       rngState: { x: rng0.x },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_cage_plunder' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
@@ -422,7 +422,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, {
+    const res = reduce(baseState as GameState, {
       type: 'USE_ITEM_FROM_HAND',
       itemId: 'item_dead_return_path',
       targetUnitId: target0.id,
@@ -469,7 +469,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, {
+    const res = reduce(baseState as GameState, {
       type: 'USE_ITEM_FROM_HAND',
       itemId: 'item_soul_detach_needle',
       targetUnitId: target0.id,
@@ -504,7 +504,7 @@ describe('items: abilities executor (A1)', () => {
       },
     }
 
-    const res = reduce(baseState as any, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_death_chain' })
+    const res = reduce(baseState as GameState, { type: 'USE_ITEM_FROM_HAND', itemId: 'item_death_chain' })
     expect(res.ok).toBe(true)
     if (!res.ok) return
 
