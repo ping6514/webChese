@@ -422,12 +422,51 @@ function handleSetPending(p: Parameters<typeof setPending>[0]) {
     return
   }
   if (p.action.type === 'MOVE') {
-    // 移動確認走 Pixi panel，避免 DOM modal 與 canvas pointer 事件衝突
     const targetPos = pixiBoardRef.value?.getCellScreenPos(p.action.to.x, p.action.to.y)
     pixiBoardRef.value?.showAttackConfirm({
       title: p.title ?? '確認移動',
       summary: p.detail ?? '',
       confirmLabel: '移動',
+      targetScreenPos: targetPos,
+      onConfirm: () => ctx.dispatch(p.action),
+      onCancel: () => {},
+    })
+    return
+  }
+  if (p.action.type === 'ENCHANT') {
+    const targetUnit = state.value.units[(p.action as { type: 'ENCHANT'; unitId: string; soulId: string }).unitId]
+    const targetPos = targetUnit ? pixiBoardRef.value?.getCellScreenPos(targetUnit.pos.x, targetUnit.pos.y) : undefined
+    pixiBoardRef.value?.showAttackConfirm({
+      title: p.title ?? '確認附魔',
+      summary: p.detail ?? '',
+      confirmLabel: '附魔',
+      targetScreenPos: targetPos,
+      onConfirm: () => ctx.dispatch(p.action),
+      onCancel: () => {},
+    })
+    return
+  }
+  if (p.action.type === 'USE_ITEM_FROM_HAND' && 'targetUnitId' in p.action) {
+    const a = p.action as { type: 'USE_ITEM_FROM_HAND'; itemId: string; targetUnitId: string }
+    const targetUnit = state.value.units[a.targetUnitId]
+    const targetPos = targetUnit ? pixiBoardRef.value?.getCellScreenPos(targetUnit.pos.x, targetUnit.pos.y) : undefined
+    pixiBoardRef.value?.showAttackConfirm({
+      title: p.title ?? '確認使用道具',
+      summary: p.detail ?? '',
+      confirmLabel: '使用',
+      targetScreenPos: targetPos,
+      onConfirm: () => ctx.dispatch(p.action),
+      onCancel: () => {},
+    })
+    return
+  }
+  if (p.action.type === 'REVIVE') {
+    const a = p.action as { type: 'REVIVE'; pos: { x: number; y: number } }
+    const targetPos = pixiBoardRef.value?.getCellScreenPos(a.pos.x, a.pos.y)
+    pixiBoardRef.value?.showAttackConfirm({
+      title: p.title ?? '確認復活',
+      summary: p.detail ?? '',
+      confirmLabel: '復活',
       targetScreenPos: targetPos,
       onConfirm: () => ctx.dispatch(p.action),
       onCancel: () => {},

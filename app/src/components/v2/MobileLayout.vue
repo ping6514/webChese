@@ -103,7 +103,18 @@ function onSoulDragStart(e: DragEvent, soulId: string) {
 function onSoulDragEnd() {
   if (ui.interactionMode.kind === 'enchant_select_unit') ui.clearInteractionMode()
 }
-function returnSoul(soulId: string) { ctx.dispatch({ type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId }) }
+function returnSoul(soulId: string) {
+  const card = getSoulCard(soulId)
+  ui.setPendingConfirm({
+    action: { type: 'RETURN_SOUL_TO_DECK_BOTTOM', soulId },
+    title: '確認歸還',
+    detail: [
+      '確認歸還靈魂卡到棋種牌組下方',
+      card ? `卡片：${card.name}` : `soulId: ${soulId}`,
+      card ? `棋種：${String(card.base)}` : '',
+    ].filter(Boolean).join('\n'),
+  })
+}
 function discardItem(itemId: string) {
   const card = getItemCard(itemId)
   ui.setPendingConfirm({
@@ -468,7 +479,43 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
       </div>
     </div>
   </div>
+
+  <!-- Pending confirm overlay (for returnSoul / discardItem / useItem) -->
+  <Teleport to="body">
+    <div v-if="ui.pendingConfirm" class="mobileConfirmOverlay" @click.self="ui.clearPendingConfirm()">
+      <div class="mobileConfirmPanel">
+        <div class="mobileConfirmTitle">{{ ui.pendingConfirm.title }}</div>
+        <div class="mobileConfirmDetail">{{ ui.pendingConfirm.detail }}</div>
+        <div class="mobileConfirmBtns">
+          <button class="mobileConfirmBtn mobileConfirmOk" @click="() => { const a = ui.pendingConfirm!.action; ui.clearPendingConfirm(); ctx.dispatch(a) }">確認</button>
+          <button class="mobileConfirmBtn mobileConfirmCancel" @click="ui.clearPendingConfirm()">取消</button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
+
+<style>
+.mobileConfirmOverlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+}
+.mobileConfirmPanel {
+  background: #1a1c2e; border: 1px solid #3a3d5e; border-radius: 12px;
+  padding: 20px; width: min(320px, 90vw);
+  display: flex; flex-direction: column; gap: 12px;
+}
+.mobileConfirmTitle { font-size: 1rem; font-weight: 700; color: #fff; }
+.mobileConfirmDetail { font-size: 0.8125rem; color: #8888aa; white-space: pre-line; }
+.mobileConfirmBtns { display: flex; gap: 8px; }
+.mobileConfirmBtn {
+  flex: 1; padding: 10px 0; border-radius: 8px; font-size: 0.875rem;
+  font-weight: 600; cursor: pointer; border: 1px solid;
+}
+.mobileConfirmOk { background: #1a3a1a; border-color: #52c41a; color: #b7eb8f; }
+.mobileConfirmCancel { background: #1e2035; border-color: #3a3d5e; color: #777799; }
+</style>
 
 <style scoped>
 .gameMobile {
