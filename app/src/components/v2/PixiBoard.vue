@@ -72,14 +72,12 @@ function onCanvasPointerMove(e: PointerEvent) {
     isScrollGesture = true
   }
   if (isScrollGesture) {
+    // 無論是否有可捲容器，滑動手勢一律抑制後續點擊
+    if (renderer) renderer.suppressNextClick = true
     const scrollEl = findScrollParent(e.currentTarget as Element)
     if (scrollEl) {
       const delta = gesturePrevY - e.clientY
       scrollEl.scrollTop += delta
-      if (renderer) renderer.suppressNextClick = true
-    } else {
-      // 沒有可捲容器，不要觸發 suppressNextClick
-      isScrollGesture = false
     }
   }
   gesturePrevY = e.clientY

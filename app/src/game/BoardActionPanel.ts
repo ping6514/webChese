@@ -178,9 +178,9 @@ export class BoardActionPanel extends PIXI.Container {
 
   showAttackConfirm(config: AttackConfirmConfig) {
     this._reset()
-    // 確認階段：穿透棋盤（連鎖選擇透過按鈕觸發，不需直接穿透）
-    this.eventMode = 'passive'
-    this.backdrop.eventMode = 'none'
+    // 確認階段：backdrop 攔截棋盤點擊，避免面板下方的格子/棋子誤觸
+    this.eventMode = 'static'
+    this.backdrop.eventMode = 'static'
 
     const hasSummary = !!config.summary
     const hasChain = !!config.onSelectChain
