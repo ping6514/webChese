@@ -37,7 +37,7 @@ let renderer: PixiBoardRenderer | null = null
 let resizeObserver: ResizeObserver | null = null
 
 // 手勢滾動追蹤
-const TAP_THRESHOLD = 10
+const TAP_THRESHOLD = 20
 let gestureStartX = 0
 let gestureStartY = 0
 let gesturePrevY = 0
@@ -70,7 +70,8 @@ function onCanvasPointerMove(e: PointerEvent) {
   }
   const dx = e.clientX - gestureStartX
   const dy = e.clientY - gestureStartY
-  if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx) * 1.5) {
+  // 累積位移須超過閾值，且以垂直方向為主，才判定為滾動手勢
+  if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx) * 2) {
     isScrollGesture = true
   }
   if (isScrollGesture) {
