@@ -557,7 +557,10 @@ defineExpose({ onUseItem })
       >{{ phaseToastText }}</div>
     </Transition>
 
-    <!-- Action status bars -->
+    <!-- Board container — pointer-events disabled when any DOM modal is open -->
+    <div class="boardContainer" :class="{ 'boardBlocked': !!pending || shootDetailsOpen || !!boneRefineChoicePos }">
+
+    <!-- Action status bars (absolute overlay — does not push board) -->
     <div v-if="enchantMode" class="actionBar">
       <span>附魔：選擇目標單位 {{ enchantModeSoulName ? `(${enchantModeSoulName})` : '' }}</span>
       <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
@@ -583,9 +586,6 @@ defineExpose({ onUseItem })
       <button type="button" class="btnSacrifice" @click="selectedUnit && startSacrificeMode(selectedUnit.id, 1)">⚔ 獻祭</button>
       <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
     </div>
-
-    <!-- Board container — pointer-events disabled when any DOM modal is open -->
-    <div class="boardContainer" :class="{ 'boardBlocked': !!pending || shootDetailsOpen || !!boneRefineChoicePos }">
     <div class="boardScaleWrap" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
       <!-- PixiJS Renderer -->
       <PixiBoard
@@ -715,6 +715,11 @@ defineExpose({ onUseItem })
 
 /* ── Action status bar ── */
 .actionBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -722,7 +727,7 @@ defineExpose({ onUseItem })
   background: rgba(20, 22, 40, 0.92);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.8125rem;
-  flex-shrink: 0;
+  pointer-events: auto;
 }
 .actionBar button {
   padding: 3px 10px;
@@ -752,6 +757,7 @@ defineExpose({ onUseItem })
 /* ── Scale bar ── */
 /* ── Board container (centres board horizontally, allows vertical scroll via parent) ── */
 .boardContainer {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: flex-start;
