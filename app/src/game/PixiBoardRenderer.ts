@@ -35,12 +35,7 @@ export class PixiBoardRenderer {
   private canvasWidth: number
   private canvasHeight: number
 
-  private config: BoardConfig = {
-    cellSize: 70,
-    padding: 2,
-    boardOffsetX: 10,
-    boardOffsetY: 20
-  }
+  private config: BoardConfig
   
   public onCellClick?: (x: number, y: number) => void
   public onUnitClick?: (unitId: string) => void
@@ -52,10 +47,17 @@ export class PixiBoardRenderer {
   /** 設為 true 時，下一次 pointerup 觸發的 click 會被忽略（用於滾動手勢後抑制誤點） */
   public suppressNextClick = false
   
-  constructor(canvas: HTMLCanvasElement, width: number, height: number) {
+  constructor(canvas: HTMLCanvasElement, width: number, height: number, cellSize = 70) {
     this.app = new PIXI.Application()
     this.canvasWidth = width
     this.canvasHeight = height
+    const k = cellSize / 70
+    this.config = {
+      cellSize,
+      padding: 2,
+      boardOffsetX: Math.round(10 * k),
+      boardOffsetY: Math.round(20 * k),
+    }
 
     this.app.init({
       canvas,
@@ -326,8 +328,8 @@ export class PixiBoardRenderer {
       this.updateUnit(data.id, data)
       return
     }
-    
-    const unitSprite = new UnitSprite(data)
+
+    const unitSprite = new UnitSprite({ ...data, cellSize: this.config.cellSize })
     const pos = this.getCellPosition(data.side === 'red' ? 0 : BOARD_WIDTH - 1, 0)
     unitSprite.x = pos.x
     unitSprite.y = pos.y
@@ -453,10 +455,10 @@ export class PixiBoardRenderer {
           isSealed
         }
         
-        const unitSprite = new UnitSprite(unitData)
+        const unitSprite = new UnitSprite({ ...unitData, cellSize: this.config.cellSize })
         unitSprite.x = pos.x
         unitSprite.y = pos.y
-        
+
         unitSprite.on('pointerup', () => {
           if (this.suppressNextClick) {
             this.suppressNextClick = false
@@ -507,7 +509,7 @@ export class PixiBoardRenderer {
       if (this.corpseSprites.has(posKey)) {
         this.corpseSprites.get(posKey)!.updateCorpses(corpseData)
       } else {
-        const sprite = new CorpseSprite(corpseData)
+        const sprite = new CorpseSprite(corpseData, this.config.cellSize)
         sprite.x = pos.x
         sprite.y = pos.y
         this.corpseSprites.set(posKey, sprite)

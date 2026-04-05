@@ -288,11 +288,9 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
         <span class="playerHint">ⓘ</span>
         <span v-if="currentSide === 'black'" class="turnBadge">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.black ?? '?' }}</span>
-        <span class="mres mcount">🃏 {{ state.hands.black.souls.length }}</span>
-        <span class="mres mcount">🎒 {{ state.hands.black.items.length }}</span>
-        <span class="mres">💰 <span class="rl">財力</span> {{ res.black.gold }}</span>
-        <span class="mres">🌟 <span class="rl">魔力</span> {{ res.black.mana }}</span>
-        <span class="mres">⚖ <span class="rl">存魔</span> {{ res.black.storageMana }}</span>
+        <span class="mres">💰 {{ res.black.gold }}</span>
+        <span class="mres">🌟 {{ res.black.mana }}</span>
+        <span class="mres">⚖ {{ res.black.storageMana }}</span>
       </button>
       <!-- Row 2: Red -->
       <button class="playerRow playerRowBtn playerRow--red" :class="{ 'playerRow--active': currentSide === 'red' }" :title="playerDetailHint" @click="openPlayerDetail('red')">
@@ -301,11 +299,9 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
         <span class="playerHint">ⓘ</span>
         <span v-if="currentSide === 'red'" class="turnBadge turnBadge--red">▶ 回合</span>
         <span class="mres mrHp">♥ {{ kingHp.red ?? '?' }}</span>
-        <span class="mres mcount">🃏 {{ state.hands.red.souls.length }}</span>
-        <span class="mres mcount">🎒 {{ state.hands.red.items.length }}</span>
-        <span class="mres">💰 <span class="rl">財力</span> {{ res.red.gold }}</span>
-        <span class="mres">🌟 <span class="rl">魔力</span> {{ res.red.mana }}</span>
-        <span class="mres">⚖ <span class="rl">存魔</span> {{ res.red.storageMana }}</span>
+        <span class="mres">💰 {{ res.red.gold }}</span>
+        <span class="mres">🌟 {{ res.red.mana }}</span>
+        <span class="mres">⚖ {{ res.red.storageMana }}</span>
       </button>
       <!-- Row 3: Phase + next + gear -->
       <div class="controlRow">
@@ -522,9 +518,6 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
   font-size: 0.625rem;
   color: rgba(145, 202, 255, 0.72);
 }
-.mcount {
-  opacity: 0.86;
-}
 .playerRow--active {
   background: linear-gradient(90deg, rgba(82, 196, 26, 0.22) 0%, rgba(82, 196, 26, 0.07) 55%, rgba(0,0,0,0) 100%);
   border-left: 3px solid rgba(82, 196, 26, 0.95);
@@ -566,7 +559,6 @@ const UTIL_TABS: TabKey[] = ['panel', 'tools']
   display: flex; align-items: center; gap: 2px; white-space: nowrap;
 }
 .mrHp { font-size: 0.875rem; color: #ff9c9e; font-weight: 700; }
-.rl { font-size: 0.6875rem; opacity: 0.55; }
 
 .controlRow {
   display: flex;

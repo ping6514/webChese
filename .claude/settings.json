@@ -104,7 +104,8 @@
       "Bash(grep '\"\"pixi.js\"\"' package.json)",
       "Bash(grep -B5 -A25 \"case ''SACRIFICE'':\" /Users/pingwu/Desktop/workspace/github/webChese/app/src/engine/reduce.ts)",
       "Bash(wc -l /d/workspace/webChese/app/src/engine/*.ts)",
-      "Bash(node scripts/build-engine.mjs)"
+      "Bash(node scripts/build-engine.mjs)",
+      "Read(//c/Users/battl/AppData/Local/Temp/claude/d--workspace-webChese/ae132e42-84c7-4074-8693-bc750c8455a7/tasks/**)"
     ]
   }
 }

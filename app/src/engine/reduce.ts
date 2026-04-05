@@ -611,7 +611,16 @@ export function reduce(state: GameState, action: Action): ReduceResult {
         },
       }
 
-      return { ok: true, state: nextState, events: [] }
+      return {
+        ok: true,
+        state: nextState,
+        events: [{
+          type: 'ABILITY_TRIGGERED' as const,
+          unitId: king.id,
+          abilityType: 'BLOOD_RITUAL',
+          text: '🩸 血液祭儀',
+        }],
+      }
     }
 
     case 'BUY_ITEM_FROM_DISPLAY': {

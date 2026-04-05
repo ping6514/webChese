@@ -14,6 +14,7 @@ export interface UnitSpriteData {
   enchantName?: string | null
   enchantImage?: string | null
   isSealed?: boolean
+  cellSize?: number
 }
 
 export class UnitSprite extends PIXI.Container {
@@ -26,14 +27,20 @@ export class UnitSprite extends PIXI.Container {
   private enchantBadge?: PIXI.Container
   private sealIcon?: PIXI.Text
   private soulNameText?: PIXI.Text
-  
+  private k: number  // scale factor relative to base cellSize 70
+  private _side!: 'red' | 'black'
+  private _label!: string
+
   constructor(data: UnitSpriteData) {
     super()
-    
+
     this.unitId = data.id
+    this.k = (data.cellSize ?? 70) / 70
+    this._side = data.side
+    this._label = data.label
     this.eventMode = 'static'
     this.cursor = 'pointer'
-    
+
     this.setupBackground(data.side)
     
     // Setup enchant badge first (background layer)
@@ -56,35 +63,34 @@ export class UnitSprite extends PIXI.Container {
   private setupBackground(side: 'red' | 'black') {
     this.background = new PIXI.Graphics()
     const color = side === 'red' ? 0xff4d4f : 0x52c41a
-    
-    this.background.roundRect(-30, -30, 60, 60, 10)
+    const k = this.k
+    this.background.roundRect(-30 * k, -30 * k, 60 * k, 60 * k, 10 * k)
     this.background.fill({ color, alpha: 0.15 })
     this.background.stroke({ width: 2, color, alpha: 0.8 })
-    
     this.addChild(this.background)
   }
-  
+
   private setupLabel(label: string, side: 'red' | 'black', enchantName?: string | null) {
+    const k = this.k
     this.labelText = new PIXI.Text({
       text: label,
       style: {
-        fontSize: 28,
+        fontSize: Math.round(28 * k),
         fontWeight: '900',
         fill: side === 'red' ? 0xffb0b2 : 0xb7eb8f,
-        stroke: { color: 0x000000, width: 3 },
+        stroke: { color: 0x000000, width: Math.max(1, 3 * k) },
         dropShadow: {
           color: 0x000000,
-          blur: 3,
+          blur: 3 * k,
           angle: Math.PI / 4,
-          distance: 2,
+          distance: 2 * k,
         }
       }
     })
     this.labelText.anchor.set(0.5)
-    this.labelText.y = 0  // Keep piece type vertically centered
+    this.labelText.y = 0
     this.addChild(this.labelText)
-    
-    // Add shimmer animation when enchanted - slow fade to invisible
+
     if (enchantName) {
       gsap.to(this.labelText, {
         alpha: 0,
@@ -93,24 +99,23 @@ export class UnitSprite extends PIXI.Container {
         yoyo: true,
         ease: 'sine.inOut'
       })
-      
-      // Add soul name text below piece type - larger with outline
+
       const soulNameText = new PIXI.Text({
         text: enchantName,
         style: {
-          fontSize: 14,
+          fontSize: Math.round(14 * k),
           fontWeight: 'bold',
           fill: 0xffffff,
-          stroke: { color: 0x000000, width: 3 },
+          stroke: { color: 0x000000, width: Math.max(1, 3 * k) },
           dropShadow: {
             color: 0xb37feb,
-            blur: 4,
-            distance: 1
+            blur: 4 * k,
+            distance: 1 * k
           }
         }
       })
       soulNameText.anchor.set(0.5)
-      soulNameText.y = 20  // Near bottom of unit sprite
+      soulNameText.y = 20 * k
       soulNameText.alpha = 0.95
       this.soulNameText = soulNameText
       this.addChild(soulNameText)
@@ -118,51 +123,52 @@ export class UnitSprite extends PIXI.Container {
       this.soulNameText = undefined
     }
   }
-  
+
   private setupHpBar(hp: number, maxHp: number) {
+    const k = this.k
     this.hpBar = new PIXI.Graphics()
     this.hpText = new PIXI.Text({
       text: `${hp}`,
       style: {
-        fontSize: 14,
+        fontSize: Math.round(14 * k),
         fontWeight: 'bold',
         fill: 0xffffff,
-        stroke: { color: 0x1a1a1a, width: 2 }
+        stroke: { color: 0x1a1a1a, width: Math.max(1, 2 * k) }
       }
     })
     this.hpText.anchor.set(0.5)
-    this.hpText.y = -35
-    
+    this.hpText.y = -35 * k
+
     this.updateHpBar(hp, maxHp)
     this.addChild(this.hpBar)
     this.addChild(this.hpText)
   }
-  
+
   updateHpBar(hp: number, maxHp: number) {
     this.hpBar.clear()
-    
-    const barWidth = 50
-    const barHeight = 6
+    const k = this.k
+    const barWidth = 50 * k
+    const barHeight = Math.max(3, 6 * k)
     const x = -barWidth / 2
-    const y = -40
-    
-    this.hpBar.roundRect(x, y, barWidth, barHeight, 4)
+    const y = -40 * k
+
+    this.hpBar.roundRect(x, y, barWidth, barHeight, 4 * k)
     this.hpBar.fill({ color: 0x000000, alpha: 0.4 })
-    
+
     const hpPercent = Math.max(0, Math.min(1, hp / maxHp))
     const hpColor = hpPercent > 0.5 ? 0x52c41a : hpPercent > 0.25 ? 0xe8d070 : 0xff4d4f
-    
+
     if (hpPercent > 0) {
-      this.hpBar.roundRect(x, y, barWidth * hpPercent, barHeight, 4)
+      this.hpBar.roundRect(x, y, barWidth * hpPercent, barHeight, 4 * k)
       this.hpBar.fill({ color: hpColor, alpha: 0.9 })
     }
-    
+
     this.hpText.text = `${hp}`
   }
-  
+
   private setupGlow(side: 'red' | 'black') {
     this.glowFilter = new GlowFilter({
-      distance: 15,
+      distance: Math.round(15 * this.k),
       outerStrength: 0,
       innerStrength: 0,
       color: side === 'red' ? 0xff4d4f : 0x52c41a,
@@ -170,17 +176,18 @@ export class UnitSprite extends PIXI.Container {
     })
     this.filters = [this.glowFilter] as any
   }
-  
+
   private setupSealIcon() {
+    const k = this.k
     this.sealIcon = new PIXI.Text({
       text: '🔒',
       style: {
-        fontSize: 20,
+        fontSize: Math.round(20 * k),
         fontWeight: 'bold'
       }
     })
     this.sealIcon.anchor.set(0.5)
-    this.sealIcon.position.set(20, -20)  // Top right corner
+    this.sealIcon.position.set(20 * k, -20 * k)
     this.sealIcon.alpha = 0.9
     this.addChild(this.sealIcon)
   }
@@ -470,10 +477,7 @@ export class UnitSprite extends PIXI.Container {
       }
       
       // Recreate label with new enchant status
-      // Need to get side and label from current state - assume they don't change
-      const side = this.labelText.style.fill === 0xffb0b2 ? 'red' : 'black'
-      const label = this.labelText.text
-      this.setupLabel(label, side, data.enchantName)
+      this.setupLabel(this._label, this._side, data.enchantName)
     }
     
     // Update seal status

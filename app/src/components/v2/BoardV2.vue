@@ -3,7 +3,6 @@ import { ref, computed, watch, inject, onMounted, onUnmounted, nextTick, type Re
 import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
 import type { GameState } from '../../engine'
 import { canEnchant, canSacrifice, getSoulCard } from '../../engine'
-import BoardGrid from '../BoardGrid.vue'
 import PixiBoard from './PixiBoard.vue'
 import ConfirmModal from '../ConfirmModal.vue'
 import ShootPreviewModal from '../ShootPreviewModal.vue'
@@ -17,7 +16,6 @@ import { useInteractionMode } from '../../composables/useInteractionMode'
 import { useUiStore } from '../../stores/ui'
 import { getItemCard } from '../../engine'
 import { useDraggable } from '../../composables/useDraggable'
-import type { ShotPreviewEffect } from '../../engine/shotPreview'
 
 const props = defineProps<{ mobile?: boolean }>()
 
@@ -26,9 +24,8 @@ const state = ctx.state as Ref<GameState>
 const ui = useUiStore()
 const lastError = ref<string | null>(null)
 
-// PixiJS renderer always enabled
-const usePixiRenderer = true
 const pixiBoardRef = ref<InstanceType<typeof PixiBoard>>()
+const pixiCellSize = ref(70)
 
 // 連鎖目標選擇模式（面板隱藏中，等待玩家點選目標）
 const isSelectingChain = ref(false)
@@ -98,7 +95,7 @@ function onPixiUnitClick(unitId: string) {
 
 // ── Selection ─────────────────────────────────────────────────────────────────
 const {
-  selectedUnitId, selectedCellKey, selectedUnit,
+  selectedUnitId, selectedUnit,
   legalMoves, shootableTargetIds,
   onSelectUnit, onCellClick: onCellClickSelection,
 } = useSelection({ getState: () => state.value })
@@ -122,12 +119,6 @@ const {
 const shootExtraTargetUnitId = computed(() => shootPreview.value?.extraTargetUnitId ?? null)
 const shootDetailsOpen = ref(false)
 
-const shootConfirmTitle = computed(() => {
-  const g = shootPreviewGuard.value
-  if (g.ok) return ''
-  return g.reason
-})
-
 const shootManaCost = computed<number | null>(() => {
   const info = shootPreviewInfo.value
   if (!info?.ok) return null
@@ -135,27 +126,6 @@ const shootManaCost = computed<number | null>(() => {
   return Number.isFinite(cost) ? cost : state.value.rules.shootManaCost
 })
 
-const shootPreviewPierceMarks = computed<Record<string, number>>(() => {
-  if (!shootPreview.value) return {}
-  const info = shootPreviewInfo.value
-  if (!info?.ok) return {}
-
-  const unitIds: string[] = []
-  for (const e of (info.effects ?? []) as ShotPreviewEffect[]) {
-    if (e.kind !== 'PIERCE') continue
-    for (const id of e.targetUnitIds) unitIds.push(id)
-  }
-
-  const marks: Record<string, number> = {}
-  let idx = 0
-  for (const id of unitIds) {
-    const u = state.value.units[id]
-    if (!u) continue
-    idx++
-    marks[`${u.pos.x},${u.pos.y}`] = idx
-  }
-  return marks
-})
 
 function cancelShootPreview() {
   shootDetailsOpen.value = false
@@ -415,25 +385,6 @@ const shootChainEligibleEnemyIds = computed(() => {
     .map((u) => u.id)
 })
 
-const shootPreviewChainEligiblePosKeys = computed(() => {
-  const set = new Set<string>()
-  for (const id of shootChainEligibleEnemyIds.value) {
-    const u = state.value.units[id]
-    if (u) set.add(`${u.pos.x},${u.pos.y}`)
-  }
-  return [...set]
-})
-const shootPreviewChainSelectedPosKey = computed(() => {
-  const id = shootExtraTargetUnitId.value
-  if (!id) return null
-  const u = state.value.units[id]
-  return u ? `${u.pos.x},${u.pos.y}` : null
-})
-const shootTargetPosKey = computed(() => {
-  if (!shootPreview.value) return null
-  const u = state.value.units[shootPreview.value.targetUnitId]
-  return u ? `${u.pos.x},${u.pos.y}` : null
-})
 
 // ── Sacrifice Pixi confirm panel ───────────────────────────────────────────────
 function showSacrificeConfirmPanel(action: { type: 'SACRIFICE'; sourceUnitId: string; targetUnitId: string; range: number }) {
@@ -443,19 +394,26 @@ function showSacrificeConfirmPanel(action: { type: 'SACRIFICE'; sourceUnitId: st
   const tgtName = tgtUnit?.enchant?.soulId ? (getSoulCard(tgtUnit.enchant.soulId)?.name ?? tgtUnit.base) : (tgtUnit?.base ?? action.targetUnitId)
   const isSelf = action.sourceUnitId === action.targetUnitId
   const posUnit = isSelf ? srcUnit : tgtUnit
-  const targetScreenPos = posUnit ? pixiBoardRef.value?.getCellScreenPos(posUnit.pos.x, posUnit.pos.y) : undefined
-  pixiBoardRef.value?.showAttackConfirm({
-    title: '確認獻祭',
-    summary: isSelf ? `${srcName} 獻祭自身：帥進入無敵` : `${srcName} 獻祭 → ${tgtName}`,
-    confirmLabel: '確認獻祭',
-    targetScreenPos,
-    onConfirm: () => {
-      ctx.dispatch(action)
-      // For buff-shot sacrifice, auto-select source so shoot overlay appears immediately
-      if (!isSelf) ui.setSelectedUnitId(action.sourceUnitId)
-    },
-    onCancel: () => {},
-  })
+  if (pixiBoardRef.value) {
+    const targetScreenPos = posUnit ? pixiBoardRef.value.getCellScreenPos(posUnit.pos.x, posUnit.pos.y) : undefined
+    pixiBoardRef.value.showAttackConfirm({
+      title: '確認獻祭',
+      summary: isSelf ? `${srcName} 獻祭自身：帥進入無敵` : `${srcName} 獻祭 → ${tgtName}`,
+      confirmLabel: '確認獻祭',
+      targetScreenPos,
+      onConfirm: () => {
+        ctx.dispatch(action)
+        if (!isSelf) ui.setSelectedUnitId(action.sourceUnitId)
+      },
+      onCancel: () => {},
+    })
+  } else {
+    setPending({
+      action,
+      title: '確認獻祭',
+      detail: isSelf ? `${srcName} 獻祭自身：帥進入無敵` : `${srcName} 獻祭 → ${tgtName}`,
+    })
+  }
 }
 
 function handleSetPending(p: Parameters<typeof setPending>[0]) {
@@ -489,19 +447,6 @@ function startSacrificeMode(sourceUnitId: string, range?: number) {
 }
 watch(boneRefineChoicePos, (v) => { if (v) boneRefineResetDrag() })
 
-// ── Enchant drop ───────────────────────────────────────────────────────────────
-function onEnchantDrop(payload: { unitId: string; soulId: string }) {
-  if (state.value.turn.phase !== 'necro') return
-  const unit = state.value.units[payload.unitId]
-  const card = getSoulCard(payload.soulId)
-  if (!unit || !card) return
-  if (unit.side !== state.value.turn.side) return
-  setPending({
-    action: { type: 'ENCHANT', unitId: unit.id, soulId: card.id },
-    title: '確認附魔',
-    detail: [`${card.name} -> ${unit.id}`, `base: ${card.base}`, `cost: ${card.costGold}G`].join('\n'),
-  })
-}
 
 // ── Confirm handlers ───────────────────────────────────────────────────────────
 function confirmPending() {
@@ -553,7 +498,7 @@ watch(
   },
 )
 
-// ── Keyboard shortcuts ─────────────────────────────────────────────────────────
+// ── Keyboard shortcuts + mobile cellSize ──────────────────────────────────────
 onMounted(() => {
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && ui.interactionMode.kind !== 'idle') ui.clearInteractionMode()
@@ -562,13 +507,17 @@ onMounted(() => {
   }
   window.addEventListener('keydown', onKeyDown)
   onUnmounted(() => window.removeEventListener('keydown', onKeyDown))
+
+  if (props.mobile) {
+    // Fit board width to screen: 9 columns + small padding on each side
+    pixiCellSize.value = Math.max(38, Math.min(70, Math.floor((window.innerWidth - 8) / 9)))
+  }
 })
 
 // ── FX refs (auto-unwrapped in template via computed) ─────────────────────────
 const fxAttackUnitIds = computed(() => ctx.fx?.fxAttackUnitIds.value ?? [])
 const fxHitUnitIds    = computed(() => ctx.fx?.fxHitUnitIds.value    ?? [])
 const fxKilledUnitIds = computed(() => ctx.fx?.fxKilledUnitIds.value ?? [])
-const fxAbilityUnitIds = computed(() => ctx.fx?.fxAbilityUnitIds.value ?? [])
 const fxKilledPosKeys  = computed(() => ctx.fx?.fxKilledPosKeys.value  ?? [])
 const fxRevivedPosKeys = computed(() => ctx.fx?.fxRevivedPosKeys.value ?? [])
 const fxEnchantedPosKeys = computed(() => ctx.fx?.fxEnchantedPosKeys.value ?? [])
@@ -578,42 +527,6 @@ const fxBeams          = computed(() => ctx.fx?.fxBeams.value          ?? [])
 const damageToasts     = computed(() => ctx.fx?.damageToasts.value     ?? [])
 const incomeToasts     = computed(() => ctx.fx?.incomeToasts.value     ?? [])
 
-// ── Position toast ─────────────────────────────────────────────────────────────
-const posToastVisible = ref(false)
-const posToastText = ref('')
-let posToastTimer: ReturnType<typeof setTimeout> | null = null
-
-function handleToggleToastPosition() {
-  ui.toggleToastPosition()
-  const label = ui.toastPosition === 'top' ? '頂部' : ui.toastPosition === 'right' ? '右側' : '左側'
-  posToastText.value = `通知位置：${label}`
-  posToastVisible.value = true
-  if (posToastTimer) clearTimeout(posToastTimer)
-  posToastTimer = setTimeout(() => { posToastVisible.value = false }, 1500)
-}
-
-// ── Board hover + showTip ──────────────────────────────────────────────────────
-const showTip = computed(() =>
-  ui.boardHoverEnabled && !(props.mobile && state.value.turn.phase === 'combat')
-)
-
-// ── Board scale + 3D style ─────────────────────────────────────────────────────
-type BoardScale = 33 | 50 | 75 | 100
-const VALID_SCALES: BoardScale[] = [33, 50, 75, 100]
-const boardScale = ref<BoardScale>(
-  (() => {
-    const v = Number(localStorage.getItem('v2_board_scale'))
-    return VALID_SCALES.includes(v as BoardScale) ? (v as BoardScale) : 75
-  })()
-)
-watch(boardScale, (v) => localStorage.setItem('v2_board_scale', String(v)))
-const SCALE_LABELS: Record<BoardScale, string> = { 33: '33%', 50: '50%', 75: '75%', 100: '100%' }
-const boardWrapStyle = computed(() => {
-  if (props.mobile) return { width: '100%' }
-  if (ctx.board3D)
-    return { width: `${boardScale.value}%`, transform: 'perspective(900px) rotateX(25deg)', transformOrigin: 'center top' }
-  return { width: `${boardScale.value}%` }
-})
 const currentSide = computed(() => state.value.turn.side)
 
 // Expose onUseItem for parent hand components
@@ -652,40 +565,17 @@ defineExpose({ onUseItem })
       <span>骸骨煉化：選擇屍骸格</span>
       <button type="button" @click="cancelBoneRefine()">取消 (Esc)</button>
     </div>
-
-    <!-- Scale bar (desktop only) -->
-    <div v-if="!mobile" class="boardScaleBar">
-      <button type="button" class="scaleBtn" :class="{ scaleActive: ctx.board3D }" @click="ctx.toggleBoard3D?.()">
-        {{ ctx.board3D ? '⬜ 平面' : '🎲 3D' }}
-      </button>
-      <button
-        type="button"
-        class="scaleBtn"
-        :title="`通知位置：${ui.toastPosition === 'top' ? '頂部' : ui.toastPosition === 'right' ? '右側' : '左側'}`"
-        @click="handleToggleToastPosition()"
-      >{{ ui.toastPosition === 'top' ? '通知⬆' : ui.toastPosition === 'right' ? '通知➡' : '通知⬅' }}</button>
-      <button
-        type="button"
-        class="scaleBtn"
-        :class="{ scaleActive: ui.boardHoverEnabled }"
-        :title="ui.boardHoverEnabled ? '棋盤hover說明：開（點擊關閉）' : '棋盤hover說明：關（點擊開啟）'"
-        @click="ui.toggleBoardHover()"
-      >{{ ui.boardHoverEnabled ? '👁提示' : '👁關' }}</button>
-      <span class="scaleDivider" />
-      <button
-        type="button"
-        class="scaleBtn scaleActive"
-        title="點擊循環切換棋盤大小"
-        @click="boardScale = VALID_SCALES[(VALID_SCALES.indexOf(boardScale) + 1) % VALID_SCALES.length] ?? boardScale"
-      >🔲 {{ SCALE_LABELS[boardScale] }}</button>
+    <div v-else-if="sacrificeOverlayVisible" class="actionBar actionBarSacrifice">
+      <span>{{ selectedUnit?.enchant?.soulId ? (getSoulCard(selectedUnit.enchant.soulId)?.name ?? '獻祭') : '獻祭' }} — 可發動獻祭技能</span>
+      <button type="button" class="btnSacrifice" @click="selectedUnit && startSacrificeMode(selectedUnit.id, 1)">⚔ 獻祭</button>
+      <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
     </div>
 
-    <!-- Board container + scale wrapper -->
+    <!-- Board container -->
     <div class="boardContainer">
-    <div class="boardScaleWrap" :style="boardWrapStyle" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
+    <div class="boardScaleWrap" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
       <!-- PixiJS Renderer -->
       <PixiBoard
-        v-if="usePixiRenderer"
         ref="pixiBoardRef"
         :state="state"
         :selected-unit-id="selectedUnitId"
@@ -708,64 +598,9 @@ defineExpose({ onUseItem })
         :item-used-events="itemUsedEvents"
         :float-texts-by-pos="floatTextsByPos"
         :fx-beams="fxBeams"
+        :cell-size="pixiCellSize"
         @cell-click="onPixiCellClick"
         @unit-click="onPixiUnitClick"
-      />
-      
-      <!-- DOM Renderer (Original) -->
-      <BoardGrid
-        v-else
-        :state="state"
-        :selected-unit-id="selectedUnitId"
-        :selected-cell-pos-key="selectedCellKey"
-        :legal-moves="legalMoves"
-        :shootable-target-ids="shootableTargetIds"
-        :highlight-unit-ids="
-          enchantMode ? enchantableUnitIds :
-          sacrificeMode ? sacrificeTargetableUnitIds :
-          ui.interactionMode.kind === 'use_item_target_unit' ? ui.interactionMode.validUnitIds :
-          []
-        "
-        :highlight-corpse-pos-keys="corpseTargetablePosKeys"
-        :enchant-drag-soul-id="ui.interactionMode.kind === 'enchant_select_unit' ? ui.interactionMode.soulId : null"
-        :preview-pierce-marks="shootPreviewPierceMarks"
-        :preview-splash-pos-keys="[]"
-        :preview-chain-eligible-pos-keys="shootPreviewChainEligiblePosKeys"
-        :preview-chain-selected-pos-key="shootPreviewChainSelectedPosKey"
-        :shoot-action-pos-key="shootTargetPosKey"
-        :shoot-mana-cost="shootManaCost"
-        :shoot-actions-visible="!shootDetailsOpen"
-        :shoot-confirm-disabled="!shootPreviewGuard.ok"
-        :shoot-confirm-title="shootConfirmTitle"
-        :shoot-gold-for-damage="shootGoldForDamageInfo"
-        :shoot-spend-gold-for-damage="shootSpendGoldForDamage"
-        :shoot-blood-sacrifice="shootBloodSacrificeInfo"
-        :shoot-sacrifice-hp="shootSacrificeHp"
-        @update:shoot-spend-gold-for-damage="setShootSpendGold"
-        @update:shoot-sacrifice-hp="setShootSacrificeHp"
-        :sacrifice-action-pos-key="sacrificeOverlayVisible && selectedUnit ? `${selectedUnit.pos.x},${selectedUnit.pos.y}` : null"
-        :sacrifice-actions-visible="sacrificeOverlayVisible"
-        :sacrifice-confirm-disabled="!canStartSacrificeMode.ok"
-        :sacrifice-confirm-title="canStartSacrificeMode.ok ? '' : canStartSacrificeMode.reason"
-        :fx-attack-unit-ids="fxAttackUnitIds"
-        :fx-hit-unit-ids="fxHitUnitIds"
-        :fx-killed-unit-ids="fxKilledUnitIds"
-        :fx-ability-unit-ids="fxAbilityUnitIds"
-        :fx-killed-pos-keys="fxKilledPosKeys"
-        :fx-revived-pos-keys="fxRevivedPosKeys"
-        :fx-enchanted-pos-keys="fxEnchantedPosKeys"
-        :float-texts-by-pos="floatTextsByPos"
-        :fx-beams="fxBeams"
-        :sealed-unit-ids="state.turnFlags.sealedUnitIds ?? []"
-        :show-tip="showTip"
-        @cell-click="onCellClick"
-        @select-unit="onSelectUnit"
-        @enchant-drop="onEnchantDrop"
-        @shoot-confirm="confirmShootPreview"
-        @shoot-cancel="cancelShootPreview"
-        @shoot-details="shootDetailsOpen = true"
-        @sacrifice-confirm="selectedUnit && startSacrificeMode(selectedUnit.id, 1)"
-        @sacrifice-cancel="ui.setSelectedUnitId(null)"
       />
     </div>
     </div><!-- end boardContainer -->
@@ -773,11 +608,6 @@ defineExpose({ onUseItem })
     <!-- Damage formula toast -->
     <DamageFormulaToast :toasts="damageToasts" :position="ui.toastPosition" />
     <IncomeToast :toasts="incomeToasts" :position="ui.toastPosition" />
-
-    <!-- Position toggle toast -->
-    <Transition name="pos-toast">
-      <div v-if="posToastVisible" class="posToast">{{ posToastText }}</div>
-    </Transition>
 
     <!-- 射擊流程已移入 Canvas (BoardActionPanel)，此處不再需要 DOM overlay -->
 
@@ -892,44 +722,21 @@ defineExpose({ onUseItem })
 }
 .actionBar button:hover { background: rgba(255, 255, 255, 0.12); }
 .actionBarSacrifice { background: rgba(60, 20, 20, 0.92); border-bottom-color: rgba(220, 80, 80, 0.3); }
+.btnSacrifice {
+  border-color: rgba(220, 80, 80, 0.7) !important;
+  background: rgba(180, 30, 30, 0.5) !important;
+  color: #ffb0b0 !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  animation: sacrificePulse 1.5s ease-in-out infinite;
+}
+.btnSacrifice:hover { background: rgba(220, 50, 50, 0.7) !important; }
+@keyframes sacrificePulse {
+  0%, 100% { box-shadow: 0 0 4px rgba(220, 80, 80, 0.4); }
+  50%       { box-shadow: 0 0 10px rgba(220, 80, 80, 0.9); }
+}
 
 /* ── Scale bar ── */
-.boardScaleBar {
-  display: flex;
-  gap: 4px;
-  padding: 4px 10px;
-  flex-shrink: 0;
-}
-
-.scaleBtn {
-  padding: 2px 9px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.scaleBtn:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: rgba(255, 255, 255, 0.85);
-}
-.scaleActive {
-  background: rgba(145, 202, 255, 0.18) !important;
-  border-color: rgba(145, 202, 255, 0.65) !important;
-  color: rgba(145, 202, 255, 0.95) !important;
-}
-
-.scaleDivider {
-  width: 1px;
-  height: 14px;
-  background: rgba(255, 255, 255, 0.12);
-  align-self: center;
-  flex-shrink: 0;
-}
-
 /* ── Board container (centres board horizontally, allows vertical scroll via parent) ── */
 .boardContainer {
   display: flex;
@@ -940,8 +747,7 @@ defineExpose({ onUseItem })
 
 /* ── Board scale wrapper ── */
 .boardScaleWrap {
-  transition: width 0.2s ease, transform 0.3s ease;
-   margin: 2rem 0.5rem;
+  margin: 2rem 0.5rem;
 }
 .boardWrap--red   {
   box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.28), 0 0 24px rgba(255, 77, 79, 0.14);
@@ -1028,24 +834,4 @@ defineExpose({ onUseItem })
 }
 
 /* ── Position toggle toast ── */
-.posToast {
-  position: fixed;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 250;
-  background: rgba(20, 22, 40, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 6px 18px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  pointer-events: none;
-  white-space: nowrap;
-  backdrop-filter: blur(6px);
-}
-.pos-toast-enter-active { transition: opacity 0.2s ease; }
-.pos-toast-leave-active { transition: opacity 0.4s ease; }
-.pos-toast-enter-from, .pos-toast-leave-to { opacity: 0; }
 </style>

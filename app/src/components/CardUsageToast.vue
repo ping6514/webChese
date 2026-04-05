@@ -7,6 +7,13 @@ export type CardUsageInfo = {
   card: ItemCard | SoulCard
   actionType: 'use_item' | 'enchant'
   actionDescription: string
+} | {
+  id: string
+  card?: null
+  actionType: 'ability'
+  icon: string
+  title: string
+  actionDescription: string
 }
 
 const props = defineProps<{
@@ -47,28 +54,42 @@ function getCardTypeLabel(card: ItemCard | SoulCard): string {
         v-for="toast in toasts"
         :key="toast.id"
         class="cardUsageToast"
-        :class="toast.actionType === 'enchant' ? 'toastEnchant' : 'toastItem'"
+        :class="toast.actionType === 'enchant' ? 'toastEnchant' : toast.actionType === 'ability' ? 'toastAbility' : 'toastItem'"
       >
         <div class="toastContent">
-          <!-- Card image -->
-          <div class="cardImageWrap">
-            <img
-              v-if="toast.card.image"
-              :src="toast.card.image"
-              :alt="toast.card.name"
-              class="cardImage"
-            />
-            <div v-else class="cardImageEmpty">
-              {{ toast.actionType === 'enchant' ? '🃏' : '🎒' }}
+          <!-- Ability (no card) -->
+          <template v-if="toast.actionType === 'ability'">
+            <div class="cardImageWrap">
+              <div class="cardImageEmpty">{{ toast.icon }}</div>
             </div>
-          </div>
+            <div class="cardInfo">
+              <div class="cardTypeLabel">⚡ 技能發動</div>
+              <div class="cardName">{{ toast.title }}</div>
+              <div class="actionDesc">{{ toast.actionDescription }}</div>
+            </div>
+          </template>
 
-          <!-- Card info -->
-          <div class="cardInfo">
-            <div class="cardTypeLabel">{{ getCardTypeLabel(toast.card) }}</div>
-            <div class="cardName">{{ toast.card.name }}</div>
-            <div class="actionDesc">{{ toast.actionDescription }}</div>
-          </div>
+          <!-- Card image -->
+          <template v-else>
+            <div class="cardImageWrap">
+              <img
+                v-if="toast.card.image"
+                :src="toast.card.image"
+                :alt="toast.card.name"
+                class="cardImage"
+              />
+              <div v-else class="cardImageEmpty">
+                {{ toast.actionType === 'enchant' ? '🃏' : '🎒' }}
+              </div>
+            </div>
+
+            <!-- Card info -->
+            <div class="cardInfo">
+              <div class="cardTypeLabel">{{ getCardTypeLabel(toast.card) }}</div>
+              <div class="cardName">{{ toast.card.name }}</div>
+              <div class="actionDesc">{{ toast.actionDescription }}</div>
+            </div>
+          </template>
         </div>
       </div>
     </TransitionGroup>
@@ -107,6 +128,11 @@ function getCardTypeLabel(card: ItemCard | SoulCard): string {
 .toastEnchant {
   background: linear-gradient(135deg, rgba(180, 130, 255, 0.18) 0%, rgba(145, 202, 255, 0.12) 100%);
   border: 1px solid rgba(180, 130, 255, 0.45);
+}
+
+.toastAbility {
+  background: linear-gradient(135deg, rgba(220, 50, 50, 0.18) 0%, rgba(180, 30, 30, 0.12) 100%);
+  border: 1px solid rgba(220, 80, 80, 0.5);
 }
 
 .toastContent {

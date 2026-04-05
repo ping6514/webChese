@@ -25,6 +25,13 @@ export type CardUsageToast = {
   card: ItemCard | SoulCard
   actionType: 'use_item' | 'enchant'
   actionDescription: string
+} | {
+  id: string
+  card?: null
+  actionType: 'ability'
+  icon: string
+  title: string
+  actionDescription: string
 }
 
 const BASE_LABELS: Record<string, string> = {
@@ -157,6 +164,20 @@ export function useGameEffects() {
         if (u && text) {
           addUnitIdFx(fxAbilityUnitIds, unitId, FX_ABILITY_MS)
           addFloatText(`${u.pos.x},${u.pos.y}`, text, 'heal', FX_FLOAT_MS)
+        }
+        if (e.abilityType === 'BLOOD_RITUAL' && u) {
+          const toastId = `${Date.now()}-${Math.random()}`
+          const side = u.side === 'red' ? '🔴紅方' : '⚫黑方'
+          cardUsageToasts.value = [...cardUsageToasts.value, {
+            id: toastId,
+            actionType: 'ability',
+            icon: '🩸',
+            title: '血液祭儀',
+            actionDescription: `${side} 帥 -3 HP，死靈術 +1 行動`,
+          }]
+          window.setTimeout(() => {
+            cardUsageToasts.value = cardUsageToasts.value.filter((t) => t.id !== toastId)
+          }, FX_CARD_USAGE_MS)
         }
       }
 

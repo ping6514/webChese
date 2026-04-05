@@ -23,6 +23,7 @@ const props = defineProps<{
   itemUsedEvents: Array<{ id: string; itemId: string; posKey: string }>
   floatTextsByPos: Record<string, FloatText[]>
   fxBeams: BeamFx[]
+  cellSize?: number
 }>()
 
 const emit = defineEmits<{
@@ -34,11 +35,22 @@ const canvasRef = ref<HTMLCanvasElement>()
 let renderer: PixiBoardRenderer | null = null
 
 // 手勢滾動追蹤
-const TAP_THRESHOLD = 8
+const TAP_THRESHOLD = 10
 let gestureStartX = 0
 let gestureStartY = 0
 let gesturePrevY = 0
 let isScrollGesture = false
+
+function findScrollParent(el: Element): Element {
+  let cur: Element | null = el.parentElement
+  while (cur && cur !== document.documentElement) {
+    const style = getComputedStyle(cur)
+    const oy = style.overflowY
+    if ((oy === 'auto' || oy === 'scroll') && cur.scrollHeight > cur.clientHeight) return cur
+    cur = cur.parentElement
+  }
+  return document.documentElement
+}
 
 function onCanvasPointerDown(e: PointerEvent) {
   gestureStartX = e.clientX
@@ -51,13 +63,13 @@ function onCanvasPointerMove(e: PointerEvent) {
   if (e.buttons === 0) return
   const dx = e.clientX - gestureStartX
   const dy = e.clientY - gestureStartY
-  if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx)) {
+  if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx) * 1.5) {
     isScrollGesture = true
   }
   if (isScrollGesture) {
     const delta = gesturePrevY - e.clientY
-    const scrollEl = (e.currentTarget as HTMLElement).closest('.boardArea') as HTMLElement | null
-    if (scrollEl) scrollEl.scrollTop += delta
+    const scrollEl = findScrollParent(e.currentTarget as Element)
+    scrollEl.scrollTop += delta
     if (renderer) renderer.suppressNextClick = true
   }
   gesturePrevY = e.clientY
@@ -77,16 +89,15 @@ let tooltipTimer: ReturnType<typeof setTimeout> | null = null
 
 onMounted(() => {
   if (!canvasRef.value) return
-  
-  // Calculate canvas size based on board dimensions
-  const cellSize = 70
-  const boardOffsetX = 10  // Reduced for mobile
-  const boardOffsetY = 20
-  
-  const width = 9 * cellSize + boardOffsetX * 2
-  const height = 10 * cellSize + boardOffsetY * 2
-  
-  renderer = new PixiBoardRenderer(canvasRef.value, width, height)
+
+  const cs = props.cellSize ?? 70
+  const k = cs / 70
+  const boardOffsetX = Math.round(10 * k)
+  const boardOffsetY = Math.round(20 * k)
+  const width = 9 * cs + boardOffsetX * 2
+  const height = 10 * cs + boardOffsetY * 2
+
+  renderer = new PixiBoardRenderer(canvasRef.value, width, height, cs)
   
   renderer.onCellClick = (x: number, y: number) => {
     emit('cell-click', { x, y })
