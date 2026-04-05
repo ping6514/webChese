@@ -421,6 +421,19 @@ function handleSetPending(p: Parameters<typeof setPending>[0]) {
     showSacrificeConfirmPanel(p.action as { type: 'SACRIFICE'; sourceUnitId: string; targetUnitId: string; range: number })
     return
   }
+  if (p.action.type === 'MOVE') {
+    // 移動確認走 Pixi panel，避免 DOM modal 與 canvas pointer 事件衝突
+    const targetPos = pixiBoardRef.value?.getCellScreenPos(p.action.to.x, p.action.to.y)
+    pixiBoardRef.value?.showAttackConfirm({
+      title: p.title ?? '確認移動',
+      summary: p.detail ?? '',
+      confirmLabel: '移動',
+      targetScreenPos: targetPos,
+      onConfirm: () => ctx.dispatch(p.action),
+      onCancel: () => {},
+    })
+    return
+  }
   setPending(p)
 }
 
@@ -571,8 +584,8 @@ defineExpose({ onUseItem })
       <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
     </div>
 
-    <!-- Board container -->
-    <div class="boardContainer">
+    <!-- Board container — pointer-events disabled when any DOM modal is open -->
+    <div class="boardContainer" :class="{ 'boardBlocked': !!pending || shootDetailsOpen || !!boneRefineChoicePos }">
     <div class="boardScaleWrap" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
       <!-- PixiJS Renderer -->
       <PixiBoard
@@ -743,6 +756,9 @@ defineExpose({ onUseItem })
   justify-content: center;
   align-items: flex-start;
   overflow-x: hidden;
+}
+.boardBlocked {
+  pointer-events: none;
 }
 
 /* ── Board scale wrapper ── */

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { PixiBoardRenderer } from '../../game/PixiBoardRenderer'
 import type { SkillSelectConfig, AttackConfirmConfig } from '../../game/BoardActionPanel'
 import { getSoulCard } from '../../engine'
@@ -32,7 +32,9 @@ const emit = defineEmits<{
 }>()
 
 const canvasRef = ref<HTMLCanvasElement>()
+const wrapperRef = ref<HTMLDivElement>()
 let renderer: PixiBoardRenderer | null = null
+let resizeObserver: ResizeObserver | null = null
 
 // 手勢滾動追蹤
 const TAP_THRESHOLD = 10
@@ -95,17 +97,38 @@ const tooltipSoulCardName = ref<string | null>(null)
 const tooltipPosition = ref({ x: 0, y: 0 })
 let tooltipTimer: ReturnType<typeof setTimeout> | null = null
 
+function calcCanvasSize(cs: number) {
+  const k = cs / 70
+  const bx = Math.round(10 * k)
+  const by = Math.round(20 * k)
+  return { width: 9 * cs + bx * 2, height: 10 * cs + by * 2 }
+}
+
 onMounted(() => {
   if (!canvasRef.value) return
 
   const cs = props.cellSize ?? 70
-  const k = cs / 70
-  const boardOffsetX = Math.round(10 * k)
-  const boardOffsetY = Math.round(20 * k)
-  const width = 9 * cs + boardOffsetX * 2
-  const height = 10 * cs + boardOffsetY * 2
+  const { width, height } = calcCanvasSize(cs)
 
   renderer = new PixiBoardRenderer(canvasRef.value, width, height, cs)
+
+  // ResizeObserver: scale canvas CSS to match container without distortion
+  resizeObserver = new ResizeObserver((entries) => {
+    const entry = entries[0]
+    if (!entry || !canvasRef.value) return
+    const containerW = entry.contentRect.width
+    if (containerW <= 0 || !renderer) return
+    const canvasW = canvasRef.value.width / (window.devicePixelRatio || 1)
+    if (Math.abs(containerW - canvasW) < 2) return  // already fits
+    // Scale canvas display size to fit container, keep aspect ratio
+    const scale = containerW / canvasW
+    const cssH = (canvasRef.value.height / (window.devicePixelRatio || 1)) * scale
+    canvasRef.value.style.width = `${containerW}px`
+    canvasRef.value.style.height = `${cssH}px`
+  })
+  nextTick(() => {
+    if (wrapperRef.value) resizeObserver!.observe(wrapperRef.value)
+  })
   
   renderer.onCellClick = (x: number, y: number) => {
     emit('cell-click', { x, y })
@@ -149,6 +172,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  resizeObserver?.disconnect()
   renderer?.destroy()
 })
 
@@ -346,7 +370,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="pixi-board-wrapper">
+  <div ref="wrapperRef" class="pixi-board-wrapper">
     <canvas
       ref="canvasRef"
       @pointerdown="onCanvasPointerDown"
@@ -374,7 +398,5 @@ defineExpose({
 
 canvas {
   display: block;
-  max-width: 100%;
-  height: auto;
 }
 </style>

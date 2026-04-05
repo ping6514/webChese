@@ -14,6 +14,7 @@ export class CorpseSprite extends PIXI.Container {
   constructor(corpses: CorpseData[], cellSize = 70) {
     super()
     this.k = cellSize / 70
+    this.eventMode = 'none'  // 不參與事件系統，避免攔截底層格子的 pointerup
     this.background = new PIXI.Graphics()
     this.labelText = new PIXI.Text()
 
