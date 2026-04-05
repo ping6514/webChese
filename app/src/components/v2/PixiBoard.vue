@@ -394,9 +394,12 @@ defineExpose({
   justify-content: center;
   align-items: center;
   background: transparent;
+  width: 100%;
+  overflow: hidden;
 }
 
 canvas {
   display: block;
+  max-width: 100%;
 }
 </style>
