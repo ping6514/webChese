@@ -684,6 +684,10 @@ export class PixiBoardRenderer {
     })
   }
   
+  get isActionPanelVisible(): boolean {
+    return this.actionPanel.visible
+  }
+
   resize(width: number, height: number) {
     this.app.renderer.resize(width, height)
   }

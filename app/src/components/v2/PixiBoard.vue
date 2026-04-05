@@ -41,15 +41,15 @@ let gestureStartY = 0
 let gesturePrevY = 0
 let isScrollGesture = false
 
-function findScrollParent(el: Element): Element {
+function findScrollParent(el: Element): Element | null {
   let cur: Element | null = el.parentElement
   while (cur && cur !== document.documentElement) {
     const style = getComputedStyle(cur)
     const oy = style.overflowY
-    if ((oy === 'auto' || oy === 'scroll') && cur.scrollHeight > cur.clientHeight) return cur
+    if ((oy === 'auto' || oy === 'scroll') && cur.scrollHeight > cur.clientHeight + 2) return cur
     cur = cur.parentElement
   }
-  return document.documentElement
+  return null  // 找不到可捲容器就不捲，避免頁面捲動破壞 Pixi 座標
 }
 
 function onCanvasPointerDown(e: PointerEvent) {
@@ -61,16 +61,26 @@ function onCanvasPointerDown(e: PointerEvent) {
 
 function onCanvasPointerMove(e: PointerEvent) {
   if (e.buttons === 0) return
+  // 面板顯示中（射擊/獻祭確認）不捲動，避免 canvas 位移導致面板閃退
+  if (renderer?.isActionPanelVisible) {
+    gesturePrevY = e.clientY
+    return
+  }
   const dx = e.clientX - gestureStartX
   const dy = e.clientY - gestureStartY
   if (!isScrollGesture && Math.abs(dy) > TAP_THRESHOLD && Math.abs(dy) > Math.abs(dx) * 1.5) {
     isScrollGesture = true
   }
   if (isScrollGesture) {
-    const delta = gesturePrevY - e.clientY
     const scrollEl = findScrollParent(e.currentTarget as Element)
-    scrollEl.scrollTop += delta
-    if (renderer) renderer.suppressNextClick = true
+    if (scrollEl) {
+      const delta = gesturePrevY - e.clientY
+      scrollEl.scrollTop += delta
+      if (renderer) renderer.suppressNextClick = true
+    } else {
+      // 沒有可捲容器，不要觸發 suppressNextClick
+      isScrollGesture = false
+    }
   }
   gesturePrevY = e.clientY
 }
