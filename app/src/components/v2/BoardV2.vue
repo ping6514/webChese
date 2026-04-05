@@ -3,6 +3,7 @@ import { ref, computed, watch, inject, onMounted, onUnmounted, nextTick, type Re
 import { GAME_V2_KEY, type GameV2Ctx } from '../../composables/useGameV2Context'
 import type { GameState } from '../../engine'
 import { canEnchant, canSacrifice, getSoulCard } from '../../engine'
+import { countCorpses, countSoldiers } from '../../engine/corpses'
 import PixiBoard from './PixiBoard.vue'
 import ConfirmModal from '../ConfirmModal.vue'
 import ShootPreviewModal from '../ShootPreviewModal.vue'
@@ -378,6 +379,12 @@ const shootChainEligibleEnemyIds = computed(() => {
   }
   const radius = Math.max(radius0, sbRadius, bsRadius)
   if (!(Number.isFinite(radius) && radius > 0)) return []
+  // Check CHAIN when condition (only if not overridden by sacrifice buff)
+  if (chain?.type === 'CHAIN' && chain.when && !(Number.isFinite(sbRadius) && sbRadius > 0)) {
+    const when = chain.when
+    if (when.type === 'CORPSES_GTE' && countCorpses(state.value, attacker.side) < when.count) return []
+    if (when.type === 'SOLDIERS_GTE' && countSoldiers(state.value, attacker.side) < when.count) return []
+  }
   const cheb = (a: { x: number; y: number }, b: { x: number; y: number }) =>
     Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y))
   return Object.values(state.value.units)

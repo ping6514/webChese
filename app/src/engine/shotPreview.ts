@@ -2,7 +2,7 @@ import type { GameState } from './state'
 import { getSoulCard, findAbility } from './cards'
 import type { SoulAbilityCondition } from './cards'
 import { computeRawDamage, computeDamageWithBreakdown } from './damage'
-import { countCorpses, chebyshev } from './corpses'
+import { countCorpses, countSoldiers, chebyshev } from './corpses'
 import { palaceContains, crossedRiver } from './boardUtils'
 import { isResonanceActive } from './stats'
 
@@ -511,11 +511,15 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       const chainActive = (() => {
         if (!chainWhen) return true
         if (Number.isFinite(sbRadius) && sbRadius > 0) return true
-        if (chainWhen.type !== 'CORPSES_GTE') return true
-        const need = Number(chainWhen.count)
-        if (!(Number.isFinite(need) && need > 0)) return true
-        const corpses = countCorpses(state, attacker.side)
-        return corpses >= need
+        if (chainWhen.type === 'CORPSES_GTE') {
+          const need = Number(chainWhen.count)
+          return !(Number.isFinite(need) && need > 0) || countCorpses(state, attacker.side) >= need
+        }
+        if (chainWhen.type === 'SOLDIERS_GTE') {
+          const need = Number(chainWhen.count)
+          return !(Number.isFinite(need) && need > 0) || countSoldiers(state, attacker.side) >= need
+        }
+        return true
       })()
 
       const extraId = extraTargetUnitId ?? null
