@@ -2,10 +2,8 @@
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { PixiBoardRenderer } from '../../game/PixiBoardRenderer'
 import type { SkillSelectConfig, AttackConfirmConfig } from '../../game/BoardActionPanel'
-import { getSoulCard } from '../../engine'
 import type { GameState } from '../../engine'
 import type { FloatText, BeamFx } from '../../composables/useGameEffects'
-import UnitTooltip from './UnitTooltip.vue'
 
 const props = defineProps<{
   state: GameState
@@ -90,14 +88,6 @@ function onCanvasPointerUp() {
   isScrollGesture = false
 }
 
-// Tooltip state
-const tooltipVisible = ref(false)
-const tooltipUnitId = ref<string | null>(null)
-const tooltipSoulCardImage = ref<string | null>(null)
-const tooltipSoulCardName = ref<string | null>(null)
-const tooltipPosition = ref({ x: 0, y: 0 })
-let tooltipTimer: ReturnType<typeof setTimeout> | null = null
-
 function calcCanvasSize(cs: number) {
   const k = cs / 70
   const bx = Math.round(10 * k)
@@ -137,36 +127,6 @@ onMounted(() => {
   
   renderer.onUnitClick = (unitId: string) => {
     emit('unit-click', unitId)
-  }
-  
-  // Hover events for tooltip
-  renderer.onUnitHover = (unitId: string, x: number, y: number) => {
-    const unit = props.state.units[unitId]
-    if (!unit || !unit.enchant) return
-    
-    // Clear existing timer
-    if (tooltipTimer) clearTimeout(tooltipTimer)
-    
-    // Show tooltip after delay
-    tooltipTimer = setTimeout(() => {
-      const soulCard = getSoulCard(unit.enchant!.soulId)
-      if (soulCard) {
-        tooltipUnitId.value = unitId
-        tooltipSoulCardImage.value = soulCard.image
-        tooltipSoulCardName.value = soulCard.name
-        tooltipPosition.value = { x, y }
-        tooltipVisible.value = true
-      }
-    }, 300)
-  }
-  
-  renderer.onUnitHoverOut = () => {
-    if (tooltipTimer) {
-      clearTimeout(tooltipTimer)
-      tooltipTimer = null
-    }
-    tooltipVisible.value = false
-    tooltipUnitId.value = null
   }
   
   updateBoard()
@@ -378,13 +338,6 @@ defineExpose({
       @pointermove="onCanvasPointerMove"
       @pointerup="onCanvasPointerUp"
       @pointercancel="onCanvasPointerUp"
-    />
-    <UnitTooltip
-      :visible="tooltipVisible"
-      :unit-id="tooltipUnitId"
-      :soul-card-image="tooltipSoulCardImage"
-      :soul-card-name="tooltipSoulCardName"
-      :position="tooltipPosition"
     />
   </div>
 </template>

@@ -41,8 +41,6 @@ export class PixiBoardRenderer {
   public onUnitClick?: (unitId: string) => void
   public onCellHover?: (x: number, y: number) => void
   public onCellOut?: (x: number, y: number) => void
-  public onUnitHover?: (unitId: string, x: number, y: number) => void
-  public onUnitHoverOut?: () => void
 
   /** 設為 true 時，下一次 pointerup 觸發的 click 會被忽略（用於滾動手勢後抑制誤點） */
   public suppressNextClick = false
@@ -467,15 +465,6 @@ export class PixiBoardRenderer {
           this.onUnitClick?.(unit.id)
         })
 
-        unitSprite.on('pointerover', (event) => {
-          const globalPos = event.global
-          this.onUnitHover?.(unit.id, globalPos.x, globalPos.y)
-        })
-        
-        unitSprite.on('pointerout', () => {
-          this.onUnitHoverOut?.()
-        })
-        
         this.unitSprites.set(unit.id, unitSprite)
         this.unitsContainer.addChild(unitSprite)
       }
