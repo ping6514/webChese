@@ -19,6 +19,14 @@ export interface SkillSelectConfig {
   onCancel: () => void
 }
 
+export interface ModePanelConfig {
+  label: string
+  extraBtnLabel?: string
+  extraBtnStyle?: 'blood' | 'gold' | 'normal'
+  onExtraBtn?: () => void
+  onCancel: () => void
+}
+
 export interface AttackConfirmConfig {
   title: string
   summary?: string
@@ -270,6 +278,53 @@ export class BoardActionPanel extends PIXI.Container {
     }
   }
 
+  showModePanel(config: ModePanelConfig) {
+    this._reset()
+    // 模式選擇條：不阻擋棋盤事件，讓使用者可以正常點選棋子/格子
+    this.eventMode = 'passive'
+    this.backdrop.eventMode = 'none'
+
+    const barH = PAD * 2 + BTN_H
+    const barW = this.cw - EDGE * 2
+
+    this.panelContainer.x = EDGE
+
+    const bg = new PIXI.Graphics()
+    bg.roundRect(0, 0, barW, barH, PANEL_R)
+    bg.fill({ color: T.panelBg })
+    bg.stroke({ color: T.panelBorder, width: 1 })
+    bg.eventMode = 'static'
+    this.panelContainer.addChild(bg)
+
+    const label = this._txt(config.label, 12, T.text)
+    label.x = PAD
+    label.y = Math.round((barH - label.height) / 2)
+    this.panelContainer.addChild(label)
+
+    const cancelW = 56
+    let rightX = barW - PAD - cancelW
+
+    if (config.onExtraBtn && config.extraBtnLabel) {
+      const extraStyle = config.extraBtnStyle ?? 'normal'
+      const extraW = 70
+      const extraBtn = this._btn(config.extraBtnLabel, extraW, BTN_H, extraStyle, () => {
+        config.onExtraBtn!()
+      })
+      extraBtn.x = rightX - GAP - extraW
+      extraBtn.y = PAD
+      this.panelContainer.addChild(extraBtn)
+    }
+
+    const cancelBtn = this._btn('取消', cancelW, BTN_H, 'cancel', () => {
+      this.hide(); config.onCancel()
+    })
+    cancelBtn.x = rightX
+    cancelBtn.y = PAD
+    this.panelContainer.addChild(cancelBtn)
+
+    this._animateIn(EDGE)
+  }
+
   hide() {
     gsap.killTweensOf(this.panelContainer)
     this.visible = false
@@ -346,11 +401,11 @@ export class BoardActionPanel extends PIXI.Container {
 
   private _btn(
     label: string, w: number, h: number,
-    style: 'confirm' | 'cancel' | 'normal' | 'disabled',
+    style: 'confirm' | 'cancel' | 'normal' | 'disabled' | 'blood' | 'gold',
     onTap: () => void,
   ): PIXI.Container {
     const c = new PIXI.Container()
-    const colors = T[style] as { bg: number; border: number; text: number }
+    const colors = T[style] as unknown as { bg: number; border: number; text: number }
 
     const g = new PIXI.Graphics()
     g.roundRect(0, 0, w, h, BTN_R)

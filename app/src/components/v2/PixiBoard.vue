@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { PixiBoardRenderer } from '../../game/PixiBoardRenderer'
-import type { SkillSelectConfig, AttackConfirmConfig } from '../../game/BoardActionPanel'
+import type { SkillSelectConfig, AttackConfirmConfig, ModePanelConfig } from '../../game/BoardActionPanel'
 import { getSoulCard } from '../../engine'
 import type { GameState } from '../../engine'
 import type { FloatText, BeamFx } from '../../composables/useGameEffects'
@@ -364,6 +364,7 @@ function updateHighlights() {
 defineExpose({
   showSkillSelect:    (config: SkillSelectConfig)  => renderer?.actionPanel.showSkillSelect(config),
   showAttackConfirm:  (config: AttackConfirmConfig) => renderer?.actionPanel.showAttackConfirm(config),
+  showModePanel:      (config: ModePanelConfig)     => renderer?.actionPanel.showModePanel(config),
   hideActionPanel:    ()                            => renderer?.actionPanel.hide(),
   updateChainTarget:  (selected: boolean)           => renderer?.actionPanel.updateChainTarget(selected),
   getCellScreenPos:   (x: number, y: number)        => renderer?.getCellPosition(x, y) ?? { x: 0, y: 0 },

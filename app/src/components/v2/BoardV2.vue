@@ -460,6 +460,53 @@ function startSacrificeMode(sourceUnitId: string, range?: number) {
 }
 watch(boneRefineChoicePos, (v) => { if (v) boneRefineResetDrag() })
 
+// ── Pixi mode panel (replaces DOM actionBar) ───────────────────────────────────
+const activeModePanel = computed(() => {
+  if (enchantMode.value) return {
+    label: `附魔：選擇目標單位${enchantModeSoulName.value ? ` (${enchantModeSoulName.value})` : ''}`,
+    onCancel: () => ui.clearInteractionMode(),
+  }
+  if (sacrificeMode.value) return {
+    label: `獻祭（範圍 ${sacrificeRange.value}）選擇目標`,
+    onCancel: () => ui.clearInteractionMode(),
+  }
+  if (sacrificeBuffPending.value) return {
+    label: '獻祭完成！選擇射擊目標使用增強效果',
+    onCancel: () => ui.setSelectedUnitId(null),
+  }
+  if (ui.interactionMode.kind === 'use_item_target_unit') return {
+    label: `道具：選擇目標單位 — ${getItemCard(ui.interactionMode.itemId)?.name ?? ''}`,
+    onCancel: () => ui.clearInteractionMode(),
+  }
+  if (ui.interactionMode.kind === 'use_item_target_corpse' && !boneRefineChoicePos.value) return {
+    label: '骸骨煉化：選擇屍骸格',
+    onCancel: () => cancelBoneRefine(),
+  }
+  if (sacrificeOverlayVisible.value) {
+    const soulName = selectedUnit.value?.enchant?.soulId
+      ? (getSoulCard(selectedUnit.value.enchant.soulId)?.name ?? '獻祭')
+      : '獻祭'
+    return {
+      label: `${soulName} — 可發動獻祭技能`,
+      extraBtnLabel: '⚔ 獻祭',
+      extraBtnStyle: 'blood' as const,
+      onExtraBtn: () => { if (selectedUnit.value) startSacrificeMode(selectedUnit.value.id, 1) },
+      onCancel: () => ui.setSelectedUnitId(null),
+    }
+  }
+  return null
+})
+
+watch(activeModePanel, (config) => {
+  if (config) {
+    nextTick(() => pixiBoardRef.value?.showModePanel(config))
+  } else {
+    // 只在無射擊/移動確認面板時才收起
+    if (!shootPreview.value && !pending.value) {
+      pixiBoardRef.value?.hideActionPanel()
+    }
+  }
+}, { deep: true })
 
 // ── Confirm handlers ───────────────────────────────────────────────────────────
 function confirmPending() {
@@ -560,32 +607,7 @@ defineExpose({ onUseItem })
     <!-- Board container — pointer-events disabled when any DOM modal is open -->
     <div class="boardContainer" :class="{ 'boardBlocked': !!pending || shootDetailsOpen || !!boneRefineChoicePos }">
 
-    <!-- Action status bars (absolute overlay — does not push board) -->
-    <div v-if="enchantMode" class="actionBar">
-      <span>附魔：選擇目標單位 {{ enchantModeSoulName ? `(${enchantModeSoulName})` : '' }}</span>
-      <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
-    </div>
-    <div v-else-if="sacrificeMode" class="actionBar">
-      <span>獻祭（範圍 {{ sacrificeRange }}）選擇目標</span>
-      <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
-    </div>
-    <div v-else-if="sacrificeBuffPending" class="actionBar actionBarSacrifice">
-      <span>獻祭完成！選擇射擊目標使用增強效果</span>
-      <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
-    </div>
-    <div v-else-if="ui.interactionMode.kind === 'use_item_target_unit'" class="actionBar">
-      <span>道具：選擇目標單位 — {{ getItemCard(ui.interactionMode.itemId)?.name ?? '' }}</span>
-      <button type="button" @click="ui.clearInteractionMode()">取消 (Esc)</button>
-    </div>
-    <div v-else-if="ui.interactionMode.kind === 'use_item_target_corpse' && !boneRefineChoicePos" class="actionBar">
-      <span>骸骨煉化：選擇屍骸格</span>
-      <button type="button" @click="cancelBoneRefine()">取消 (Esc)</button>
-    </div>
-    <div v-else-if="sacrificeOverlayVisible" class="actionBar actionBarSacrifice">
-      <span>{{ selectedUnit?.enchant?.soulId ? (getSoulCard(selectedUnit.enchant.soulId)?.name ?? '獻祭') : '獻祭' }} — 可發動獻祭技能</span>
-      <button type="button" class="btnSacrifice" @click="selectedUnit && startSacrificeMode(selectedUnit.id, 1)">⚔ 獻祭</button>
-      <button type="button" @click="ui.setSelectedUnitId(null)">取消</button>
-    </div>
+    <!-- Action status bars handled by Pixi mode panel (showModePanel) -->
     <div class="boardScaleWrap" :class="currentSide === 'red' ? 'boardWrap--red' : 'boardWrap--green'">
       <!-- PixiJS Renderer -->
       <PixiBoard
