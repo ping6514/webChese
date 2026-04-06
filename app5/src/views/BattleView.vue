@@ -1,5 +1,7 @@
 <template>
   <div class="battle-view">
+
+    <!-- ── Top Bar ─────────────────────────────────────────────────────────── -->
     <div class="top-bar">
       <router-link to="/">← 返回備戰</router-link>
       <span class="phase">{{ phaseLabel }}</span>
@@ -8,17 +10,17 @@
       </div>
     </div>
 
-    <!-- 選中小隊提示 -->
+    <!-- ── 選中小隊提示 ───────────────────────────────────────────────────── -->
     <div class="select-hint" v-if="selectedSquadId">
       <span>已選中：{{ captainName(selectedSquad?.captainDefId ?? '') }}</span>
       <span class="hint-sub">點擊地圖格子設定移動目標</span>
-      <button class="deselect-btn" @click="selectedSquadId = null">取消選中</button>
+      <button class="deselect-btn" @click="deselect">取消選中</button>
     </div>
     <div class="select-hint muted" v-else>
       點擊己方小隊 token 可指定移動目標
     </div>
 
-    <!-- 勝敗結果 overlay -->
+    <!-- ── 勝敗結果 overlay ──────────────────────────────────────────────── -->
     <div v-if="store.gameState?.phase === 'player_won' || store.gameState?.phase === 'enemy_won'" class="result-overlay">
       <div class="result-box">
         <div class="result-title">{{ store.gameState.phase === 'player_won' ? '🎉 勝利' : '💀 敗北' }}</div>
@@ -26,47 +28,30 @@
       </div>
     </div>
 
-    <!-- 地圖格子 -->
-    <div class="map-container">
-      <div class="map-grid" :style="mapContainerSize">
-        <div
-          v-for="cell in sortedCells"
-          :key="`${cell.pos.q},${cell.pos.r}`"
-          class="cell"
-          :class="[cell.terrain, { impassable: !cell.passable, 'cell-target': isManualTarget(cell.pos) }]"
-          :style="cellStyle(cell.pos)"
-          @click="onCellClick(cell.pos)"
-        >
-          <!-- 建築顯示 -->
-          <div v-if="cell.building" class="building" :class="cell.building.team">
-            {{ buildingIcon(cell.building.type) }}
-          </div>
-          <!-- 小隊顯示 -->
-          <div
-            v-for="squad in squadsAt(cell.pos)"
-            :key="squad.squadId"
-            class="squad-token"
-            :class="[squad.team, { 'squad-selected': squad.squadId === selectedSquadId }]"
-            @click.stop="onSquadClick(squad)"
-          >
-            <div class="squad-name">{{ captainName(squad.captainDefId) }}</div>
-            <div class="squad-hp-bar">
-              <div class="hp-fill" :style="{ width: captainHpPct(squad) + '%' }"></div>
-            </div>
-            <div class="member-pips">
-              <span v-for="m in squad.members" :key="m.instanceId" class="pip" :class="{ dead: m.isDead, captain: m.isCaptain }"></span>
-            </div>
-          </div>
-        </div>
+    <!-- ── Pixi Canvas ───────────────────────────────────────────────────── -->
+    <div class="canvas-wrapper" ref="wrapperRef">
+      <canvas ref="canvasRef" class="game-canvas" />
+      <!-- 縮放控制（右上角 DOM overlay） -->
+      <div class="zoom-controls">
+        <button class="zoom-btn" @click="changeZoom(1)" title="放大">＋</button>
+        <span class="zoom-label">{{ zoomLabel }}</span>
+        <button class="zoom-btn" @click="changeZoom(-1)" title="縮小">－</button>
+      </div>
+      <!-- 移動指令面板 -->
+      <div v-if="pendingMove" class="move-order-panel"
+           :style="{ left: pendingMove.x + 'px', top: pendingMove.y + 'px' }">
+        <button @click="confirmMove(false)">⚔️ 進攻</button>
+        <button @click="confirmMove(true)">🛡️ 守點</button>
+        <button class="cancel-btn" @click="cancelMove">✕</button>
       </div>
     </div>
 
-    <!-- 戰鬥 log -->
+    <!-- ── 戰鬥 log ───────────────────────────────────────────────────────── -->
     <div class="battle-log">
       <div v-for="(entry, i) in recentLog" :key="i">{{ entry }}</div>
     </div>
 
-    <!-- 小隊狀態面板 -->
+    <!-- ── 小隊狀態面板 ───────────────────────────────────────────────────── -->
     <div class="squad-panels">
       <div v-for="squad in store.playerSquads" :key="squad.squadId" class="squad-panel player">
         <div class="panel-name">{{ captainName(squad.captainDefId) }}</div>
@@ -76,119 +61,176 @@
           ⏳ {{ squad.reviveAtTick !== null ? squad.reviveAtTick - (store.gameState?.tick ?? 0) : '—' }} tick
         </div>
         <div v-else class="panel-members">
-          <span v-for="m in squad.members" :key="m.instanceId" class="member-badge" :class="{ dead: m.isDead }">
-            {{ m.isCaptain ? '隊' : '從' }} {{ Math.ceil(m.hp / m.maxHp * 100) }}%
+          <span class="member-badge">隊 {{ Math.ceil(squad.hp / squad.maxHp * 100) }}%</span>
+          <span v-for="s in squad.shieldLayers" :key="s.instanceId" class="member-badge" :class="{ dead: s.isDead }">
+            盾 {{ s.isDead ? '✗' : Math.ceil(s.hp / s.maxHp * 100) + '%' }}
           </span>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, watch, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '../stores/gameStore'
-import type { HexPos, SquadInstance } from '../engine/types'
-import { hexKey } from '../engine/types'
+import type { HexPos } from '../engine/types'
+import { PixiHexRenderer } from '../game/PixiHexRenderer'
+import { ref } from 'vue'
+import { NAMED_ZONES } from '../engine/mapData'
+import { hexToPixel } from '../game/hexUtils'
 
 const store = useGameStore()
 
+// ─── Canvas / Renderer refs ──────────────────────────────────────────────────
+
+const canvasRef  = ref<HTMLCanvasElement>()
+const wrapperRef = ref<HTMLDivElement>()
+let renderer: PixiHexRenderer | null = null
+let resizeObserver: ResizeObserver | null = null
+let mapBuilt = false
+
 // ─── 選中小隊 ────────────────────────────────────────────────────────────────
+
 const selectedSquadId = ref<string | null>(null)
+const pendingMove = ref<{ pos: HexPos; x: number; y: number } | null>(null)
 
 const selectedSquad = computed(() =>
   selectedSquadId.value ? store.gameState?.squads[selectedSquadId.value] ?? null : null
 )
 
-function onSquadClick(squad: SquadInstance) {
-  if (squad.team !== 'player') return   // 只能選己方
-  selectedSquadId.value = squad.squadId === selectedSquadId.value ? null : squad.squadId
+function deselect() {
+  selectedSquadId.value = null
+  renderer?.setSelectedSquad(null)
+  renderer?.clearSquadSelection()
+}
+
+// ─── Renderer 回呼 ───────────────────────────────────────────────────────────
+
+function onSquadClick(squadId: string) {
+  const squad = store.gameState?.squads[squadId]
+  if (!squad) return
+
+  if (squad.team === 'player') {
+    // 己方：選中 / 取消
+    if (selectedSquadId.value === squadId) {
+      deselect()
+    } else {
+      selectedSquadId.value = squadId
+      renderer?.setSelectedSquad(squadId)
+      if (store.gameState) {
+        renderer?.showSquadSelection(squad, store.gameState.cells)
+      }
+    }
+  }
+  // 敵方：未來可開詳情面板
 }
 
 function onCellClick(pos: HexPos) {
   if (!selectedSquadId.value) return
-  const cell = store.gameState?.cells[hexKey(pos)]
+  const state = store.gameState
+  if (!state) return
+  const cell = state.cells[`${pos.q},${pos.r}`]
   if (!cell || !cell.passable) return
-  store.setManualTarget(selectedSquadId.value, pos)
-  selectedSquadId.value = null   // 設定完自動取消選中
+
+  // 計算螢幕座標
+  const worldPx = hexToPixel(pos.q, pos.r)
+  const screenPx = renderer?.worldToScreen(worldPx.x, worldPx.y) ?? { x: worldPx.x, y: worldPx.y }
+  pendingMove.value = { pos, x: screenPx.x, y: screenPx.y }
+  // 清除 highlight（但保留 selectedSquadId）
+  renderer?.clearSquadSelection()
 }
 
-function isManualTarget(pos: HexPos): boolean {
-  if (!store.gameState) return false
-  return Object.values(store.gameState.squads).some(sq =>
-    sq.manualTargetPos &&
-    sq.manualTargetPos.q === pos.q &&
-    sq.manualTargetPos.r === pos.r
-  )
+function confirmMove(_hold: boolean) {
+  // v2：手動目標已移除，此函數待重新設計
+  pendingMove.value = null
+  deselect()
+}
+
+function cancelMove() {
+  pendingMove.value = null
+}
+
+// ─── 初始化 Renderer ─────────────────────────────────────────────────────────
+
+onMounted(async () => {
+  if (!canvasRef.value || !wrapperRef.value) return
+
+  renderer = new PixiHexRenderer()
+  renderer.onSquadClick = onSquadClick
+  renderer.onCellClick  = onCellClick
+
+  await renderer.init(canvasRef.value)
+  renderer.setCaptainDefs(store.captainDefs)
+  renderer.setNamedZones(NAMED_ZONES)
+
+  // 若遊戲已在進行（頁面切回來），立即建圖 + 同步
+  if (store.gameState) {
+    renderer.buildMap(store.gameState.cells)
+    renderer.syncState(store.gameState)
+    mapBuilt = true
+  }
+
+  // ResizeObserver 讓 canvas 隨容器縮放
+  resizeObserver = new ResizeObserver(entries => {
+    const rect = entries[0].contentRect
+    renderer?.resize(rect.width, rect.height)
+  })
+  resizeObserver.observe(wrapperRef.value)
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+  renderer?.destroy()
+  renderer = null
+})
+
+// ─── 每 tick 同步狀態 ────────────────────────────────────────────────────────
+
+watch(
+  () => store.gameState,
+  (state) => {
+    if (!renderer || !state) return
+    if (!mapBuilt) {
+      renderer.buildMap(state.cells)
+      mapBuilt = true
+    }
+    renderer.syncState(state)
+  },
+  { deep: false }   // gameState 每 tick 替換為新物件，shallow watch 即可
+)
+
+// ─── 顯示用 ──────────────────────────────────────────────────────────────────
+
+// ─── 縮放 ────────────────────────────────────────────────────────────────────
+
+const currentZoom = ref(1.0)
+const zoomLabel   = computed(() => `${Math.round(currentZoom.value * 100)}%`)
+
+function changeZoom(dir: 1 | -1) {
+  if (!renderer) return
+  const next = currentZoom.value + dir * PixiHexRenderer.ZOOM_STEP
+  renderer.setZoom(next)
+  currentZoom.value = renderer.getZoom()
 }
 
 const phaseLabel = computed(() => {
   const p = store.gameState?.phase
-  if (p === 'running') return `⚔️ 戰鬥中 (tick: ${store.gameState?.tick})`
+  if (p === 'running')    return `⚔️ 戰鬥中 (tick: ${store.gameState?.tick})`
   if (p === 'player_won') return '🎉 玩家勝利'
-  if (p === 'enemy_won') return '💀 敵方勝利'
+  if (p === 'enemy_won')  return '💀 敵方勝利'
   return '準備中'
 })
-
-const sortedCells = computed(() => {
-  if (!store.gameState) return []
-  return Object.values(store.gameState.cells).sort((a, b) =>
-    a.pos.r !== b.pos.r ? a.pos.r - b.pos.r : a.pos.q - b.pos.q
-  )
-})
-
-// pointy-top 六角格，odd-r offset（奇數行右偏半格）
-const HEX_SIZE = 38        // 外接圓半徑 px
-const HEX_W = Math.sqrt(3) * HEX_SIZE   // ≈ 65.8px，格子寬
-const HEX_H = 2 * HEX_SIZE              // 76px，格子高
-const HEX_VERT = HEX_SIZE * 1.5         // 57px，行間距（上下六角重疊）
-
-function cellStyle(pos: HexPos) {
-  const x = pos.q * HEX_W + (pos.r & 1) * (HEX_W / 2)
-  const y = pos.r * HEX_VERT
-  return {
-    position: 'absolute' as const,
-    left: `${x}px`,
-    top: `${y}px`,
-    width: `${HEX_W}px`,
-    height: `${HEX_H}px`,
-  }
-}
-
-const mapContainerSize = computed(() => ({
-  width: `${10 * HEX_W + HEX_W / 2 + 4}px`,
-  height: `${5 * HEX_VERT + HEX_H + 4}px`,
-}))
-
-function squadsAt(pos: HexPos): SquadInstance[] {
-  if (!store.gameState) return []
-  return Object.values(store.gameState.squads).filter(
-    s => s.pos.q === pos.q && s.pos.r === pos.r && s.members.some(m => !m.isDead)
-  )
-}
-
-function captainName(defId: string) {
-  return store.captainDefs.find(c => c.id === defId)?.name ?? defId
-}
-
-function captainHpPct(squad: SquadInstance) {
-  const cap = squad.members.find(m => m.isCaptain)
-  if (!cap) return 0
-  return Math.ceil((cap.hp / cap.maxHp) * 100)
-}
-
-function buildingIcon(type: string) {
-  const icons: Record<string, string> = {
-    mainBase: '🏰', tower: '🗼', outpost: '⛺', barracks: '⚔️',
-    spring: '💧', workshop: '🔧', altar: '✨', gate: '🚪',
-  }
-  return icons[type] ?? '?'
-}
 
 const recentLog = computed(() => {
   const log = store.gameState?.log ?? []
   return log.slice(-8).reverse()
 })
+
+function captainName(defId: string) {
+  return store.captainDefs.find(c => c.id === defId)?.name ?? defId
+}
 </script>
 
 <style scoped>
@@ -202,7 +244,8 @@ const recentLog = computed(() => {
 .top-bar {
   display: flex; align-items: center; gap: 16px;
   background: #fdf6e8; border: 1px solid #c8b090;
-  border-radius: 8px; padding: 8px 16px;
+  border-radius: 8px; padding: 0 16px; flex-shrink: 0;
+  height: 44px; box-sizing: border-box;
 }
 .top-bar a { color: #8a5a1e; font-size: 13px; }
 .phase { flex: 1; text-align: center; font-size: 16px; font-weight: 700; color: #5a3e1e; }
@@ -218,93 +261,85 @@ const recentLog = computed(() => {
 .select-hint {
   display: flex; align-items: center; gap: 12px;
   background: #fdf6e8; border: 1px solid #c8b090;
-  border-radius: 6px; padding: 6px 14px; font-size: 13px; font-weight: 600;
-  color: #5a3e1e;
+  border-radius: 6px; padding: 0 14px; font-size: 13px; font-weight: 600;
+  color: #5a3e1e; flex-shrink: 0;
+  height: 36px; box-sizing: border-box;   /* 固定高度，防止切換時觸發 ResizeObserver */
 }
 .select-hint.muted { color: #a08060; font-weight: 400; font-size: 12px; }
 .hint-sub { font-size: 11px; color: #8a6a3e; font-weight: 400; }
 .deselect-btn {
   margin-left: auto; padding: 2px 10px;
   border: 1px solid #c8b090; background: #f4ead8;
-  color: #5a3e1e; border-radius: 4px; font-size: 12px;
+  color: #5a3e1e; border-radius: 4px; font-size: 12px; cursor: pointer;
 }
 
-/* ── Map ── */
-.map-container {
-  flex: 1; overflow: auto;
+/* ── Canvas ── */
+.canvas-wrapper {
+  flex: 1; overflow: hidden; position: relative;
+  border: 1px solid #c8b090; border-radius: 8px;
+  background: #ede0c8;
+}
+.game-canvas { display: block; width: 100%; height: 100%; }
+
+/* 縮放按鈕（右上角懸浮） */
+.zoom-controls {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: rgba(253,246,232,0.88); border: 1px solid #c8b090;
+  border-radius: 8px; padding: 4px 6px;
+  backdrop-filter: blur(4px);
+}
+.zoom-btn {
+  width: 28px; height: 28px; border: 1px solid #c8b090;
+  background: #f4ead8; color: #5a3e1e; border-radius: 5px;
+  font-size: 16px; line-height: 1; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  background: #ede0c8; border: 1px solid #c8b090; border-radius: 8px;
 }
-.map-grid { position: relative; }
-
-/* pointy-top 六角形 */
-.cell {
-  position: absolute;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  cursor: default; transition: filter 0.1s;
-}
-.cell:hover { filter: brightness(1.15); cursor: pointer; }
-.cell-target { outline: 3px solid #c8701e; outline-offset: -3px; filter: brightness(1.2); }
-.cell.normal     { background: #d8c8a8; }
-.cell.highGround { background: #b8c890; }
-.cell.forest     { background: #789060; }
-.cell.river      { background: #8ab4c8; }
-.cell.bridge     { background: #c8b478; }
-.cell.impassable { background: #6a5a48; opacity: 0.5; }
-
-.building { font-size: 16px; line-height: 1; }
-
-/* squad token 置中在六角中，不受 clip-path 裁切 */
-.squad-token {
-  position: absolute;
-  left: 50%; top: 50%;
-  transform: translate(-50%, -50%);
-  width: 52px; height: 52px;
-  border-radius: 50%;
-  padding: 3px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  font-size: 9px; z-index: 2; pointer-events: auto;
-}
-.squad-token.player { background: rgba(40, 80, 180, 0.90); border: 2px solid #6af; cursor: pointer; }
-.squad-token.enemy  { background: rgba(160, 40, 20, 0.90); border: 2px solid #f86; pointer-events: none; }
-.squad-selected { border: 3px solid #ff0 !important; box-shadow: 0 0 8px rgba(255,220,0,0.8); }
-.squad-name { font-weight: 700; font-size: 8px; text-align: center; line-height: 1.1; color: #fff; }
-.squad-hp-bar { width: 88%; height: 3px; background: rgba(0,0,0,0.3); border-radius: 2px; margin: 2px 0; }
-.hp-fill { height: 100%; background: #7f4; border-radius: 2px; transition: width 0.15s; }
-.member-pips { display: flex; gap: 1px; flex-wrap: wrap; justify-content: center; }
-.pip { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.6); }
-.pip.dead    { background: rgba(0,0,0,0.3); }
-.pip.captain { background: #ff0; }
+.zoom-btn:hover { background: #e8d4b0; }
+.zoom-label { font-size: 11px; color: #8a6a3e; min-width: 36px; text-align: center; }
 
 /* ── Battle Log ── */
 .battle-log {
-  height: 72px; overflow-y: auto;
+  height: 72px; overflow-y: auto; flex-shrink: 0; box-sizing: border-box;
   background: #fdf6e8; border: 1px solid #c8b090;
   padding: 8px 10px; font-size: 11px; font-family: monospace;
   border-radius: 6px; color: #5a3e1e;
 }
 
 /* ── Squad Panels ── */
-.squad-panels { display: flex; gap: 10px; }
+.squad-panels { display: flex; gap: 10px; flex-shrink: 0; height: 80px; box-sizing: border-box; }
 .squad-panel {
-  flex: 1; background: #fdf6e8;
-  border: 1px solid #c8a870; border-radius: 8px; padding: 8px 10px;
+  flex: 1; background: #fdf6e8; overflow: hidden;
+  border: 1px solid #c8a870; border-radius: 8px; padding: 6px 10px;
+  box-sizing: border-box;
 }
-.panel-name { font-weight: 700; font-size: 14px; color: #5a3e1e; }
+.panel-name  { font-weight: 700; font-size: 14px; color: #5a3e1e; }
 .panel-state { font-size: 11px; color: #8a6a3e; margin-top: 1px; }
-.sp-bar { height: 4px; background: #e8d4b0; border-radius: 2px; margin: 5px 0; }
+.sp-bar  { height: 4px; background: #e8d4b0; border-radius: 2px; margin: 5px 0; }
 .sp-fill { height: 100%; background: #9a50e0; border-radius: 2px; }
 .panel-members { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
 .member-badge {
   font-size: 10px; background: #f4ead8;
-  border: 1px solid #c8b090; padding: 2px 6px; border-radius: 10px;
-  color: #5a3e1e;
+  border: 1px solid #c8b090; padding: 2px 6px; border-radius: 10px; color: #5a3e1e;
 }
 .member-badge.dead { opacity: 0.35; text-decoration: line-through; }
 .revive-count { font-size: 11px; color: #8a6a3e; text-align: center; padding: 4px 0; }
+
+/* ── Move Order Panel ── */
+.move-order-panel {
+  position: absolute; transform: translate(-50%, -110%);
+  background: rgba(30,20,10,0.88); border: 1px solid #c8b090;
+  border-radius: 8px; padding: 6px 8px;
+  display: flex; gap: 6px; align-items: center;
+  backdrop-filter: blur(4px); z-index: 10;
+}
+.move-order-panel button {
+  padding: 4px 10px; border-radius: 5px; border: 1px solid #c8b090;
+  font-size: 12px; cursor: pointer; color: #f0e8d8;
+}
+.move-order-panel button:first-child { background: #8b2020; }
+.move-order-panel button:nth-child(2) { background: #1a4a8a; }
+.cancel-btn { background: transparent !important; padding: 2px 6px !important; }
 
 /* ── Result Overlay ── */
 .result-overlay {
@@ -321,8 +356,7 @@ const recentLog = computed(() => {
 .result-title { font-size: 36px; font-weight: 800; color: #5a3e1e; }
 .result-btn {
   padding: 10px 30px; background: #c8701e; color: #fff;
-  border-radius: 8px; font-size: 15px; font-weight: 600;
-  text-decoration: none;
+  border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none;
 }
 .result-btn:hover { background: #a85818; }
 </style>

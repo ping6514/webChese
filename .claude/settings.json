@@ -45,7 +45,10 @@
       "Bash(grep -r \"AURA_DAMAGE_BONUS\\\\|BLOOD_SACRIFICE\\\\|COUNTER\\\\|DEATH_COUNTER\\\\|EXTRA_SHOT\\\\|KILL_GOLD_GAIN\\\\|KILL_MANA_GAIN\\\\|ON_DEATH_FIXED_DAMAGE\\\\|SACRIFICE_SHOT_BUFF\\\\|TARGET_DEF_MINUS\" /d/workspace/webChese/app/src/engine/*.ts)",
       "Bash(xargs grep:*)",
       "Bash(grep -r \"CHAIN.*when\\\\|PIERCE.*when\" /d/workspace/webChese/app/src/data/souls/*.json)",
-      "Bash(grep -n \"SOLDIERS_GTE\" d:/workspace/webChese/app/src/engine/*.ts)"
+      "Bash(grep -n \"SOLDIERS_GTE\" d:/workspace/webChese/app/src/engine/*.ts)",
+      "Bash(wc -l D:/workspace/webChese/app/src/components/v2/*.vue)",
+      "Bash(wc -l D:/workspace/webChese/app/src/game/*.ts)",
+      "Bash(npm install:*)"
     ]
   }
 }

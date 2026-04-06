@@ -1,7 +1,7 @@
 import type {
-  GameState, SquadInstance, MemberInstance, HexPos, DDZ
+  GameState, SquadInstance, HexPos
 } from './types'
-import { hexDistance, hexKey } from './types'
+import { hexDistance, hexKey, COUNTER_TABLE } from './types'
 import { captainDefs, followerDefs } from '../data/testSquads'
 import { findPath, nearestInZone } from './pathfind'
 import { NAMED_ZONES } from './mapData'
@@ -9,39 +9,31 @@ import { NAMED_ZONES } from './mapData'
 // ─── 常數 ─────────────────────────────────────────────────────────────────────
 
 export const ATB_MAX   = 100
-export const MOVE_ACCUM_PER_TICK = 0.08   // 每 tick 累積移動點，滿 1.0 走一格
-                                            // moveSpeed=1.0 → 每 12~13 tick 走一格
+export const MOVE_ACCUM_PER_TICK = 0.08
 
-// ─── 工具：取隊長/從者 def ─────────────────────────────────────────────────────
+// ─── 工具 ─────────────────────────────────────────────────────────────────────
 
 function getCaptainDef(id: string) { return captainDefs.find(c => c.id === id)! }
 function getFollowerDef(id: string) { return followerDefs.find(f => f.id === id)! }
 
-function getMemberDef(m: MemberInstance) {
-  return m.isCaptain ? getCaptainDef(m.defId) : getFollowerDef(m.defId)
-}
-
-// ─── 擋槍判斷 ─────────────────────────────────────────────────────────────────
-
-export function getBlockingMember(squad: SquadInstance): MemberInstance | null {
-  const alive = squad.members.filter(m => !m.isDead)
-  if (!alive.length) return null
-  return alive.reduce((a, b) => a.blockPriority >= b.blockPriority ? a : b)
-}
-
-// ─── 小隊存活（隊長還活著） ───────────────────────────────────────────────────
+// ─── 小隊存活（隊長 HP > 0 且不在撤退）──────────────────────────────────────
 
 export function isSquadAlive(squad: SquadInstance): boolean {
-  return squad.members.some(m => m.isCaptain && !m.isDead)
+  return squad.hp > 0 && squad.state !== 'retreating'
 }
 
-// ─── 小隊的平均 moveSpeed（全體存活成員取平均）────────────────────────────────
+// ─── 小隊實際移速（隊長基礎速度 + 從者平均移速）─────────────────────────────
 
 function squadMoveSpeed(squad: SquadInstance): number {
-  const alive = squad.members.filter(m => !m.isDead)
-  if (!alive.length) return 0
-  const total = alive.reduce((sum, m) => sum + getMemberDef(m).stats.moveSpeed, 0)
-  return total / alive.length
+  const capDef = getCaptainDef(squad.captainDefId)
+  const aliveShields = squad.shieldLayers.filter(s => !s.isDead)
+  if (!aliveShields.length) return capDef.stats.moveSpeed
+
+  const followerAvg = aliveShields.reduce((sum, s) => {
+    return sum + getFollowerDef(s.followerDefId).stats.moveSpeed
+  }, 0) / aliveShields.length
+
+  return (capDef.stats.moveSpeed + followerAvg) / 2
 }
 
 // ─── 警戒範圍內的敵方小隊 ────────────────────────────────────────────────────
@@ -63,12 +55,13 @@ function getEnemiesInRange(
   squad: SquadInstance,
   allSquads: Record<string, SquadInstance>
 ): SquadInstance[] {
-  const captain = squad.members.find(m => m.isCaptain)
-  if (!captain) return []
+  const capDef = getCaptainDef(squad.captainDefId)
+  // 取隊長射程與所有存活從者射程的最大值
   const maxRange = Math.max(
-    ...squad.members
-      .filter(m => !m.isDead)
-      .map(m => getMemberDef(m).stats.range)
+    capDef.stats.range,
+    ...squad.shieldLayers
+      .filter(s => !s.isDead)
+      .map(s => getFollowerDef(s.followerDefId).stats.range)
   )
   return Object.values(allSquads).filter(other =>
     other.team !== squad.team &&
@@ -84,21 +77,18 @@ function sortByPriority(
   enemies: SquadInstance[]
 ): SquadInstance[] {
   return [...enemies].sort((a, b) => {
-    for (const prio of squad.aiConfig.targetPriority) {
-      if (prio === 'nearest') {
-        const d = hexDistance(squad.pos, a.pos) - hexDistance(squad.pos, b.pos)
-        if (d !== 0) return d
-      }
-      if (prio === 'lowest_hp') {
-        const hpA = a.members.find(m => m.isCaptain)?.hp ?? 0
-        const hpB = b.members.find(m => m.isCaptain)?.hp ?? 0
-        if (hpA !== hpB) return hpA - hpB
-      }
-      if (prio === 'most_members') {
-        const cntA = a.members.filter(m => !m.isDead).length
-        const cntB = b.members.filter(m => !m.isDead).length
-        if (cntA !== cntB) return cntB - cntA
-      }
+    const prio = squad.aiConfig.targetPriority
+    if (prio === 'nearest') {
+      const d = hexDistance(squad.pos, a.pos) - hexDistance(squad.pos, b.pos)
+      if (d !== 0) return d
+    }
+    if (prio === 'lowest_hp') {
+      if (a.hp !== b.hp) return a.hp - b.hp
+    }
+    if (prio === 'strongest_threat') {
+      const aCap = getCaptainDef(a.captainDefId)
+      const bCap = getCaptainDef(b.captainDefId)
+      if (aCap.stats.atk !== bCap.stats.atk) return bCap.stats.atk - aCap.stats.atk
     }
     return 0
   })
@@ -117,52 +107,51 @@ function getBlockedKeys(
   return blocked
 }
 
-// ─── 對目標小隊施加傷害（擋槍邏輯） ──────────────────────────────────────────
+// ─── 承傷邏輯（護盾層優先，護盾破後才傷隊長）────────────────────────────────
 
-// 回傳是否造成擊殺
 function applyDamage(
   attacker: SquadInstance,
-  attackerMember: MemberInstance,
+  isAttackerCaptain: boolean,
+  attackerAtk: number,
   target: SquadInstance,
   log: string[]
 ): boolean {
-  const atkDef = getMemberDef(attackerMember)
-  const blocker = getBlockingMember(target)
-  if (!blocker) return false
+  const capDef   = getCaptainDef(attacker.captainDefId)
+  const tgtDef   = getCaptainDef(target.captainDefId)
 
-  const defDef = getMemberDef(blocker)
+  // 相剋加成：攻擊方隊長兵種對防守方隊長兵種是否有相剋
+  const counters = COUNTER_TABLE[capDef.type] ?? []
+  const counterBonus = counters.includes(tgtDef.type) ? 1.35 : 1.0
 
-  let tagBonus = 0
-  for (const atag of atkDef.atkTags) {
-    if (defDef.defTags.includes(atag as any)) tagBonus += 30
+  // 找護盾層中擋槍優先值最高的存活從者
+  const activeShields = target.shieldLayers.filter(s => !s.isDead)
+  if (activeShields.length > 0) {
+    const blocker = activeShields.reduce((a, b) => {
+      const aDef = getFollowerDef(a.followerDefId)
+      const bDef = getFollowerDef(b.followerDefId)
+      return aDef.blockPriority >= bDef.blockPriority ? a : b
+    })
+    const blockerDef = getFollowerDef(blocker.followerDefId)
+    const dmg = Math.max(1, Math.floor(attackerAtk * counterBonus - blockerDef.stats.def))
+    blocker.hp = Math.max(0, blocker.hp - dmg)
+    if (blocker.hp === 0) {
+      blocker.isDead = true
+      log.push(`🛡️ ${capDef.name} 擊破 ${tgtDef.name} 的護盾（${blockerDef.name}）`)
+    }
+    return false
   }
 
-  const dmg = Math.max(1, atkDef.stats.atk - defDef.stats.def + tagBonus)
-  blocker.hp = Math.max(0, blocker.hp - dmg)
+  // 無護盾層，直接傷隊長
+  const tgtCapDef = getCaptainDef(target.captainDefId)
+  const dmg = Math.max(1, Math.floor(attackerAtk * counterBonus - tgtCapDef.stats.def))
+  target.hp = Math.max(0, target.hp - dmg)
 
-  if (blocker.hp === 0) {
-    blocker.isDead = true
-    const who = blocker.isCaptain ? '隊長' : '從者'
-    log.push(`⚔️ ${getCaptainDef(attacker.captainDefId).name} 擊殺 ${getCaptainDef(target.captainDefId).name} 的${who}`)
-    return blocker.isCaptain
+  if (target.hp === 0) {
+    const who = isAttackerCaptain ? capDef.name : `${capDef.name}的從者`
+    log.push(`⚔️ ${who} 擊敗 ${tgtDef.name}`)
+    return true
   }
-  // 一般傷害不記錄，只記擊殺
   return false
-}
-
-// ─── DDZ 觸發 ────────────────────────────────────────────────────────────────
-
-function triggerDDZ(ddz: DDZ, state: GameState): void {
-  const posSet = new Set(ddz.positions.map(p => hexKey(p)))
-  Object.values(state.squads).forEach(squad => {
-    if (squad.team === ddz.team) return
-    if (!posSet.has(hexKey(squad.pos))) return
-    const blocker = getBlockingMember(squad)
-    if (!blocker) return
-    blocker.hp = Math.max(0, blocker.hp - ddz.damage)
-    if (blocker.hp === 0) blocker.isDead = true
-    if (blocker.isDead) state.log.push(`[DDZ] 命中 ${getCaptainDef(squad.captainDefId).name}`)
-  })
 }
 
 // ─── 小隊 tick 邏輯 ──────────────────────────────────────────────────────────
@@ -177,36 +166,28 @@ function tickSquad(squad: SquadInstance, state: GameState): void {
   if (inRange.length > 0) {
     squad.state = 'fighting'
   } else if (enemies.length > 0) {
-    // 警戒範圍有敵但射程外 → 靠近
-    squad.state = 'moving'
-  } else if (squad.manualTargetPos) {
-    // 玩家手動指定目標 → 強制移動
     squad.state = 'moving'
   } else {
-    // 無敵人 → 依 actionPriority 順序找到第一個可執行的動作
-    // attack 但無敵可打 → 跳過，繼續看下一個
-    const ap = squad.aiConfig.actionPriority
-    const hasSeq = squad.aiConfig.moveSequence.length > 0
-    if (ap.includes('capture')) squad.state = 'capturing'
-    else if (hasSeq) squad.state = 'moving'
-    else squad.state = 'idle'
+    switch (squad.aiConfig.behavior) {
+      case 'aggressive': squad.state = 'moving';    break
+      case 'capture':    squad.state = 'capturing'; break
+      case 'defend':     squad.state = 'idle';      break
+      default:           squad.state = 'idle'
+    }
   }
 
   // ② 移動
-  if (squad.state === 'moving') {
-    tickMove(squad, state, enemies)
-  }
+  if (squad.state === 'moving') tickMove(squad, state, enemies)
 
-  // ③ 攻擊（ATB 充能 + 出手）
+  // ③ 攻擊
   tickATB(squad, state, inRange)
 
-  // ④ commandCooldown 遞減
-  if (squad.commandCooldownRemaining > 0) squad.commandCooldownRemaining--
+  // ④ 佔領
+  if (squad.state === 'capturing') tickCapture(squad, state)
 }
 
 // ─── 移動 tick ────────────────────────────────────────────────────────────────
 
-// 每個 squad 掛一個 moveAccum，用 Map 存（避免污染 GameState 型別）
 const moveAccumMap = new Map<string, number>()
 
 function tickMove(
@@ -218,28 +199,22 @@ function tickMove(
   const prev = moveAccumMap.get(squad.squadId) ?? 0
   const accum = prev + spd * MOVE_ACCUM_PER_TICK
   moveAccumMap.set(squad.squadId, accum)
-  if (accum < 1.0) return           // 還沒到移動一格的門檻
+  if (accum < 1.0) return
   moveAccumMap.set(squad.squadId, accum - 1.0)
 
-  // 決定移動目標格
   let goal: HexPos | null = null
 
-  if (squad.manualTargetPos) {
-    // 玩家手動指定座標，優先走這個
-    goal = squad.manualTargetPos
-    // 到達後清除
-    if (hexDistance(squad.pos, goal) === 0) {
-      squad.manualTargetPos = null
-      return
-    }
-  } else if (alertEnemies.length > 0) {
-    // 往最優先的敵方靠近
-    const target = sortByPriority(squad, alertEnemies)[0]
-    goal = target.pos
+  if (alertEnemies.length > 0) {
+    // 靠近最優先敵方
+    goal = sortByPriority(squad, alertEnemies)[0].pos
   } else {
-    // 走移動序列
-    const seq = squad.aiConfig.moveSequence
-    if (!seq.length) return
+    // 依路線走向下一個目標節點
+    const routeZones: Record<string, string[]> = {
+      top:    ['front_upper', 'gate', 'dungeon_upper', 'enemy_base'],
+      mid:    ['front_mid',   'gate', 'dungeon_mid',   'enemy_base'],
+      bottom: ['front_lower', 'gate', 'dungeon_lower', 'enemy_base'],
+    }
+    const seq = routeZones[squad.aiConfig.route] ?? routeZones['mid']
     const seqIdx = (squad as any)._seqIdx ?? 0
     const zoneName = seq[seqIdx]
     const zone = NAMED_ZONES[zoneName]
@@ -248,10 +223,7 @@ function tickMove(
     const zoneGoal = nearestInZone(squad.pos, zone)
     if (hexDistance(squad.pos, zoneGoal) === 0) {
       let next = seqIdx + 1
-      if (next >= seq.length) {
-        if (squad.aiConfig.loopSequence) next = 0
-        else return
-      }
+      if (next >= seq.length) return
       ;(squad as any)._seqIdx = next
       return
     }
@@ -263,7 +235,29 @@ function tickMove(
   const blocked = getBlockedKeys(squad.squadId, state.squads)
   const path = findPath(squad.pos, goal, state.cells, blocked)
   if (path.length > 0) {
-    squad.pos = path[0]   // 走路徑第一步
+    const nextKey = hexKey(path[0])
+    if (!blocked.has(nextKey)) squad.pos = path[0]
+  }
+}
+
+// ─── 佔領 tick ───────────────────────────────────────────────────────────────
+
+function tickCapture(squad: SquadInstance, state: GameState): void {
+  const capDef = getCaptainDef(squad.captainDefId)
+  const cellKey = hexKey(squad.pos)
+  const cell = state.cells[cellKey]
+  if (!cell?.building) return
+  const b = cell.building
+  if (b.team === squad.team) return
+
+  b.captureHp = Math.max(0, b.captureHp - capDef.stats.captureRate)
+  if (b.captureHp === 0) {
+    b.team = squad.team
+    b.captureHp = b.maxCaptureHp
+    state.log.push(`🏴 ${capDef.name} 佔領 ${b.buildingId}`)
+    // 佔領獎勵
+    state.resources.mana += 10
+    state.resources.experience += 5
   }
 }
 
@@ -274,22 +268,51 @@ function tickATB(
   state: GameState,
   inRange: SquadInstance[]
 ): void {
-  squad.members.forEach(member => {
-    if (member.isDead) return
-    const def = getMemberDef(member)
-    member.atb = Math.min(ATB_MAX, member.atb + def.stats.atbSpeed * 2)
+  const capDef = getCaptainDef(squad.captainDefId)
 
-    if (member.atb >= ATB_MAX && inRange.length > 0) {
-      member.atb = 0
+  // 隊長 ATB
+  squad.atb = Math.min(ATB_MAX, squad.atb + capDef.stats.atbSpeed * 2)
+  if (squad.atb >= ATB_MAX && inRange.length > 0) {
+    squad.atb = 0
+    const target = sortByPriority(squad, inRange)[0]
+    if (hexDistance(squad.pos, target.pos) <= capDef.stats.range) {
+      applyDamage(squad, true, capDef.stats.atk, target, state.log)
+      squad.sp = Math.min(100, squad.sp + capDef.stats.spGainPerHit)
+    }
+  }
+
+  // 從者 ATB（各自獨立出手）
+  for (const shield of squad.shieldLayers) {
+    if (shield.isDead) continue
+    const fDef = getFollowerDef(shield.followerDefId)
+    shield.atb = Math.min(ATB_MAX, shield.atb + fDef.stats.atbSpeed * 2)
+    if (shield.atb >= ATB_MAX && inRange.length > 0) {
+      shield.atb = 0
       const target = sortByPriority(squad, inRange)[0]
-      // 確認攻擊者射程能打到目標
-      if (hexDistance(squad.pos, target.pos) <= def.stats.range) {
-        applyDamage(squad, member, target, state.log)
-        // SP 充能（造成傷害）
-        squad.sp = Math.min(100, squad.sp + 8)
+      if (hexDistance(squad.pos, target.pos) <= fDef.stats.range) {
+        applyDamage(squad, false, fDef.stats.atk, target, state.log)
       }
     }
-  })
+  }
+}
+
+// ─── 靈力自然產出 ────────────────────────────────────────────────────────────
+
+function tickResources(state: GameState): void {
+  // 主堡基礎產出
+  state.resources.mana += 0.5
+
+  // 佔領節點加成
+  for (const cell of Object.values(state.cells)) {
+    if (!cell.building) continue
+    const b = cell.building
+    if (b.team !== 'player') continue
+    switch (b.nodeType) {
+      case 'outpost':    state.resources.mana += 0.3; break
+      case 'barracks':   state.resources.mana += 0.2; break
+      case 'highGround': state.resources.mana += 0.1; break
+    }
+  }
 }
 
 // ─── 主 tick 步進 ────────────────────────────────────────────────────────────
@@ -300,48 +323,67 @@ export function stepGame(state: GameState): GameState {
   const next = JSON.parse(JSON.stringify(state)) as GameState
   next.tick++
 
-  // 0. 復活檢查（先於其他邏輯）
+  // 0. 資源自然產出
+  tickResources(next)
+
+  // 1. 復活檢查
   for (const squad of Object.values(next.squads)) {
     if (squad.state === 'retreating' && squad.reviveAtTick !== null && next.tick >= squad.reviveAtTick) {
-      for (const m of squad.members) {
-        m.hp = m.maxHp
-        m.isDead = false
-        m.atb = 0
-      }
+      const capDef = getCaptainDef(squad.captainDefId)
+      squad.hp = capDef.stats.hp
+      squad.atb = 0
+      squad.sp = 0
+      squad.shieldLayers = []  // 裸體復活，從者消耗品不跟
       squad.pos = { ...squad.spawnPos }
       squad.state = 'idle'
       squad.reviveAtTick = null
-      next.log.push(`✨ ${getCaptainDef(squad.captainDefId).name} 復活`)
+      ;(squad as any)._seqIdx = 0
+      next.log.push(`✨ ${capDef.name} 復活`)
     }
   }
 
-  // 1. DDZ
+  // 2. DDZ
   next.ddzList = next.ddzList.filter(ddz => {
-    if (ddz.triggerAtTick <= next.tick) { triggerDDZ(ddz, next); return false }
+    if (ddz.triggerAtTick <= next.tick) {
+      const posSet = new Set(ddz.positions.map(p => hexKey(p)))
+      Object.values(next.squads).forEach(squad => {
+        if (squad.team === ddz.team) return
+        if (!posSet.has(hexKey(squad.pos))) return
+        // 護盾優先承傷
+        const alive = squad.shieldLayers.filter(s => !s.isDead)
+        if (alive.length > 0) {
+          alive[0].hp = Math.max(0, alive[0].hp - ddz.damage)
+          if (alive[0].hp === 0) alive[0].isDead = true
+        } else {
+          squad.hp = Math.max(0, squad.hp - ddz.damage)
+        }
+        next.log.push(`[DDZ] 命中 ${getCaptainDef(squad.captainDefId).name}`)
+      })
+      return false
+    }
     return true
   })
 
-  // 2. 各小隊 tick（依 actionPriority 決定行為）
+  // 3. 各小隊 tick
   for (const squad of Object.values(next.squads)) {
     tickSquad(squad, next)
   }
 
-  // 3. 隊長陣亡 → 標記 retreating，玩家小隊設定復活倒計時
+  // 4. 隊長陣亡 → retreating
   for (const squad of Object.values(next.squads)) {
-    if (!isSquadAlive(squad) && squad.state !== 'retreating') {
+    if (squad.hp <= 0 && squad.state !== 'retreating') {
       squad.state = 'retreating'
-      const captainDef = getCaptainDef(squad.captainDefId)
+      const capDef = getCaptainDef(squad.captainDefId)
       if (squad.team === 'player') {
-        squad.reviveAtTick = next.tick + captainDef.stats.reviveDelay
-        next.log.push(`💀 ${captainDef.name} 敗退，${captainDef.stats.reviveDelay} tick 後復活`)
+        squad.reviveAtTick = next.tick + capDef.stats.reviveDelay
+        next.log.push(`💀 ${capDef.name} 敗退，${capDef.stats.reviveDelay} tick 後復活`)
       } else {
-        next.log.push(`💀 ${captainDef.name} 敗退`)
+        next.log.push(`💀 ${capDef.name} 敗退`)
       }
     }
   }
 
-  // 4. 勝敗判斷
-  // 玩家：只要有任何存活或等待復活的小隊就繼續
+  // 5. 勝敗判斷
   const playerActive = Object.values(next.squads).some(
     s => s.team === 'player' && (isSquadAlive(s) || s.reviveAtTick !== null)
   )

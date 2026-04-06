@@ -27,9 +27,9 @@ export function createTestMap(): Record<string, MapCell> {
           pos, terrain: 'normal', passable: true,
           building: {
             buildingId: 'player_base',
-            type: 'mainBase',
+            nodeType: 'playerBase',
             team: 'player',
-            captureHP: 100, maxCaptureHP: 100,
+            captureHp: 100, maxCaptureHp: 100,
             hp: 500, maxHp: 500
           }
         }
@@ -42,9 +42,9 @@ export function createTestMap(): Record<string, MapCell> {
           pos, terrain: 'normal', passable: true,
           building: {
             buildingId: 'enemy_base',
-            type: 'mainBase',
+            nodeType: 'enemyBase',
             team: 'enemy',
-            captureHP: 100, maxCaptureHP: 100,
+            captureHp: 100, maxCaptureHp: 100,
             hp: 500, maxHp: 500
           }
         }
@@ -57,9 +57,9 @@ export function createTestMap(): Record<string, MapCell> {
           pos, terrain: 'normal', passable: true,
           building: {
             buildingId: `outpost_${q}_${r}`,
-            type: 'outpost',
+            nodeType: 'outpost',
             team: 'neutral',
-            captureHP: 100, maxCaptureHP: 100
+            captureHp: 100, maxCaptureHp: 100
           }
         }
         continue
@@ -81,7 +81,13 @@ export function createTestMap(): Record<string, MapCell> {
 // 命名區域對應格子（供 AI moveSequence 使用）
 export const NAMED_ZONES: Record<string, HexPos[]> = {
   player_base:    [{ q: 0, r: 2 }, { q: 0, r: 3 }],
+  front_upper:    [{ q: 2, r: 1 }],
   front_mid:      [{ q: 2, r: 2 }, { q: 2, r: 3 }],
+  front_lower:    [{ q: 2, r: 4 }],
   center:         [{ q: 4, r: 2 }, { q: 5, r: 3 }],
+  gate:           [{ q: 5, r: 2 }, { q: 5, r: 3 }],
+  dungeon_upper:  [{ q: 7, r: 1 }],
+  dungeon_mid:    [{ q: 7, r: 2 }, { q: 7, r: 3 }],
+  dungeon_lower:  [{ q: 7, r: 4 }],
   enemy_base:     [{ q: 9, r: 2 }, { q: 9, r: 3 }],
 }
