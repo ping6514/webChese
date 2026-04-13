@@ -48,7 +48,8 @@
       "Bash(grep -n \"SOLDIERS_GTE\" d:/workspace/webChese/app/src/engine/*.ts)",
       "Bash(wc -l D:/workspace/webChese/app/src/components/v2/*.vue)",
       "Bash(wc -l D:/workspace/webChese/app/src/game/*.ts)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(wc -l /Users/pingwu/Desktop/workspace/github/webChese/app5/src/**/*.ts /Users/pingwu/Desktop/workspace/github/webChese/app5/src/**/*.vue)"
     ]
   }
 }

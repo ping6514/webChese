@@ -7,8 +7,8 @@ export const followerDefs: FollowerDef[] = [
     id: 'follower_infantry',
     name: '步兵',
     type: 'infantry',
-    shieldHp: 100,
-    stats: { atk: 100, def: 70, atbSpeed: 1.0, moveSpeed: 1.0, range: 1 },
+    shieldHp: 200,
+    stats: { atk: 200, def: 80, atbSpeed: 1.0, moveSpeed: 1.0, range: 1 },
     productionCost: 4,
     productionTicks: 25,
     blockPriority: 5,
@@ -17,8 +17,8 @@ export const followerDefs: FollowerDef[] = [
     id: 'follower_cavalry',
     name: '騎兵',
     type: 'cavalry',
-    shieldHp: 90,
-    stats: { atk: 110, def: 60, atbSpeed: 1.2, moveSpeed: 1.6, range: 1 },
+    shieldHp: 180,
+    stats: { atk: 230, def: 65, atbSpeed: 1.2, moveSpeed: 1.6, range: 1 },
     productionCost: 6,
     productionTicks: 30,
     blockPriority: 6,
@@ -48,7 +48,7 @@ export const followerDefs: FollowerDef[] = [
     name: '攻城兵',
     type: 'siege',
     shieldHp: 110,
-    stats: { atk: 120, def: 65, atbSpeed: 0.4, moveSpeed: 0.7, range: 2 },
+    stats: { atk: 120, def: 65, atbSpeed: 0.4, moveSpeed: 0.7, range: 4 },
     productionCost: 10,
     productionTicks: 50,
     splashRange: 1,
@@ -64,7 +64,7 @@ export const captainDefs: CaptainDef[] = [
     name: '衝鋒隊長',
     type: 'infantry',
     stats: {
-      hp: 300, atk: 120, def: 75,
+      hp: 600, atk: 280, def: 80,
       atbSpeed: 1.0, moveSpeed: 1.0, range: 1,
       reviveDelay: 10, captureRate: 10, spGainPerHit: 8,
     },
@@ -97,7 +97,7 @@ export const captainDefs: CaptainDef[] = [
     name: '防守隊長',
     type: 'heavy',
     stats: {
-      hp: 320, atk: 100, def: 85,
+      hp: 800, atk: 220, def: 120,
       atbSpeed: 0.9, moveSpeed: 0.9, range: 1,
       reviveDelay: 8, captureRate: 15, spGainPerHit: 6,
     },
@@ -130,7 +130,7 @@ export const captainDefs: CaptainDef[] = [
     name: '騎士隊長',
     type: 'cavalry',
     stats: {
-      hp: 270, atk: 115, def: 65,
+      hp: 520, atk: 300, def: 70,
       atbSpeed: 1.2, moveSpeed: 1.6, range: 1,
       reviveDelay: 15, captureRate: 5, spGainPerHit: 10,
     },
@@ -163,7 +163,7 @@ export const captainDefs: CaptainDef[] = [
     name: '弓手隊長',
     type: 'ranged',
     stats: {
-      hp: 240, atk: 95, def: 50,
+      hp: 450, atk: 260, def: 55,
       atbSpeed: 1.1, moveSpeed: 0.9, range: 3,
       reviveDelay: 8, captureRate: 8, spGainPerHit: 7,
     },
@@ -196,8 +196,8 @@ export const captainDefs: CaptainDef[] = [
     name: '攻城隊長',
     type: 'siege',
     stats: {
-      hp: 280, atk: 85, def: 70,
-      atbSpeed: 0.7, moveSpeed: 0.8, range: 2,
+      hp: 580, atk: 380, def: 75,
+      atbSpeed: 0.7, moveSpeed: 0.8, range: 4,
       reviveDelay: 12, captureRate: 25, spGainPerHit: 6,
     },
     baseFollowerSlots: 2,
@@ -253,4 +253,10 @@ export const DEFAULT_AI_CONFIG: AIConfig = {
   spMode: 'auto',
   route: 'mid',
   alertRange: 2,
+}
+
+/** 依隊長型別返回建議 alertRange */
+export function captainAlertRange(type: string): 1 | 2 | 3 {
+  if (type === 'siege' || type === 'ranged') return 3
+  return 2
 }

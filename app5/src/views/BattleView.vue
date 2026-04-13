@@ -10,16 +10,6 @@
       </div>
     </div>
 
-    <!-- ── 選中小隊提示 ───────────────────────────────────────────────────── -->
-    <div class="select-hint" v-if="selectedSquadId">
-      <span>已選中：{{ captainName(selectedSquad?.captainDefId ?? '') }}</span>
-      <span class="hint-sub">點擊地圖格子設定移動目標</span>
-      <button class="deselect-btn" @click="deselect">取消選中</button>
-    </div>
-    <div class="select-hint muted" v-else>
-      點擊己方小隊 token 可指定移動目標
-    </div>
-
     <!-- ── 勝敗結果 overlay ──────────────────────────────────────────────── -->
     <div v-if="store.gameState?.phase === 'player_won' || store.gameState?.phase === 'enemy_won'" class="result-overlay">
       <div class="result-box">
@@ -36,13 +26,6 @@
         <button class="zoom-btn" @click="changeZoom(1)" title="放大">＋</button>
         <span class="zoom-label">{{ zoomLabel }}</span>
         <button class="zoom-btn" @click="changeZoom(-1)" title="縮小">－</button>
-      </div>
-      <!-- 移動指令面板 -->
-      <div v-if="pendingMove" class="move-order-panel"
-           :style="{ left: pendingMove.x + 'px', top: pendingMove.y + 'px' }">
-        <button @click="confirmMove(false)">⚔️ 進攻</button>
-        <button @click="confirmMove(true)">🛡️ 守點</button>
-        <button class="cancel-btn" @click="cancelMove">✕</button>
       </div>
     </div>
 
@@ -79,7 +62,6 @@ import type { HexPos } from '../engine/types'
 import { PixiHexRenderer } from '../game/PixiHexRenderer'
 import { ref } from 'vue'
 import { NAMED_ZONES } from '../engine/mapData'
-import { hexToPixel } from '../game/hexUtils'
 
 const store = useGameStore()
 
@@ -94,11 +76,6 @@ let mapBuilt = false
 // ─── 選中小隊 ────────────────────────────────────────────────────────────────
 
 const selectedSquadId = ref<string | null>(null)
-const pendingMove = ref<{ pos: HexPos; x: number; y: number } | null>(null)
-
-const selectedSquad = computed(() =>
-  selectedSquadId.value ? store.gameState?.squads[selectedSquadId.value] ?? null : null
-)
 
 function deselect() {
   selectedSquadId.value = null
@@ -127,29 +104,9 @@ function onSquadClick(squadId: string) {
   // 敵方：未來可開詳情面板
 }
 
-function onCellClick(pos: HexPos) {
-  if (!selectedSquadId.value) return
-  const state = store.gameState
-  if (!state) return
-  const cell = state.cells[`${pos.q},${pos.r}`]
-  if (!cell || !cell.passable) return
-
-  // 計算螢幕座標
-  const worldPx = hexToPixel(pos.q, pos.r)
-  const screenPx = renderer?.worldToScreen(worldPx.x, worldPx.y) ?? { x: worldPx.x, y: worldPx.y }
-  pendingMove.value = { pos, x: screenPx.x, y: screenPx.y }
-  // 清除 highlight（但保留 selectedSquadId）
-  renderer?.clearSquadSelection()
-}
-
-function confirmMove(_hold: boolean) {
-  // v2：手動目標已移除，此函數待重新設計
-  pendingMove.value = null
+function onCellClick(_pos: HexPos) {
+  // v2: cell click 將用於顯示設施脈絡面板，目前暫空網
   deselect()
-}
-
-function cancelMove() {
-  pendingMove.value = null
 }
 
 // ─── 初始化 Renderer ─────────────────────────────────────────────────────────
@@ -257,29 +214,20 @@ function captainName(defId: string) {
 }
 .speed-controls button.active { background: #c8701e; color: #fff; border-color: #c8701e; }
 
-/* ── Select Hint ── */
-.select-hint {
-  display: flex; align-items: center; gap: 12px;
-  background: #fdf6e8; border: 1px solid #c8b090;
-  border-radius: 6px; padding: 0 14px; font-size: 13px; font-weight: 600;
-  color: #5a3e1e; flex-shrink: 0;
-  height: 36px; box-sizing: border-box;   /* 固定高度，防止切換時觸發 ResizeObserver */
-}
-.select-hint.muted { color: #a08060; font-weight: 400; font-size: 12px; }
-.hint-sub { font-size: 11px; color: #8a6a3e; font-weight: 400; }
-.deselect-btn {
-  margin-left: auto; padding: 2px 10px;
-  border: 1px solid #c8b090; background: #f4ead8;
-  color: #5a3e1e; border-radius: 4px; font-size: 12px; cursor: pointer;
-}
 
 /* ── Canvas ── */
 .canvas-wrapper {
   flex: 1; overflow: hidden; position: relative;
   border: 1px solid #c8b090; border-radius: 8px;
   background: #ede0c8;
+  /* 斜角效果：從下方視角往上看棋盤 */
+  perspective: 1000px;
 }
-.game-canvas { display: block; width: 100%; height: 100%; }
+.game-canvas {
+  display: block; width: 100%; height: 100%;
+  transform: rotateX(22deg);
+  transform-origin: 50% 100%;   /* 以底部為軸旋轉，底邊不動 */
+}
 
 /* 縮放按鈕（右上角懸浮） */
 .zoom-controls {
@@ -325,21 +273,6 @@ function captainName(defId: string) {
 .member-badge.dead { opacity: 0.35; text-decoration: line-through; }
 .revive-count { font-size: 11px; color: #8a6a3e; text-align: center; padding: 4px 0; }
 
-/* ── Move Order Panel ── */
-.move-order-panel {
-  position: absolute; transform: translate(-50%, -110%);
-  background: rgba(30,20,10,0.88); border: 1px solid #c8b090;
-  border-radius: 8px; padding: 6px 8px;
-  display: flex; gap: 6px; align-items: center;
-  backdrop-filter: blur(4px); z-index: 10;
-}
-.move-order-panel button {
-  padding: 4px 10px; border-radius: 5px; border: 1px solid #c8b090;
-  font-size: 12px; cursor: pointer; color: #f0e8d8;
-}
-.move-order-panel button:first-child { background: #8b2020; }
-.move-order-panel button:nth-child(2) { background: #1a4a8a; }
-.cancel-btn { background: transparent !important; padding: 2px 6px !important; }
 
 /* ── Result Overlay ── */
 .result-overlay {

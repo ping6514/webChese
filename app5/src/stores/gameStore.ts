@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { GameState, SquadInstance, AIConfig } from '../engine/types'
-import { captainDefs, followerDefs, captainCards, DEFAULT_AI_CONFIG } from '../data/testSquads'
+import { captainDefs, followerDefs, captainCards, DEFAULT_AI_CONFIG, captainAlertRange } from '../data/testSquads'
 import { createTestMap } from '../engine/mapData'
 import { stepGame } from '../engine/squadEngine'
 
@@ -64,9 +64,11 @@ export const useGameStore = defineStore('game', () => {
       if (!card) return
       const squadId = `player_squad_${i}`
       const startPos = { q: 1, r: 1 + i }
+      const capDef = captainDefs.find(c => c.id === card.captainDefId)!
       const ai: AIConfig = {
         ...DEFAULT_AI_CONFIG,
         route: i === 0 ? 'top' : i === 1 ? 'mid' : 'bottom',
+        alertRange: captainAlertRange(capDef.type),
       }
       squads[squadId] = buildSquadInstance(
         squadId, card.captainDefId, ai, 'player', startPos,
@@ -83,12 +85,13 @@ export const useGameStore = defineStore('game', () => {
 
     enemyConfigs.forEach((cfg, i) => {
       const squadId = `enemy_squad_${i}`
+      const capDef2 = captainDefs.find(c => c.id === cfg.captainId)!
       const ai: AIConfig = {
         behavior:       'aggressive',
         targetPriority: 'nearest',
         spMode:         'auto',
         route:          cfg.route,
-        alertRange:     2,
+        alertRange:     captainAlertRange(capDef2.type),
       }
       squads[squadId] = buildSquadInstance(
         squadId, cfg.captainId, ai, 'enemy', cfg.pos
@@ -114,6 +117,7 @@ export const useGameStore = defineStore('game', () => {
         conveyorMax:      100,
       },
       ddzList: [],
+      events:  [],
       log:     ['戰鬥開始'],
     }
 

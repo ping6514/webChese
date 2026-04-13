@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" height="100" width="100">
+  
+  <defs>
+    <filter height="200%" width="200%" y="-50%" x="-50%" id="glow">
+      <feGaussianBlur result="coloredBlur" stdDeviation="3"></feGaussianBlur>
+      <feMerge>
+        <feMergeNode in="coloredBlur"></feMergeNode>
+        <feMergeNode in="SourceGraphic"></feMergeNode>
+      </feMerge>
+    </filter>
+    <radialGradient r="70%" cy="50%" cx="50%" id="ghostFire">
+      <stop stop-opacity="0.9" stop-color="#a0ffaa" offset="0%"></stop>
+      <stop stop-opacity="0" stop-color="#80c880" offset="100%"></stop>
+    </radialGradient>
+    <radialGradient r="80%" cy="50%" cx="50%" id="darkWood">
+      <stop stop-color="#0f2a1a" offset="0%"></stop>
+      <stop stop-color="#05140d" offset="100%"></stop>
+    </radialGradient>
+  </defs>
+
+  
+  <circle stroke-width="5" stroke="#2e5c3a" fill="url(#darkWood)" r="45" cy="50" cx="50"></circle>
+  
+  
+  <circle opacity="0.9" stroke-width="3" stroke="#3a7048" fill="none" r="38" cy="50" cx="50"></circle>
+  <circle opacity="0.7" stroke-width="2" stroke="#4a8a5c" fill="none" r="34" cy="50" cx="50"></circle>
+
+  
+  <text text-anchor="middle" stroke-width="1.2" stroke="#228b22" fill="#90ee90" font-weight="bold" font-size="72" font-family="serif, 'Noto Serif TC', SimSun, KaiTi, 'Microsoft YaHei'" y="68" x="50">幽</text>
+
+  
+  <g opacity="0.85" filter="url(#glow)">
+    
+    <circle fill="url(#ghostFire)" r="6" cy="12" cx="50"></circle>
+    
+    <circle fill="url(#ghostFire)" r="5" cy="30" cx="82"></circle>
+    
+    <circle fill="url(#ghostFire)" r="7" cy="75" cx="75"></circle>
+    
+    <circle fill="url(#ghostFire)" r="5" cy="30" cx="18"></circle>
+    
+    <circle opacity="0.7" fill="#b0ffb0" r="4" cy="20" cx="60"></circle>
+  </g>
+
+  
+  <circle filter="url(#glow)" opacity="0.3" stroke-width="3" stroke="#80c880" fill="none" r="48" cy="50" cx="50"></circle>
+
+  
+  <ellipse opacity="0.5" fill="#000" ry="8" rx="32" cy="92" cx="50"></ellipse>
+</svg>

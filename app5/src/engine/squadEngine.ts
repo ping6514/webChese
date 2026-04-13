@@ -1,5 +1,5 @@
 import type {
-  GameState, SquadInstance, HexPos
+  GameState, SquadInstance, HexPos, BattleEvent, AttackFXType, CaptainType, FollowerType
 } from './types'
 import { hexDistance, hexKey, COUNTER_TABLE } from './types'
 import { captainDefs, followerDefs } from '../data/testSquads'
@@ -10,6 +10,15 @@ import { NAMED_ZONES } from './mapData'
 
 export const ATB_MAX   = 100
 export const MOVE_ACCUM_PER_TICK = 0.08
+
+// ─── FX 型別映射 ──────────────────────────────────────────────────────────────
+
+function toFXType(type: CaptainType | FollowerType): AttackFXType {
+  if (type === 'ranged')   return 'arrow'
+  if (type === 'siege')    return 'cannonball'
+  if (type === 'cavalry')  return 'stab'
+  return 'slash'  // infantry, heavy
+}
 
 // ─── 工具 ─────────────────────────────────────────────────────────────────────
 
@@ -114,7 +123,8 @@ function applyDamage(
   isAttackerCaptain: boolean,
   attackerAtk: number,
   target: SquadInstance,
-  log: string[]
+  log: string[],
+  events: BattleEvent[]
 ): boolean {
   const capDef   = getCaptainDef(attacker.captainDefId)
   const tgtDef   = getCaptainDef(target.captainDefId)
@@ -138,6 +148,7 @@ function applyDamage(
       blocker.isDead = true
       log.push(`🛡️ ${capDef.name} 擊破 ${tgtDef.name} 的護盾（${blockerDef.name}）`)
     }
+    events.push({ type: 'damage', targetId: target.squadId, pos: { ...target.pos }, amount: dmg })
     return false
   }
 
@@ -145,10 +156,12 @@ function applyDamage(
   const tgtCapDef = getCaptainDef(target.captainDefId)
   const dmg = Math.max(1, Math.floor(attackerAtk * counterBonus - tgtCapDef.stats.def))
   target.hp = Math.max(0, target.hp - dmg)
+  events.push({ type: 'damage', targetId: target.squadId, pos: { ...target.pos }, amount: dmg })
 
   if (target.hp === 0) {
     const who = isAttackerCaptain ? capDef.name : `${capDef.name}的從者`
     log.push(`⚔️ ${who} 擊敗 ${tgtDef.name}`)
+    events.push({ type: 'death', targetId: target.squadId, pos: { ...target.pos } })
     return true
   }
   return false
@@ -180,10 +193,10 @@ function tickSquad(squad: SquadInstance, state: GameState): void {
   if (squad.state === 'moving') tickMove(squad, state, enemies)
 
   // ③ 攻擊
-  tickATB(squad, state, inRange)
+  tickATB(squad, state, inRange, state.events)
 
   // ④ 佔領
-  if (squad.state === 'capturing') tickCapture(squad, state)
+  tickCapture(squad, state)
 }
 
 // ─── 移動 tick ────────────────────────────────────────────────────────────────
@@ -266,7 +279,8 @@ function tickCapture(squad: SquadInstance, state: GameState): void {
 function tickATB(
   squad: SquadInstance,
   state: GameState,
-  inRange: SquadInstance[]
+  inRange: SquadInstance[],
+  events: BattleEvent[]
 ): void {
   const capDef = getCaptainDef(squad.captainDefId)
 
@@ -276,7 +290,8 @@ function tickATB(
     squad.atb = 0
     const target = sortByPriority(squad, inRange)[0]
     if (hexDistance(squad.pos, target.pos) <= capDef.stats.range) {
-      applyDamage(squad, true, capDef.stats.atk, target, state.log)
+      events.push({ type: 'attack', fromPos: { ...squad.pos }, toPos: { ...target.pos }, fxType: toFXType(capDef.type) })
+      applyDamage(squad, true, capDef.stats.atk, target, state.log, events)
       squad.sp = Math.min(100, squad.sp + capDef.stats.spGainPerHit)
     }
   }
@@ -290,7 +305,8 @@ function tickATB(
       shield.atb = 0
       const target = sortByPriority(squad, inRange)[0]
       if (hexDistance(squad.pos, target.pos) <= fDef.stats.range) {
-        applyDamage(squad, false, fDef.stats.atk, target, state.log)
+        events.push({ type: 'attack', fromPos: { ...squad.pos }, toPos: { ...target.pos }, fxType: toFXType(fDef.type) })
+        applyDamage(squad, false, fDef.stats.atk, target, state.log, events)
       }
     }
   }
@@ -322,6 +338,7 @@ export function stepGame(state: GameState): GameState {
 
   const next = JSON.parse(JSON.stringify(state)) as GameState
   next.tick++
+  next.events = []
 
   // 0. 資源自然產出
   tickResources(next)
@@ -333,11 +350,12 @@ export function stepGame(state: GameState): GameState {
       squad.hp = capDef.stats.hp
       squad.atb = 0
       squad.sp = 0
-      squad.shieldLayers = []  // 裸體復活，從者消耗品不跟
+      squad.shieldLayers = []
       squad.pos = { ...squad.spawnPos }
       squad.state = 'idle'
       squad.reviveAtTick = null
       ;(squad as any)._seqIdx = 0
+      next.events.push({ type: 'revive', squadId: squad.squadId, pos: { ...squad.spawnPos } })
       next.log.push(`✨ ${capDef.name} 復活`)
     }
   }
@@ -383,13 +401,18 @@ export function stepGame(state: GameState): GameState {
     }
   }
 
-  // 5. 勝敗判斷
+  // 5. 勝敗判斷（主堡佔領勝）
+  const enemyBaseCaptured = Object.values(next.cells).some(
+    c => c.building?.nodeType === 'enemyBase' && c.building.team === 'player'
+  )
+  const playerBaseLost = Object.values(next.cells).some(
+    c => c.building?.nodeType === 'playerBase' && c.building.team === 'enemy'
+  )
   const playerActive = Object.values(next.squads).some(
     s => s.team === 'player' && (isSquadAlive(s) || s.reviveAtTick !== null)
   )
-  const enemyAlive = Object.values(next.squads).some(s => s.team === 'enemy' && isSquadAlive(s))
-  if (!playerActive) next.phase = 'enemy_won'
-  else if (!enemyAlive) next.phase = 'player_won'
+  if (enemyBaseCaptured) next.phase = 'player_won'
+  else if (playerBaseLost || !playerActive) next.phase = 'enemy_won'
 
   return next
 }

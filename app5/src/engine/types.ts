@@ -331,6 +331,17 @@ export type MapCell = {
   building?: BuildingInstance
 }
 
+// ─── 戰鬥事件（每 tick 清空，由 renderer 消費）─────────────────────────────
+
+export type AttackFXType = 'slash' | 'stab' | 'arrow' | 'cannonball'
+
+export type BattleEvent =
+  | { type: 'damage'; targetId: string; pos: HexPos; amount: number }
+  | { type: 'death';  targetId: string; pos: HexPos }
+  | { type: 'revive'; squadId: string;  pos: HexPos }   // 復活（玩家）
+  | { type: 'spawn';  squadId: string;  pos: HexPos }   // 首次入場
+  | { type: 'attack'; fromPos: HexPos; toPos: HexPos; fxType: AttackFXType }
+
 // ─── 遊戲整體狀態（v2）──────────────────────────────────────────────────────
 
 export type BattlePhase = 'prep' | 'running' | 'player_won' | 'enemy_won'
@@ -344,5 +355,6 @@ export type GameState = {
   production: ProductionState
   tacticHand: TacticHand
   ddzList: DDZ[]
+  events: BattleEvent[]
   log: string[]
 }

@@ -1,9 +1,16 @@
-import { Application, Container, Graphics, Text, TextStyle, Ticker } from 'pixi.js'
+import { Application, Assets, Container, Graphics, Text, TextStyle, Ticker } from 'pixi.js'
 import type { GameState, MapCell, HexPos } from '../engine/types'
-import { hexToPixel, hexPolygonPoints, pixelToHex, HEX_SIZE } from './hexUtils'
+import {
+  hexToPixel, hexPolygonPoints, pixelToHex,
+  hexElevatedPoints, hexSideFaces,
+  HEX_SIZE, ELEVATION,
+} from './hexUtils'
 import { SquadSprite } from './SquadSprite'
-import type { CaptainDef } from '../engine/types'
-import { hexDistance } from '../engine/types'
+import { AttackFX } from './AttackFX'
+import { UnitFX } from './UnitFX'
+import type { CaptainDef, CaptainType } from '../engine/types'
+import { hexDistance, hexKey } from '../engine/types'
+import { ALL_PORTRAIT_URLS } from './portraitMap'
 
 // ─── 地形色彩 ────────────────────────────────────────────────────────────────
 
@@ -18,8 +25,8 @@ const TERRAIN_FILL: Record<string, number> = {
 }
 
 const BUILDING_ICON: Record<string, string> = {
-  mainBase: '🏰', tower: '🗼', outpost: '⛺', barracks: '⚔',
-  spring: '💧', workshop: '🔧', altar: '✨', gate: '🚪',
+  playerBase: '🏰', enemyBase: '🏯', outpost: '⛺', barracks: '⚔️',
+  highGround: '🏔', gate: '🚪', enemyTower: '�',
 }
 
 const TAP_THRESHOLD = 8   // px，超過才算拖動
@@ -39,14 +46,21 @@ export class PixiHexRenderer {
   // 小隊 sprites
   private squadSprites = new Map<string, SquadSprite>()
 
-  // 隊長名稱快取
+  // 隊長名稱 / 型別快取（captainDefId → name/type）
   private captainNames = new Map<string, string>()
+  private captainTypes = new Map<string, CaptainType>()
 
   // 建築文字 refs（zoom 時更新解析度）
   private buildingTexts: Text[] = []
 
   // 建築佔領進度條
   private buildingBars = new Map<string, Graphics>()
+
+  // 特效層（浮動傷害數字 + 攻擊特效）
+  private effectLayer!: Container
+  private floatTexts: Array<{ text: Text; life: number; maxLife: number }> = []
+  private attackFXList: AttackFX[] = []
+  private unitFXList:   UnitFX[]   = []
 
   // 選中層
   private selectionLayer!: Container
@@ -100,10 +114,15 @@ export class PixiHexRenderer {
     this.squadLayer     = new Container()
     this.uiLayer        = new Container()
 
+    this.effectLayer  = new Container()
+
+    this.squadLayer.sortableChildren = true   // 啟用 zIndex Y-sort
+
     this.world.addChild(this.terrainLayer)
     this.world.addChild(this.buildingLayer)
     this.world.addChild(this.selectionLayer)
     this.world.addChild(this.squadLayer)
+    this.world.addChild(this.effectLayer)
     this.app.stage.addChild(this.world)
     this.app.stage.addChild(this.uiLayer)
 
@@ -115,6 +134,9 @@ export class PixiHexRenderer {
     this.app.stage.on('pointerup',    this.onPointerUp,   this)
     this.app.stage.on('pointerupoutside', this.onPointerUp, this)
 
+    // ── 預載所有隊長頭貼，確保 Sprite.from() 在建構子內同步可用 ──────────
+    await Assets.load(ALL_PORTRAIT_URLS)
+
     // ── Ticker：每幀更新所有 sprite 的插值位置 ────────────────────────────
     this.app.ticker.add(this.onTick, this)
   }
@@ -122,7 +144,10 @@ export class PixiHexRenderer {
   // ── 設定隊長名稱表（供 sprite 顯示文字）─────────────────────────────────
 
   setCaptainDefs(defs: CaptainDef[]) {
-    defs.forEach(d => this.captainNames.set(d.id, d.name))
+    defs.forEach(d => {
+      this.captainNames.set(d.id, d.name)
+      this.captainTypes.set(d.id, d.type)
+    })
   }
 
   // ── 建立靜態地形層（只需呼叫一次）──────────────────────────────────────
@@ -139,17 +164,36 @@ export class PixiHexRenderer {
     let maxX = 0
     let maxY = 0
 
-    for (const cell of Object.values(cells)) {
-      const { x, y } = hexToPixel(cell.pos.q, cell.pos.r)
-      const pts   = hexPolygonPoints(x, y, HEX_SIZE - 1)
-      const fill  = TERRAIN_FILL[cell.terrain] ?? 0xaaaaaa
-      const alpha = cell.terrain === 'impassable' ? 0.5 : 1.0
+    // 依 r 排序（painter's algorithm：遠的先畫，近的後畫）
+    const sortedCells = Object.values(cells).sort((a, b) =>
+      a.pos.r !== b.pos.r ? a.pos.r - b.pos.r : a.pos.q - b.pos.q,
+    )
 
-      terrainGfx
-        .poly(pts)
-        .fill({ color: fill, alpha })
-        .poly(pts)
-        .stroke({ color: 0x000000, alpha: 0.12, width: 1 })
+    for (const cell of sortedCells) {
+      const { x, y } = hexToPixel(cell.pos.q, cell.pos.r)
+
+      if (cell.terrain === 'highGround') {
+        // ── 高地擠出（偽 3D）────────────────────────────────────────────
+        // 1. 側面（右→底→左，顏色遞暗模擬光影）
+        const sides      = hexSideFaces(x, y, HEX_SIZE - 1)
+        const sideColors = [0x8a9a50, 0x788840, 0x647030] as const
+        sides.forEach((pts, fi) => {
+          terrainGfx.poly(pts).fill({ color: sideColors[fi] })
+        })
+        // 2. 頂面（亮色）
+        const topPts = hexElevatedPoints(x, y, HEX_SIZE - 1)
+        terrainGfx
+          .poly(topPts).fill({ color: 0xd0e878 })
+          .poly(topPts).stroke({ color: 0x000000, alpha: 0.15, width: 1 })
+      } else {
+        // ── 一般地形 ────────────────────────────────────────────────────
+        const pts   = hexPolygonPoints(x, y, HEX_SIZE - 1)
+        const fill  = TERRAIN_FILL[cell.terrain] ?? 0xaaaaaa
+        const alpha = cell.terrain === 'impassable' ? 0.5 : 1.0
+        terrainGfx
+          .poly(pts).fill({ color: fill, alpha })
+          .poly(pts).stroke({ color: 0x000000, alpha: 0.12, width: 1 })
+      }
 
       if (x > maxX) maxX = x
       if (y > maxY) maxY = y
@@ -168,18 +212,17 @@ export class PixiHexRenderer {
         label.y = y
         this.buildingLayer.addChild(label)
 
-        // 佔領進度條
-        const barY = y + 10
+        // 佔領進度條（barGfx 本地原點 = hex 中心）
         const barGfx = new Graphics()
-        // 底色
-        barGfx.rect(-16, barY, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
-        // 填充條
+        barGfx.x = x
+        barGfx.y = y
+        barGfx.rect(-16, 12, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
         const ratio = cell.building.captureHp / cell.building.maxCaptureHp
         const fillColor = cell.building.team === 'player' ? 0x4488ff
           : cell.building.team === 'enemy' ? 0xff4422
           : 0xaaaaaa
         if (ratio > 0) {
-          barGfx.rect(-16, barY, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
+          barGfx.rect(-16, 12, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
         }
         this.buildingLayer.addChild(barGfx)
         this.buildingBars.set(cell.building.buildingId, barGfx)
@@ -210,16 +253,67 @@ export class PixiHexRenderer {
       if (!cell.building) continue
       const barGfx = this.buildingBars.get(cell.building.buildingId)
       if (!barGfx) continue
-      const { y } = hexToPixel(cell.pos.q, cell.pos.r)
-      const barY = y + 10
       barGfx.clear()
-      barGfx.rect(-16, barY, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
+      barGfx.rect(-16, 12, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
       const ratio = cell.building.captureHp / cell.building.maxCaptureHp
       const fillColor = cell.building.team === 'player' ? 0x4488ff
         : cell.building.team === 'enemy' ? 0xff4422
         : 0xaaaaaa
       if (ratio > 0) {
-        barGfx.rect(-16, barY, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
+        barGfx.rect(-16, 12, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
+      }
+    }
+
+    // 處理戰鬥事件：攻擊特效 + 浮動傷害數字 + 受擊 flash
+    for (const event of state.events) {
+      if (event.type === 'death') {
+        const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+        const fx = new UnitFX('death', x, y)
+        this.effectLayer.addChild(fx)
+        this.unitFXList.push(fx)
+      }
+      if (event.type === 'revive') {
+        const sprite = this.squadSprites.get(event.squadId)
+        if (sprite) {
+          const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+          sprite.teleport(x, y)
+        }
+        const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+        const fx = new UnitFX('revive', x, y)
+        this.effectLayer.addChild(fx)
+        this.unitFXList.push(fx)
+      }
+      if (event.type === 'spawn') {
+        const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+        const fx = new UnitFX('spawn', x, y)
+        this.effectLayer.addChild(fx)
+        this.unitFXList.push(fx)
+      }
+      if (event.type === 'attack') {
+        const from = hexToPixel(event.fromPos.q, event.fromPos.r)
+        const to   = hexToPixel(event.toPos.q,   event.toPos.r)
+        const fx   = new AttackFX(event.fxType, from.x, from.y, to.x, to.y)
+        this.effectLayer.addChild(fx)
+        this.attackFXList.push(fx)
+      }
+      if (event.type === 'damage') {
+        const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+        const floatText = new Text({
+          text: `-${event.amount}`,
+          style: new TextStyle({
+            fontSize: 13 * this.zoom,
+            fill: 0xff3333,
+            fontWeight: 'bold',
+            stroke: { color: 0x000000, width: 3 },
+          }),
+        })
+        floatText.anchor.set(0.5, 1)
+        floatText.scale.set(1 / this.zoom)
+        floatText.x = x + (Math.random() - 0.5) * 16
+        floatText.y = y - 22
+        this.effectLayer.addChild(floatText)
+        this.floatTexts.push({ text: floatText, life: 900, maxLife: 900 })
+        this.squadSprites.get(event.targetId)?.flash()
       }
     }
 
@@ -228,7 +322,8 @@ export class PixiHexRenderer {
 
       if (!sprite) {
         const name = this.captainNames.get(squad.captainDefId) ?? squad.captainDefId
-        sprite = new SquadSprite(squad, name)
+        const type = this.captainTypes.get(squad.captainDefId) ?? 'infantry'
+        sprite = new SquadSprite(squad, name, type)
         // pointerup 先於 stage 的 pointerup 觸發，設旗標阻止 cell click
         sprite.on('pointerup', () => { this.suppressCellClick = true })
         sprite.on('pointertap', () => {
@@ -238,7 +333,9 @@ export class PixiHexRenderer {
         this.squadLayer.addChild(sprite)
       }
 
-      sprite.sync(squad)
+      const cell       = state.cells[hexKey(squad.pos)]
+      const elevOffset = cell?.terrain === 'highGround' ? ELEVATION : 0
+      sprite.sync(squad, elevOffset)
     }
 
     // 移除已不存在的 sprite（關卡重置等情況）
@@ -408,7 +505,44 @@ export class PixiHexRenderer {
   private onTick(ticker: Ticker) {
     for (const sprite of this.squadSprites.values()) {
       sprite.update(ticker.deltaMS)
+      sprite.zIndex = sprite.y   // Y-sort：y 越大（越靠前）越晚畫
     }
+    if (this.squadLayer.children.length > 1) {
+      this.squadLayer.sortChildren()
+    }
+    for (const ft of this.floatTexts) {
+      ft.text.y -= 28 * ticker.deltaMS / 1000
+      ft.life -= ticker.deltaMS
+      ft.text.alpha = Math.max(0, ft.life / ft.maxLife)
+    }
+    for (const ft of this.floatTexts.filter(f => f.life <= 0)) {
+      this.effectLayer.removeChild(ft.text)
+    }
+    this.floatTexts = this.floatTexts.filter(f => f.life > 0)
+
+    // 單位特效（死亡 / 復活 / 入場）
+    const nextUnitFX: UnitFX[] = []
+    for (const fx of this.unitFXList) {
+      if (fx.tick(ticker.deltaMS)) {
+        this.effectLayer.removeChild(fx)
+        fx.destroy()
+      } else {
+        nextUnitFX.push(fx)
+      }
+    }
+    this.unitFXList = nextUnitFX
+
+    // 攻擊特效
+    const nextFXList: AttackFX[] = []
+    for (const fx of this.attackFXList) {
+      if (fx.tick(ticker.deltaMS)) {
+        this.effectLayer.removeChild(fx)
+        fx.destroy()
+      } else {
+        nextFXList.push(fx)
+      }
+    }
+    this.attackFXList = nextFXList
   }
 
   // ─── Pan 指標事件 ────────────────────────────────────────────────────────
