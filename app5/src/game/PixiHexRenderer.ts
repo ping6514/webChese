@@ -1,5 +1,6 @@
 import { Application, Assets, Container, Graphics, Text, TextStyle, Ticker } from 'pixi.js'
-import type { GameState, MapCell, HexPos } from '../engine/types'
+import type { GameState, MapCell, HexPos, ZoneState, LaneDef } from '../engine/types'
+import { MAP_LABELS } from '../engine/mapData'
 import {
   hexToPixel, hexPolygonPoints, pixelToHex,
   hexElevatedPoints, hexSideFaces,
@@ -53,14 +54,34 @@ export class PixiHexRenderer {
   // 建築文字 refs（zoom 時更新解析度）
   private buildingTexts: Text[] = []
 
-  // 建築佔領進度條
+  // 地圖區域標籤（zoom 時更新解析度）
+  private labelTexts: Text[] = []
+
+  // 建築佔領進度條（單格建築：主堡）
   private buildingBars = new Map<string, Graphics>()
+
+  // 區域佔領進度條（多格 zone）
+  private zoneBars = new Map<string, Graphics>()
 
   // 特效層（浮動傷害數字 + 攻擊特效）
   private effectLayer!: Container
   private floatTexts: Array<{ text: Text; life: number; maxLife: number }> = []
   private attackFXList: AttackFX[] = []
   private unitFXList:   UnitFX[]   = []
+
+  // 遠程命中延遲（arrow/cannonball 飛行結束後才顯示傷害數字）
+  // delay 單位：ms；對應 AttackFX 各 fxType 的 in-flight 比例
+  private static readonly RANGED_HIT_DELAY: Partial<Record<string, number>> = {
+    arrow:      Math.round(420 * 0.82),   // 344 ms
+    cannonball: Math.round(560 * 0.80),   // 448 ms
+  }
+  private pendingDamage: Array<{
+    targetId: string
+    x: number
+    y: number
+    amount: number
+    delay: number
+  }> = []
 
   // 選中層
   private selectionLayer!: Container
@@ -152,11 +173,13 @@ export class PixiHexRenderer {
 
   // ── 建立靜態地形層（只需呼叫一次）──────────────────────────────────────
 
-  buildMap(cells: Record<string, MapCell>) {
+  buildMap(cells: Record<string, MapCell>, zones: Record<string, ZoneState> = {}) {
     this.terrainLayer.removeChildren()
     this.buildingLayer.removeChildren()
     this.buildingTexts = []
+    this.labelTexts = []
     this.buildingBars.clear()
+    this.zoneBars.clear()
 
     const terrainGfx = new Graphics()
     this.terrainLayer.addChild(terrainGfx)
@@ -233,6 +256,60 @@ export class PixiHexRenderer {
     this.mapPixW = maxX + HEX_SIZE * 2
     this.mapPixH = maxY + HEX_SIZE * 2
 
+    // ── 區域圖示 + 佔領進度條 ───────────────────────────────────────────────
+    for (const zone of Object.values(zones)) {
+      // 取所有 zone 格子的像素中心平均
+      let sumX = 0, sumY = 0
+      for (const zp of zone.cells) {
+        const px = hexToPixel(zp.q, zp.r)
+        sumX += px.x; sumY += px.y
+      }
+      const cx = sumX / zone.cells.length
+      const cy = sumY / zone.cells.length
+
+      // 圖示
+      const icon = BUILDING_ICON[zone.nodeType] ?? '?'
+      const iconText = new Text({
+        text: icon,
+        style: new TextStyle({ fontSize: 16 * this.zoom }),
+      })
+      iconText.anchor.set(0.5, 0.5)
+      iconText.scale.set(1 / this.zoom)
+      iconText.x = cx
+      iconText.y = cy
+      this.buildingTexts.push(iconText)
+      this.buildingLayer.addChild(iconText)
+
+      // 佔領進度條（初始為中立灰）
+      const barGfx = new Graphics()
+      barGfx.x = cx
+      barGfx.y = cy
+      barGfx.rect(-16, 12, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
+      barGfx.rect(-16, 12, 32, 3).fill({ color: 0xaaaaaa, alpha: 1 })
+      this.buildingLayer.addChild(barGfx)
+      this.zoneBars.set(zone.zoneId, barGfx)
+    }
+
+    // ── 地區標籤（永遠顯示）────────────────────────────────────────────────
+    for (const lbl of MAP_LABELS) {
+      const { x, y } = hexToPixel(lbl.pos.q, lbl.pos.r)
+      const t = new Text({
+        text: lbl.text,
+        style: new TextStyle({
+          fontSize:   12 * this.zoom,
+          fill:       lbl.color,
+          fontWeight: 'bold',
+          stroke:     { color: 0x000000, width: 3 },
+        }),
+      })
+      t.anchor.set(0.5, 0.5)
+      t.scale.set(1 / this.zoom)
+      t.x = x
+      t.y = y + HEX_SIZE * 0.55   // 略低於 hex 中心，避開建築圖示
+      this.labelTexts.push(t)
+      this.buildingLayer.addChild(t)
+    }
+
     // 初始置中
     this.centerMap()
   }
@@ -258,6 +335,21 @@ export class PixiHexRenderer {
       const ratio = cell.building.captureHp / cell.building.maxCaptureHp
       const fillColor = cell.building.team === 'player' ? 0x4488ff
         : cell.building.team === 'enemy' ? 0xff4422
+        : 0xaaaaaa
+      if (ratio > 0) {
+        barGfx.rect(-16, 12, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
+      }
+    }
+
+    // 更新區域佔領進度條
+    for (const [zoneId, zone] of Object.entries(state.zones)) {
+      const barGfx = this.zoneBars.get(zoneId)
+      if (!barGfx) continue
+      barGfx.clear()
+      barGfx.rect(-16, 12, 32, 3).fill({ color: 0x000000, alpha: 0.4 })
+      const ratio = zone.captureHp / zone.maxCaptureHp
+      const fillColor = zone.team === 'player' ? 0x4488ff
+        : zone.team === 'enemy' ? 0xff4422
         : 0xaaaaaa
       if (ratio > 0) {
         barGfx.rect(-16, 12, Math.round(32 * ratio), 3).fill({ color: fillColor, alpha: 1 })
@@ -298,22 +390,21 @@ export class PixiHexRenderer {
       }
       if (event.type === 'damage') {
         const { x, y } = hexToPixel(event.pos.q, event.pos.r)
-        const floatText = new Text({
-          text: `-${event.amount}`,
-          style: new TextStyle({
-            fontSize: 13 * this.zoom,
-            fill: 0xff3333,
-            fontWeight: 'bold',
-            stroke: { color: 0x000000, width: 3 },
-          }),
-        })
-        floatText.anchor.set(0.5, 1)
-        floatText.scale.set(1 / this.zoom)
-        floatText.x = x + (Math.random() - 0.5) * 16
-        floatText.y = y - 22
-        this.effectLayer.addChild(floatText)
-        this.floatTexts.push({ text: floatText, life: 900, maxLife: 900 })
-        this.squadSprites.get(event.targetId)?.flash()
+        // 尋找是否有飛行中的遠程攻擊命中同一個目標
+        const matchingAttack = state.events.find(
+          e => e.type === 'attack' &&
+          e.toPos.q === event.pos.q && e.toPos.r === event.pos.r &&
+          PixiHexRenderer.RANGED_HIT_DELAY[e.fxType] !== undefined
+        )
+        if (matchingAttack && matchingAttack.type === 'attack') {
+          // 遠程命中：延遲顯示
+          const delay = PixiHexRenderer.RANGED_HIT_DELAY[matchingAttack.fxType]!
+          this.pendingDamage.push({ targetId: event.targetId, x, y, amount: event.amount, delay })
+        } else {
+          // 近戰：立即顯示
+          this.showDamageNumber(x, y, event.amount)
+          this.squadSprites.get(event.targetId)?.flash()
+        }
       }
     }
 
@@ -374,6 +465,10 @@ export class PixiHexRenderer {
       t.style.fontSize = 16 * newZoom
       t.scale.set(invZ)
     }
+    for (const t of this.labelTexts) {
+      t.style.fontSize = 12 * newZoom
+      t.scale.set(invZ)
+    }
     for (const sprite of this.squadSprites.values()) {
       sprite.onZoomChange(newZoom)
     }
@@ -400,7 +495,12 @@ export class PixiHexRenderer {
 
   // ── 顯示小隊選中覆蓋層 ──────────────────────────────────────────────────
 
-  showSquadSelection(squad: { pos: HexPos; team: string; aiConfig: { alertRange: number; route: string } }, cells: Record<string, MapCell>) {
+  showSquadSelection(
+    squad: { pos: HexPos; team: string; aiConfig: { alertRange: number; route: string } },
+    cells: Record<string, MapCell>,
+    lanes: LaneDef[] = [],
+    clickableZones: Array<{ id: string; label: string; route: string; cells: HexPos[] }> = [],
+  ) {
     this.selectionLayer.removeChildren()
 
     // 警戒圈
@@ -418,13 +518,26 @@ export class PixiHexRenderer {
     }
     this.selectionLayer.addChild(alertGfx)
 
-    // 路由虛線（依路線顯示目標節點序列）
-    const routeZones: Record<string, string[]> = {
-      top:    ['front_upper', 'gate', 'dungeon_upper', 'enemy_base'],
-      mid:    ['front_mid',   'gate', 'dungeon_mid',   'enemy_base'],
-      bottom: ['front_lower', 'gate', 'dungeon_lower', 'enemy_base'],
+    // 可點選佔點高亮（讓玩家知道點哪裡可以改路線）
+    if (clickableZones.length > 0) {
+      const zoneGfx = new Graphics()
+      for (const zone of clickableZones) {
+        const isActive = zone.route === squad.aiConfig.route
+        const color  = isActive ? 0x4488ff : 0xffcc44
+        const alpha  = isActive ? 0.35 : 0.28
+        for (const zp of zone.cells) {
+          const { x, y } = hexToPixel(zp.q, zp.r)
+          const pts = hexPolygonPoints(x, y, HEX_SIZE - 1)
+          zoneGfx.poly(pts).fill({ color, alpha })
+          zoneGfx.poly(pts).stroke({ color, alpha: isActive ? 0.9 : 0.6, width: 2 })
+        }
+      }
+      this.selectionLayer.addChild(zoneGfx)
     }
-    const seq = routeZones[squad.aiConfig.route] ?? []
+
+    // 路由虛線（從 lanes 讀，不寫死）
+    const laneDef = lanes.find(l => l.id === squad.aiConfig.route)
+    const seq = laneDef?.sequence ?? []
     if (seq.length > 0) {
       // 節點：小隊當前位置 + 各 zone 中心
       const nodes: { x: number; y: number }[] = []
@@ -476,6 +589,26 @@ export class PixiHexRenderer {
         this.selectionLayer.addChild(diamondGfx)
       }
     }
+  }
+
+  // ── 浮動傷害數字（近戰直接呼叫；遠程由 pendingDamage 延遲呼叫）─────────
+
+  private showDamageNumber(x: number, y: number, amount: number) {
+    const floatText = new Text({
+      text: `-${amount}`,
+      style: new TextStyle({
+        fontSize:   13 * this.zoom,
+        fill:       0xff3333,
+        fontWeight: 'bold',
+        stroke:     { color: 0x000000, width: 3 },
+      }),
+    })
+    floatText.anchor.set(0.5, 1)
+    floatText.scale.set(1 / this.zoom)
+    floatText.x = x + (Math.random() - 0.5) * 16
+    floatText.y = y - 22
+    this.effectLayer.addChild(floatText)
+    this.floatTexts.push({ text: floatText, life: 900, maxLife: 900 })
   }
 
   // ── 清除選中覆蓋層 ───────────────────────────────────────────────────────
@@ -543,6 +676,19 @@ export class PixiHexRenderer {
       }
     }
     this.attackFXList = nextFXList
+
+    // 遠程命中延遲（倒數到 0 → 顯示傷害數字 + flash）
+    const nextPending: typeof this.pendingDamage = []
+    for (const pd of this.pendingDamage) {
+      pd.delay -= ticker.deltaMS
+      if (pd.delay <= 0) {
+        this.showDamageNumber(pd.x, pd.y, pd.amount)
+        this.squadSprites.get(pd.targetId)?.flash()
+      } else {
+        nextPending.push(pd)
+      }
+    }
+    this.pendingDamage = nextPending
   }
 
   // ─── Pan 指標事件 ────────────────────────────────────────────────────────

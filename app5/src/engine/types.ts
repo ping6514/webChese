@@ -22,14 +22,12 @@ export function hexDistance(a: HexPos, b: HexPos): number {
 export type CaptainType   = 'infantry' | 'cavalry' | 'heavy' | 'ranged' | 'siege'
 export type FollowerType  = 'infantry' | 'cavalry' | 'heavy' | 'ranged' | 'siege'
 
-// 相剋表：攻擊方 CaptainType → 被剋方 CaptainType[]，傷害 ×1.35
-export const COUNTER_TABLE: Record<CaptainType, CaptainType[]> = {
-  cavalry:  ['infantry', 'ranged'],
-  heavy:    ['cavalry'],
-  infantry: ['heavy'],
-  ranged:   ['infantry'],
-  siege:    [],   // 對建築特效，不對隊長相剋（由引擎另外處理）
-}
+// ─── 屬性傷害類型 ─────────────────────────────────────────────────────────────
+// phys:   普通物理近戰（步兵、騎兵、重甲）
+// pierce: 穿透遠程攻擊（弓兵、攻城）
+// magic:  魔法（保留，未來 Buff/Trait 用）
+
+export type DamageType = 'phys' | 'pierce' | 'magic'
 
 // ─── 異常狀態 ─────────────────────────────────────────────────────────────────
 
@@ -49,7 +47,9 @@ export type FollowerDef = {
   shieldHp: number        // 作為護盾層時的耐久值
   stats: {
     atk: number
-    def: number
+    physDef:   number     // 物理防禦（抵抗近戰）
+    pierceDef: number     // 穿透防禦（抵抗遠程）
+    magDef:    number     // 魔法防禦（保留）
     atbSpeed: number
     moveSpeed: number     // 影響小隊整體移速（取平均）
     range: number
@@ -97,7 +97,9 @@ export type CaptainDef = {
   stats: {
     hp: number
     atk: number
-    def: number
+    physDef:   number     // 物理防禦
+    pierceDef: number     // 穿透防禦
+    magDef:    number     // 魔法防禦
     atbSpeed: number
     moveSpeed: number
     range: number
@@ -175,7 +177,7 @@ export type TacticCardDef = {
 export type AIBehavior    = 'aggressive' | 'capture' | 'defend' | 'idle'
 export type TargetPriority = 'nearest' | 'lowest_hp' | 'strongest_threat'
 export type SPMode         = 'auto' | 'manual'
-export type RouteAssign    = 'top' | 'mid' | 'bottom'
+export type RouteAssign    = string   // 路線 ID，由地圖模板決定（不限三路）
 
 export type AIConfig = {
   behavior:       AIBehavior
@@ -183,6 +185,55 @@ export type AIConfig = {
   spMode:         SPMode
   route:          RouteAssign
   alertRange:     1 | 2 | 3
+}
+
+// ─── 路線定義（由地圖模板產生，存入 GameState）─────────────────────────────
+export type LaneDef = {
+  id:        string       // 路線唯一 ID（如 'top', 'mid', 'upper_mid'…）
+  label:     string       // 顯示名稱（如 '上路', '上中路'…）
+  row:       number       // 最終目標所在的 r 值（用來尋找敵/我方主堡格）
+  sequence:  string[]     // AI 依序前往的 zone/named-zone ID 列表
+  waypoints?: HexPos[]   // 跨路移動路點（依序抵達後再進入 sequence 邏輯）
+}
+
+// ─── Trait 系統 ───────────────────────────────────────────────────────────────
+
+export type TraitType = 'Charge' | 'Splash' | 'Block' | 'Pierce' | 'LifeSteal' | 'Taunt'
+
+export type TraitDef = {
+  id:   TraitType
+  name: string
+  desc: string
+  icon: string
+}
+
+export type TraitCard = {
+  instanceId: string
+  traitId:    TraitType
+}
+
+export type TraitBeltState = {
+  hand:          TraitCard[]
+  maxHand:       number
+  cooldownTicks: number
+  intervalTicks: number
+  pool:          TraitType[]
+  upcoming:      TraitCard[]
+  upcomingSize:  number
+}
+
+// ─── 暫存區（從者帶手牌放入後在此等待疊 Trait 再召喚）──────────────────────
+
+export type StagedFollower = {
+  instanceId:   string
+  followerCard: FollowerCard  // 原始從者牌
+  traits:       TraitType[]   // 已疊加的 Trait
+  maxTraits:    number        // 最多疊幾層（預設 2）
+}
+
+export type StagingArea = {
+  slots:    StagedFollower[]
+  maxSlots: number
 }
 
 // ─── 護盾層（已部署的從者）──────────────────────────────────────────────────
@@ -195,6 +246,8 @@ export type ShieldLayer = {
   atb: number               // 0~100，滿了就攻擊
   isDead: boolean
   statusEffects: ActiveStatus[]
+  traits:      TraitType[]  // 攜帶的 Trait 列表
+  chargeReady: boolean      // Charge trait：移動後首擊旗標
 }
 
 // ─── 小隊實例（v2）──────────────────────────────────────────────────────────
@@ -242,6 +295,23 @@ export type SquadInstance = {
 
   // ── 入場排程 ──────────────────────────────────────────────────────────
   deployAtTick: number | null  // null = 已在場上；數字 = 該 tick 入場
+}
+
+// ─── 從者帶（conveyor belt）────────────────────────────────────────────────
+
+export type FollowerCard = {
+  instanceId:   string   // 每張牌唯一 ID
+  followerDefId: string
+}
+
+export type FollowerBeltState = {
+  hand:          FollowerCard[]   // 目前手牌
+  maxHand:       number           // 上限（預設 4），滿了帶停
+  cooldownTicks: number           // 倒數到下一張牌推出
+  intervalTicks: number           // 每幾 tick 推一張牌
+  pool:          string[]         // 可抽的 followerDefId 清單
+  upcoming:      FollowerCard[]   // 預覽佇列（下幾張牌，已預先決定）
+  upcomingSize:  number           // 預覽數量（預設 3）
 }
 
 // ─── 從者生產系統 ────────────────────────────────────────────────────────────
@@ -306,6 +376,20 @@ export type NodeType =
   | 'enemyBase'    // 敵方主堡
   | 'enemyTower'   // 敵方防禦塔（地圖固定）
 
+// 可佔領區域的節點型別（用於 ZoneState）
+export type ZoneNodeType = 'outpost' | 'barracks' | 'highGround'
+
+// ─── 區域狀態（共享跨格的佔領區，如前哨站）─────────────────────────────────
+export type ZoneState = {
+  zoneId:       string
+  nodeType:     ZoneNodeType
+  team:         SquadTeam | 'neutral'
+  captureHp:    number
+  maxCaptureHp: number
+  cells:        HexPos[]       // 隸屬於此區域的格子
+  facility?:    FacilityType   // 未來：區域建築（採集站、防禦塔…）
+}
+
 export type FacilityType =
   | 'collectStation'   // 採集站
   | 'defenseTower'     // 防禦塔
@@ -328,7 +412,8 @@ export type MapCell = {
   pos: HexPos
   terrain: TerrainType
   passable: boolean
-  building?: BuildingInstance
+  building?: BuildingInstance  // 單格建築（主堡、城門…）
+  zoneId?: string              // 所屬區域 ID（前哨站等多格區域）
 }
 
 // ─── 戰鬥事件（每 tick 清空，由 renderer 消費）─────────────────────────────
@@ -349,9 +434,17 @@ export type BattlePhase = 'prep' | 'running' | 'player_won' | 'enemy_won'
 export type GameState = {
   phase: BattlePhase
   tick: number
+  maxTicks: number                       // 時間限制（超時後以優勢判定勝負）
+  playerBaseHp: number                  // 玩家主堡生命（歸零即敗）
+  enemyBaseHp: number                   // 敵方主堡生命（歸零即勝）
   squads: Record<string, SquadInstance>
   cells: Record<string, MapCell>
+  zones: Record<string, ZoneState>       // 可佔領區域（前哨站等）
+  lanes: LaneDef[]                       // 路線定義（由地圖模板產生）
   resources: ResourceState
+  followerBelt: FollowerBeltState        // 從者運輸帶
+  traitBelt:   TraitBeltState            // Trait 運輸帶（第二條）
+  stagingArea: StagingArea               // 暫存區（疊 Trait 後召喚）
   production: ProductionState
   tacticHand: TacticHand
   ddzList: DDZ[]

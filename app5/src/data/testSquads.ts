@@ -1,4 +1,4 @@
-import type { CaptainDef, FollowerDef, CaptainCard, AIConfig } from '../engine/types'
+import type { CaptainDef, FollowerDef, CaptainCard, SummonerCard, AIConfig, TraitDef } from '../engine/types'
 
 // ─── 從者定義（5 種）────────────────────────────────────────────────────────
 
@@ -8,7 +8,8 @@ export const followerDefs: FollowerDef[] = [
     name: '步兵',
     type: 'infantry',
     shieldHp: 200,
-    stats: { atk: 200, def: 80, atbSpeed: 1.0, moveSpeed: 1.0, range: 1 },
+    //               physDef pierceDef magDef
+    stats: { atk: 200, physDef: 80, pierceDef: 55, magDef: 50, atbSpeed: 1.0, moveSpeed: 1.0, range: 1 },
     productionCost: 4,
     productionTicks: 25,
     blockPriority: 5,
@@ -18,7 +19,7 @@ export const followerDefs: FollowerDef[] = [
     name: '騎兵',
     type: 'cavalry',
     shieldHp: 180,
-    stats: { atk: 230, def: 65, atbSpeed: 1.2, moveSpeed: 1.6, range: 1 },
+    stats: { atk: 230, physDef: 65, pierceDef: 50, magDef: 45, atbSpeed: 1.2, moveSpeed: 1.6, range: 1 },
     productionCost: 6,
     productionTicks: 30,
     blockPriority: 6,
@@ -27,8 +28,8 @@ export const followerDefs: FollowerDef[] = [
     id: 'follower_heavy',
     name: '重甲兵',
     type: 'heavy',
-    shieldHp: 180,
-    stats: { atk: 110, def: 95, atbSpeed: 0.6, moveSpeed: 0.5, range: 1 },
+    shieldHp: 360,
+    stats: { atk: 180, physDef: 130, pierceDef: 80, magDef: 60, atbSpeed: 0.6, moveSpeed: 0.5, range: 1 },
     productionCost: 8,
     productionTicks: 40,
     blockPriority: 9,
@@ -37,8 +38,8 @@ export const followerDefs: FollowerDef[] = [
     id: 'follower_ranged',
     name: '弓兵',
     type: 'ranged',
-    shieldHp: 70,
-    stats: { atk: 90, def: 45, atbSpeed: 1.0, moveSpeed: 0.9, range: 3 },
+    shieldHp: 140,
+    stats: { atk: 210, physDef: 50, pierceDef: 45, magDef: 40, atbSpeed: 1.0, moveSpeed: 0.9, range: 3 },
     productionCost: 6,
     productionTicks: 30,
     blockPriority: 2,
@@ -47,8 +48,8 @@ export const followerDefs: FollowerDef[] = [
     id: 'follower_siege',
     name: '攻城兵',
     type: 'siege',
-    shieldHp: 110,
-    stats: { atk: 120, def: 65, atbSpeed: 0.4, moveSpeed: 0.7, range: 4 },
+    shieldHp: 220,
+    stats: { atk: 280, physDef: 70, pierceDef: 55, magDef: 50, atbSpeed: 0.4, moveSpeed: 0.7, range: 4 },
     productionCost: 10,
     productionTicks: 50,
     splashRange: 1,
@@ -64,7 +65,7 @@ export const captainDefs: CaptainDef[] = [
     name: '衝鋒隊長',
     type: 'infantry',
     stats: {
-      hp: 600, atk: 280, def: 80,
+      hp: 600, atk: 280, physDef: 80, pierceDef: 55, magDef: 50,
       atbSpeed: 1.0, moveSpeed: 1.0, range: 1,
       reviveDelay: 10, captureRate: 10, spGainPerHit: 8,
     },
@@ -97,7 +98,7 @@ export const captainDefs: CaptainDef[] = [
     name: '防守隊長',
     type: 'heavy',
     stats: {
-      hp: 800, atk: 220, def: 120,
+      hp: 800, atk: 220, physDef: 120, pierceDef: 80, magDef: 55,
       atbSpeed: 0.9, moveSpeed: 0.9, range: 1,
       reviveDelay: 8, captureRate: 15, spGainPerHit: 6,
     },
@@ -130,7 +131,7 @@ export const captainDefs: CaptainDef[] = [
     name: '騎士隊長',
     type: 'cavalry',
     stats: {
-      hp: 520, atk: 300, def: 70,
+      hp: 520, atk: 300, physDef: 70, pierceDef: 55, magDef: 45,
       atbSpeed: 1.2, moveSpeed: 1.6, range: 1,
       reviveDelay: 15, captureRate: 5, spGainPerHit: 10,
     },
@@ -163,7 +164,7 @@ export const captainDefs: CaptainDef[] = [
     name: '弓手隊長',
     type: 'ranged',
     stats: {
-      hp: 450, atk: 260, def: 55,
+      hp: 450, atk: 260, physDef: 55, pierceDef: 45, magDef: 45,
       atbSpeed: 1.1, moveSpeed: 0.9, range: 3,
       reviveDelay: 8, captureRate: 8, spGainPerHit: 7,
     },
@@ -196,7 +197,7 @@ export const captainDefs: CaptainDef[] = [
     name: '攻城隊長',
     type: 'siege',
     stats: {
-      hp: 580, atk: 380, def: 75,
+      hp: 580, atk: 380, physDef: 75, pierceDef: 60, magDef: 50,
       atbSpeed: 0.7, moveSpeed: 0.8, range: 4,
       reviveDelay: 12, captureRate: 25, spGainPerHit: 6,
     },
@@ -244,6 +245,106 @@ export const captainCards: CaptainCard[] = captainDefs.map(def => ({
   },
   unlockablePassiveCost: 15,
 }))
+
+// ─── 召喚師裝備卡（MVP 範例）────────────────────────────────────────────────
+
+export const summonerCards: SummonerCard[] = [
+  {
+    id: 'summoner_assault',
+    name: '衝鋒體質',
+    desc: '前線優先，開局資源充足',
+    effects: [
+      { type: 'initialMana',       value: 10 },
+      { type: 'productionSpeed',   value: 15 },
+    ],
+  },
+  {
+    id: 'summoner_fortress',
+    name: '要塞體質',
+    desc: '防禦設施更強，建造費用降低',
+    effects: [
+      { type: 'facilityAtk',        value: 25 },
+      { type: 'buildCostReduction', value: 20 },
+    ],
+  },
+  {
+    id: 'summoner_logistics',
+    name: '後勤體質',
+    desc: '生產加速，初始多一張計策牌',
+    effects: [
+      { type: 'productionSpeed',   value: 25 },
+      { type: 'initialTacticCard', value: 1  },
+    ],
+  },
+  {
+    id: 'summoner_cavalry',
+    name: '騎兵體質',
+    desc: '騎兵生產速度大幅提升',
+    effects: [
+      { type: 'followerTypeSpeed', value: 40, targetType: 'cavalry' },
+      { type: 'initialMana',       value: 5 },
+    ],
+  },
+  {
+    id: 'summoner_siege',
+    name: '攻城體質',
+    desc: '攻城兵生產加速，採集站產出提升',
+    effects: [
+      { type: 'followerTypeSpeed', value: 40, targetType: 'siege'   },
+      { type: 'facilityOutput',    value: 20 },
+    ],
+  },
+  {
+    id: 'summoner_tactician',
+    name: '謀士體質',
+    desc: '計策手牌上限 +1，輸送帶加速',
+    effects: [
+      { type: 'tacticHandSize', value: 1  },
+      { type: 'tacticSpeed',    value: 30 },
+    ],
+  },
+]
+
+// ─── Trait 定義（6 種 MVP Trait）─────────────────────────────────────────────
+
+export const traitDefs: TraitDef[] = [
+  {
+    id: 'Charge',
+    name: '衝鋒',
+    desc: '移動後首擊傷害 +50%，目標 ATB 清零',
+    icon: '⚡',
+  },
+  {
+    id: 'Splash',
+    name: '濺射',
+    desc: '攻擊時對目標周圍 1 格的敵方造成 40% 濺射傷害',
+    icon: '💥',
+  },
+  {
+    id: 'Block',
+    name: '格擋',
+    desc: '受攻擊時 30% 機率傷害減半',
+    icon: '🛡',
+  },
+  {
+    id: 'Pierce',
+    name: '穿透',
+    desc: '攻擊無視目標 40% 防禦',
+    icon: '🔱',
+  },
+  {
+    id: 'LifeSteal',
+    name: '吸血',
+    desc: '每次攻擊吸取傷害 20% 為隊長回血',
+    icon: '🩸',
+  },
+  {
+    id: 'Taunt',
+    name: '嘲諷',
+    desc: '強制成為敵方優先攻擊目標',
+    icon: '😤',
+  },
+]
 
 // ─── 預設 AI 設定 ─────────────────────────────────────────────────────────
 
