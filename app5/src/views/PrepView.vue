@@ -25,6 +25,14 @@
         裝備卡
         <span class="tab-count">{{ selectedSummonerCardIds.length }} / {{ MAX_SUMMONER }}</span>
       </button>
+      <button
+        class="tab-btn"
+        :class="{ active: activeTab === 'map' }"
+        @click="activeTab = 'map'"
+      >
+        地圖
+        <span class="tab-count">{{ selectedTemplateLabel }}</span>
+      </button>
     </div>
 
     <!-- ── 小隊卡 Tab ── -->
@@ -74,6 +82,28 @@
       </div>
     </div>
 
+    <!-- ── 地圖模板 Tab ── -->
+    <div v-if="activeTab === 'map'" class="card-grid map-grid">
+      <div
+        v-for="tmpl in MAP_TEMPLATES"
+        :key="tmpl.id"
+        class="card map-card"
+        :class="{ selected: store.selectedTemplate === tmpl.id }"
+        @click="store.setTemplate(tmpl.id)"
+      >
+        <div class="card-header">
+          <span class="card-type-badge map-badge">地圖</span>
+          <span v-if="store.selectedTemplate === tmpl.id" class="check">✓</span>
+        </div>
+        <div class="map-icon">{{ tmpl.icon }}</div>
+        <div class="card-name">{{ tmpl.label }}</div>
+        <div class="card-passive-desc">{{ tmpl.desc }}</div>
+        <div class="map-meta">
+          <span class="map-time">⏱ {{ formatTicks(tmpl.maxTicks) }}</span>
+        </div>
+      </div>
+    </div>
+
     <!-- ── Footer ── -->
     <div class="prep-footer">
       <div class="footer-info">
@@ -93,20 +123,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '../stores/gameStore'
 import type { SummonerEffect, CaptainType } from '../engine/types'
+import { MAP_TEMPLATES } from '../engine/mapData'
 
 const store  = useGameStore()
 const router = useRouter()
 
-const activeTab = ref<'squads' | 'summoner'>('squads')
+const activeTab = ref<'squads' | 'summoner' | 'map'>('squads')
 
 const MAX_SQUADS   = 5
 const MAX_SUMMONER = 2
 
 const { selectedCardIds, selectedSummonerCardIds } = store
+
+// ── 地圖模板 ─────────────────────────────────────────────────────────────────
+
+const selectedTemplateLabel = computed(() =>
+  MAP_TEMPLATES.find(t => t.id === store.selectedTemplate)?.label ?? '—'
+)
+
+function formatTicks(ticks: number): string {
+  const secs = Math.round(ticks * 0.12)
+  const mm = Math.floor(secs / 60)
+  const ss = secs % 60
+  return `${mm}:${ss.toString().padStart(2, '0')}`
+}
 
 // ── 路線自動分配 ─────────────────────────────────────────────────────────────
 
@@ -278,6 +322,15 @@ h1 { font-size: 26px; font-weight: 800; margin: 0; color: #5a3e1e; }
   font-size: 10px; color: #1a5a3a; font-weight: 600;
   background: #e4f4ea; border-radius: 4px; padding: 2px 6px;
 }
+
+/* ── Map Tab ── */
+.map-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.map-card { align-items: center; text-align: center; gap: 8px; }
+.map-icon  { font-size: 32px; line-height: 1; }
+.map-badge { background: #d4eef0; color: #1a4a5a; }
+.map-meta  { margin-top: 4px; }
+.map-time  { font-size: 10px; color: #8a6a3e; font-weight: 600;
+  background: #f0e8d4; padding: 2px 7px; border-radius: 8px; }
 
 /* ── Footer ── */
 .prep-footer {

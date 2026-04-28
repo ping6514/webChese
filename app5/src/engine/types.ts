@@ -429,6 +429,8 @@ export type BattleEvent =
 
 // ─── 遊戲整體狀態（v2）──────────────────────────────────────────────────────
 
+export type MapTemplate = 'standard' | 'fortress' | 'jungle' | 'blitz'
+
 export type BattlePhase = 'prep' | 'running' | 'player_won' | 'enemy_won'
 
 export type GameState = {

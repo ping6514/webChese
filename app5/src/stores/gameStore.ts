@@ -2,13 +2,13 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
   GameState, SquadInstance, AIConfig, RouteAssign, AIBehavior,
-  TraitType,
+  TraitType, MapTemplate,
 } from '../engine/types'
 import {
   captainDefs, followerDefs, captainCards, summonerCards,
   DEFAULT_AI_CONFIG, captainAlertRange, traitDefs,
 } from '../data/testSquads'
-import { createTestMap, createInitialZones, createDefaultLanes } from '../engine/mapData'
+import { createMap, getTemplateInfo } from '../engine/mapData'
 import { stepGame } from '../engine/squadEngine'
 
 export const useGameStore = defineStore('game', () => {
@@ -21,6 +21,11 @@ export const useGameStore = defineStore('game', () => {
 
   // ─── 備戰：玩家選的召喚師裝備卡（最多 2 張）────────────────────────────────
   const selectedSummonerCardIds = ref<string[]>([])
+
+  // ─── 備戰：地圖模板 ───────────────────────────────────────────────────────
+  const selectedTemplate = ref<MapTemplate>('standard')
+
+  function setTemplate(t: MapTemplate) { selectedTemplate.value = t }
 
   // ─── 戰場狀態 ──────────────────────────────────────────────────────────────
   const gameState = ref<GameState | null>(null)
@@ -64,7 +69,8 @@ export const useGameStore = defineStore('game', () => {
 
   // ─── 開始戰鬥 ─────────────────────────────────────────────────────────────
   function startBattle() {
-    const cells = createTestMap()
+    const { cells, zones, lanes } = createMap(selectedTemplate.value)
+    const templateInfo = getTemplateInfo(selectedTemplate.value)
     const squads: Record<string, SquadInstance> = {}
 
     const playerSpawns = [
@@ -131,13 +137,13 @@ export const useGameStore = defineStore('game', () => {
     gameState.value = {
       phase:         'running',
       tick:          0,
-      maxTicks:      5400,    // ~10.8 分鐘（5400 × 120ms）
+      maxTicks:      templateInfo.maxTicks,
       playerBaseHp:  1000,
       enemyBaseHp:   1000,
       squads,
       cells,
-      zones:    createInitialZones(),
-      lanes:    createDefaultLanes(),
+      zones,
+      lanes,
       resources: { mana: 20, experience: 0, destinyPoints: 0 },
       followerBelt: {
         hand:          [],
@@ -325,6 +331,7 @@ export const useGameStore = defineStore('game', () => {
     selectedSummonerCardIds,
     gameState,
     speedMultiplier,
+    selectedTemplate, setTemplate,
     startBattle, stopTicking, setSpeed,
     setSquadRoute, setSquadBehavior,
     stageFollower, applyTraitToStaged, summonStagedFollower,
