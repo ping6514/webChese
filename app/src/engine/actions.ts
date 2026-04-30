@@ -23,6 +23,7 @@ export type ShootAction = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  usePierce?: boolean
   spendGoldForDamage?: boolean
   sacrificeHp?: boolean
 }

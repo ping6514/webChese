@@ -96,6 +96,16 @@ export default defineComponent({
       default: true,
     },
 
+    shootPierce: {
+      type: Object as PropType<{ label: string; disabled: boolean; disabledReason: string } | null>,
+      default: null,
+    },
+
+    shootUsePierce: {
+      type: Boolean,
+      default: false,
+    },
+
     shootGoldForDamage: {
       type: Object as PropType<{ goldCost: number; damageBonus: number } | null>,
       default: null,
@@ -189,6 +199,7 @@ export default defineComponent({
     'enchant-drop': (_payload: { unitId: string; soulId: string }) => true,
     'shoot-confirm': () => true,
     'shoot-cancel': () => true,
+    'update:shootUsePierce': (_v: boolean) => true,
     'update:shootSpendGoldForDamage': (_v: boolean) => true,
     'update:shootSacrificeHp': (_v: boolean) => true,
     'shoot-details': () => true,
@@ -537,12 +548,15 @@ export default defineComponent({
         :mana-cost="shootManaCost"
         :confirm-disabled="shootConfirmDisabled"
         :confirm-title="shootConfirmTitle"
+        :pierce="shootPierce"
+        :use-pierce="shootUsePierce"
         :gold-for-damage="shootGoldForDamage"
         :spend-gold-for-damage="shootSpendGoldForDamage"
         :blood-sacrifice="shootBloodSacrifice"
         :sacrifice-hp="shootSacrificeHp"
         :offset="overlayOffset"
         @update:offset="setOverlayOffset"
+        @update:use-pierce="(v) => $emit('update:shootUsePierce', v)"
         @update:spend-gold-for-damage="(v) => $emit('update:shootSpendGoldForDamage', v)"
         @update:sacrifice-hp="(v) => $emit('update:shootSacrificeHp', v)"
         @confirm="onShootConfirm"

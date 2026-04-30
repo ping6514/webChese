@@ -8,6 +8,7 @@ export type ShootValidateContext = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  usePierce?: boolean
   events?: Event[]
   shootRules: {
     ignoreBlockingCount: number
@@ -21,6 +22,7 @@ export type ShootPlanContext = {
   attackerId: string
   targetUnitId: string
   extraTargetUnitId?: string | null
+  usePierce?: boolean
   events?: Event[]
 }
 
@@ -520,6 +522,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
       handlers.push({
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
+          if (!ctx.usePierce) return
 
           const requiresManaGte = Number((ab as any).requiresManaGte ?? 0)
           if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
@@ -537,6 +540,7 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         },
         onAfterShotPlanBuilt: (ctx, plan) => {
           if (ctx.attackerId !== u.id) return
+          if (!ctx.usePierce) return
 
           const attacker = ctx.state.units[ctx.attackerId]
           const target = ctx.state.units[ctx.targetUnitId]

@@ -192,16 +192,22 @@ describe('styx abilities', () => {
     // Clear other blockers on file 4
     moveUnitAwayFromLine(s, 4, 3, 8, [attackerId, enemy1, enemy2])
 
-    // New: PIERCE requiresManaGte=2
+    // Base shot should still work without enabling pierce
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 1 } }
-    const failPlan = buildShotPlan(s, attackerId, enemy1)
+    const normalPlan = buildShotPlan(s, attackerId, enemy1)
+    expect(normalPlan.ok).toBe(true)
+    if (!normalPlan.ok) return
+    expect(normalPlan.plan.cost).toBe(1)
+
+    // PIERCE requiresManaGte=2 and is now opt-in
+    const failPlan = buildShotPlan(s, attackerId, enemy1, null, true)
     expect(failPlan.ok).toBe(false)
     if (!failPlan.ok) expect(failPlan.error).toBe('魔力不足')
 
     // Enough mana for gate and for cost
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
 
-    const planRes = buildShotPlan(s, attackerId, enemy1)
+    const planRes = buildShotPlan(s, attackerId, enemy1, null, true)
     expect(planRes.ok).toBe(true)
     if (!planRes.ok) return
 
@@ -248,10 +254,10 @@ describe('styx abilities', () => {
     // Clear other blockers on the file
     moveUnitAwayFromLine(s, 4, 1, 8, [attackerId, targetId, screenId])
 
-    // New: PIERCE manaCost=1 when screen condition is met
+    // New: PIERCE manaCost=1 when screen condition is met; pierce is now opt-in
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
 
-    const planRes = buildShotPlan(s, attackerId, targetId)
+    const planRes = buildShotPlan(s, attackerId, targetId, null, true)
     expect(planRes.ok).toBe(true)
     if (!planRes.ok) return
 

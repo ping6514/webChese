@@ -19,9 +19,14 @@ export function useShootPreview(opts: { getState: () => GameState }) {
   const ui = useUiStore()
   const { shootPreview } = storeToRefs(ui)
 
+  const usePierce = ref(false)
   const spendGoldForDamage = ref(false)
   const sacrificeHp = ref(false)
-  watch(shootPreview, () => { spendGoldForDamage.value = false; sacrificeHp.value = false })
+  watch(shootPreview, () => {
+    usePierce.value = false
+    spendGoldForDamage.value = false
+    sacrificeHp.value = false
+  })
 
   function translateGuardReason(reason: string): string {
     const r = String(reason ?? '')
@@ -137,6 +142,40 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     return { goldCost, damageBonus }
   })
 
+  const pierceInfo = computed<{ label: string; disabled: boolean; disabledReason: string } | null>(() => {
+    const s = opts.getState()
+    if (!shootPreview.value) return null
+    const u = s.units[shootPreview.value.attackerId]
+    if (!u?.enchant?.soulId) return null
+    const card = getSoulCard(u.enchant.soulId)
+    if (!card) return null
+    const ab = card.abilities.find((a) => a.type === 'PIERCE')
+    if (!ab) return null
+
+    const requiresManaGte = Number((ab as any).requiresManaGte ?? 0)
+    const manaCost = Number((ab as any).manaCost ?? 0)
+    const mode = String((ab as any).mode ?? '')
+    const count = Number((ab as any).count ?? 0)
+    const parts = ['貫通']
+    if (mode === 'LINE_ENEMIES' && Number.isFinite(count) && count > 0) parts.push(`前 ${count} 體`)
+    if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) parts.push(`需魔力≥${requiresManaGte}`)
+    if (Number.isFinite(manaCost) && manaCost > 0) parts.push(`+${manaCost} 魔`)
+
+    const guard = canDispatch(s, {
+      type: 'SHOOT',
+      attackerId: shootPreview.value.attackerId,
+      targetUnitId: shootPreview.value.targetUnitId,
+      extraTargetUnitId: shootPreview.value.extraTargetUnitId ?? null,
+      usePierce: true,
+    })
+
+    return {
+      label: parts.join('｜'),
+      disabled: !guard.ok,
+      disabledReason: guard.ok ? '' : translateGuardReason((guard as any).reason ?? ''),
+    }
+  })
+
   const guard = computed<GuardResult>(() => {
     const s = opts.getState()
     if (!shootPreview.value) return { ok: false as const, reason: '未選擇目標' }
@@ -145,6 +184,7 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       attackerId: shootPreview.value.attackerId,
       targetUnitId: shootPreview.value.targetUnitId,
       extraTargetUnitId: shootPreview.value.extraTargetUnitId ?? null,
+      usePierce: usePierce.value,
     })
     return translateGuard(res)
   })
@@ -157,18 +197,20 @@ export function useShootPreview(opts: { getState: () => GameState }) {
       shootPreview.value.attackerId,
       shootPreview.value.targetUnitId,
       shootPreview.value.extraTargetUnitId ?? null,
+      usePierce.value,
     )
     return res.ok ? res : null
   })
 
-  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null; spendGoldForDamage?: boolean; sacrificeHp?: boolean }) => void) {
+  function confirm(dispatch: (a: { type: 'SHOOT'; attackerId: string; targetUnitId: string; extraTargetUnitId?: string | null; usePierce?: boolean; spendGoldForDamage?: boolean; sacrificeHp?: boolean }) => void) {
     if (!shootPreview.value) return
     if (!guard.value.ok) return
     const a = shootPreview.value
+    const pierce = usePierce.value && pierceInfo.value && !pierceInfo.value.disabled ? true : undefined
     const gold = spendGoldForDamage.value && goldForDamageInfo.value ? true : undefined
     const sacHp = sacrificeHp.value && bloodSacrificeInfo.value ? true : undefined
     ui.clearShootPreview()
-    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null, spendGoldForDamage: gold, sacrificeHp: sacHp })
+    dispatch({ type: 'SHOOT', attackerId: a.attackerId, targetUnitId: a.targetUnitId, extraTargetUnitId: a.extraTargetUnitId ?? null, usePierce: pierce, spendGoldForDamage: gold, sacrificeHp: sacHp })
   }
 
   return {
@@ -180,6 +222,8 @@ export function useShootPreview(opts: { getState: () => GameState }) {
     guard,
     info,
     confirm,
+    pierceInfo,
+    usePierce,
     goldForDamageInfo,
     spendGoldForDamage,
     bloodSacrificeInfo,

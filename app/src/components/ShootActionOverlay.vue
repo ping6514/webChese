@@ -14,6 +14,8 @@ export default defineComponent({
     // cancelLabel: { type: String as PropType<string>, required: false, default: '取消 (Esc)' },
     detailsLabel: { type: String as PropType<string>, required: false, default: '射擊預覽' },
     showDetails: { type: Boolean, required: false, default: true },
+    pierce: { type: Object as PropType<{ label: string; disabled: boolean; disabledReason: string } | null>, default: null },
+    usePierce: { type: Boolean, required: false, default: false },
     goldForDamage: { type: Object as PropType<{ goldCost: number; damageBonus: number } | null>, default: null },
     spendGoldForDamage: { type: Boolean, required: false, default: false },
     bloodSacrifice: { type: Object as PropType<{ label: string; hpCost?: number } | null>, default: null },
@@ -29,6 +31,7 @@ export default defineComponent({
     cancel: () => true,
     details: () => true,
     'update:offset': (_next: { x: number; y: number }) => true,
+    'update:usePierce': (_v: boolean) => true,
     'update:spendGoldForDamage': (_v: boolean) => true,
     'update:sacrificeHp': (_v: boolean) => true,
   },
@@ -109,6 +112,18 @@ export default defineComponent({
   >
     <div class="shootActionsTitle"><span>{{ title }}</span> <button type="button" @click="onCancel">Ｘ</button></div>
     <div v-if="manaCost != null" class="costRow mono">耗魔 {{ manaCost }}</div>
+    <div v-if="pierce" class="goldToggleRow">
+      <button
+        type="button"
+        class="goldToggleBtn"
+        :class="{ active: usePierce }"
+        :disabled="pierce.disabled"
+        :title="pierce.disabled ? pierce.disabledReason : ''"
+        @click.stop="$emit('update:usePierce', !usePierce)"
+      >
+        {{ pierce.label }}
+      </button>
+    </div>
     <div v-if="bloodSacrifice" class="goldToggleRow">
       <button
         type="button"

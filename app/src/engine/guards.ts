@@ -106,7 +106,7 @@ export function canDispatch(state: GameState, action: Action): GuardResult {
     case 'MOVE':
       return canMove(state, action.unitId, action.to)
     case 'SHOOT':
-      return canShootAction(state, action.attackerId, action.targetUnitId, action.extraTargetUnitId)
+      return canShootAction(state, action.attackerId, action.targetUnitId, action.extraTargetUnitId, action.usePierce)
     case 'ENCHANT':
       return canEnchant(state, action.unitId, action.soulId)
     case 'REVIVE':
@@ -205,7 +205,7 @@ export function canMove(state: GameState, unitId: string, to: Pos): GuardResult 
   return ok()
 }
 
-export function canShootAction(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null): GuardResult {
+export function canShootAction(state: GameState, attackerId: string, targetUnitId: string, extraTargetUnitId?: string | null, usePierce?: boolean): GuardResult {
   if (state.turn.phase !== 'combat') return fail('需要在戰鬥階段')
 
   const attacker = state.units[attackerId]
@@ -227,7 +227,7 @@ export function canShootAction(state: GameState, attackerId: string, targetUnitI
     },
   } : state
 
-  const planRes = buildShotPlan(stateForCheck, attackerId, targetUnitId, extraTargetUnitId)
+  const planRes = buildShotPlan(stateForCheck, attackerId, targetUnitId, extraTargetUnitId, usePierce)
   if (!planRes.ok) return fail((planRes as { ok: false; error: string }).error)
   return ok()
 }

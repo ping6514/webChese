@@ -39,6 +39,8 @@ const {
   guard: shootPreviewGuard,
   info: shootPreviewInfo,
   confirm: confirmShootPreviewFromComposable,
+  pierceInfo: shootPierceInfo,
+  usePierce: shootUsePierce,
   goldForDamageInfo: shootGoldForDamageInfo,
   spendGoldForDamage: shootSpendGoldForDamage,
   bloodSacrificeInfo: shootBloodSacrificeInfo,
@@ -263,6 +265,10 @@ function confirmShootPreview() {
   confirmShootPreviewFromComposable((a) => ctx.dispatch(a))
 }
 
+function setShootUsePierce(v: boolean) {
+  shootUsePierce.value = v
+}
+
 function setShootSpendGold(v: boolean) {
   shootSpendGoldForDamage.value = v
 }
@@ -444,13 +450,16 @@ defineExpose({ onUseItem })
         :preview-chain-selected-pos-key="shootPreviewChainSelectedPosKey"
         :shoot-action-pos-key="shootTargetPosKey"
         :shoot-mana-cost="shootManaCost"
-        :shoot-actions-visible="!shootDetailsOpen"
+        :shoot-actions-visible="!!shootPreview"
         :shoot-confirm-disabled="!shootPreviewGuard.ok"
         :shoot-confirm-title="shootConfirmTitle"
+        :shoot-pierce="shootPierceInfo"
+        :shoot-use-pierce="shootUsePierce"
         :shoot-gold-for-damage="shootGoldForDamageInfo"
         :shoot-spend-gold-for-damage="shootSpendGoldForDamage"
         :shoot-blood-sacrifice="shootBloodSacrificeInfo"
         :shoot-sacrifice-hp="shootSacrificeHp"
+        @update:shoot-use-pierce="setShootUsePierce"
         @update:shoot-spend-gold-for-damage="setShootSpendGold"
         @update:shoot-sacrifice-hp="setShootSacrificeHp"
         :sacrifice-action-pos-key="sacrificeOverlayVisible && selectedUnit ? `${selectedUnit.pos.x},${selectedUnit.pos.y}` : null"
