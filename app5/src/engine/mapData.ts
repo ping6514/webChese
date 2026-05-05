@@ -73,7 +73,7 @@ function buildBaseMap(): Record<string, MapCell> {
         cells[key] = {
           pos, terrain: 'normal', passable: true,
           building: { buildingId: 'player_base', nodeType: 'playerBase', team: 'player',
-            captureHp: 200, maxCaptureHp: 200, hp: 1000, maxHp: 1000 },
+            captureHp: 1000, maxCaptureHp: 1000, hp: 1000, maxHp: 1000 },
         }
         continue
       }
@@ -81,7 +81,7 @@ function buildBaseMap(): Record<string, MapCell> {
         cells[key] = {
           pos, terrain: 'normal', passable: true,
           building: { buildingId: 'enemy_base', nodeType: 'enemyBase', team: 'enemy',
-            captureHp: 200, maxCaptureHp: 200, hp: 1000, maxHp: 1000 },
+            captureHp: 1000, maxCaptureHp: 1000, hp: 1000, maxHp: 1000 },
         }
         continue
       }
@@ -156,9 +156,9 @@ function buildStandard() {
   applyTerrain(cells, terrain)
 
   const zones: ZoneDef[] = [
-    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 100, cells: [{q:6,r:2},{q:7,r:2}] },
-    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 100, cells: [{q:7,r:7},{q:8,r:7}] },
-    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 100, cells: [{q:6,r:12},{q:7,r:12}] },
+    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 500, cells: [{q:6,r:2},{q:7,r:2}] },
+    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 500, cells: [{q:7,r:7},{q:8,r:7}] },
+    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 500, cells: [{q:6,r:12},{q:7,r:12}] },
   ]
   applyZoneCells(cells, zones)
 
@@ -204,12 +204,12 @@ function buildFortress() {
 
   // 近端佔點（q=4-5）+ 遠端佔點（q=10-11）
   const zones: ZoneDef[] = [
-    { zoneId: 'outpost_top',  nodeType: 'outpost', captureHp: 80, cells: [{q:4,r:2},{q:5,r:2}] },
-    { zoneId: 'outpost_mid',  nodeType: 'outpost', captureHp: 80, cells: [{q:4,r:7},{q:5,r:7}] },
-    { zoneId: 'outpost_bot',  nodeType: 'outpost', captureHp: 80, cells: [{q:4,r:12},{q:5,r:12}] },
-    { zoneId: 'dungeon_top',  nodeType: 'outpost', captureHp: 80, cells: [{q:10,r:2},{q:11,r:2}] },
-    { zoneId: 'dungeon_mid',  nodeType: 'outpost', captureHp: 80, cells: [{q:10,r:7},{q:11,r:7}] },
-    { zoneId: 'dungeon_bot',  nodeType: 'outpost', captureHp: 80, cells: [{q:10,r:12},{q:11,r:12}] },
+    { zoneId: 'outpost_top',  nodeType: 'outpost', captureHp: 400, cells: [{q:4,r:2},{q:5,r:2}] },
+    { zoneId: 'outpost_mid',  nodeType: 'outpost', captureHp: 400, cells: [{q:4,r:7},{q:5,r:7}] },
+    { zoneId: 'outpost_bot',  nodeType: 'outpost', captureHp: 400, cells: [{q:4,r:12},{q:5,r:12}] },
+    { zoneId: 'dungeon_top',  nodeType: 'outpost', captureHp: 400, cells: [{q:10,r:2},{q:11,r:2}] },
+    { zoneId: 'dungeon_mid',  nodeType: 'outpost', captureHp: 400, cells: [{q:10,r:7},{q:11,r:7}] },
+    { zoneId: 'dungeon_bot',  nodeType: 'outpost', captureHp: 400, cells: [{q:10,r:12},{q:11,r:12}] },
   ]
   applyZoneCells(cells, zones)
 
@@ -245,9 +245,9 @@ function buildJungle() {
 
   // 佔點在更偏中央（q=7-8），戰鬥在地圖核心
   const zones: ZoneDef[] = [
-    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 100, cells: [{q:7,r:2},{q:8,r:2}] },
-    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 100, cells: [{q:7,r:7},{q:8,r:7}] },
-    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 100, cells: [{q:7,r:12},{q:8,r:12}] },
+    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 500, cells: [{q:7,r:2},{q:8,r:2}] },
+    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 500, cells: [{q:7,r:7},{q:8,r:7}] },
+    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 500, cells: [{q:7,r:12},{q:8,r:12}] },
   ]
   applyZoneCells(cells, zones)
 
@@ -272,9 +272,9 @@ function buildBlitz() {
 
   // 佔點更靠近玩家側（q=5-6），推進壓力更快
   const zones: ZoneDef[] = [
-    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 60, cells: [{q:5,r:2},{q:6,r:2}] },
-    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 60, cells: [{q:5,r:7},{q:6,r:7}] },
-    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 60, cells: [{q:5,r:12},{q:6,r:12}] },
+    { zoneId: 'outpost_top', nodeType: 'outpost', captureHp: 300, cells: [{q:5,r:2},{q:6,r:2}] },
+    { zoneId: 'outpost_mid', nodeType: 'outpost', captureHp: 300, cells: [{q:5,r:7},{q:6,r:7}] },
+    { zoneId: 'outpost_bot', nodeType: 'outpost', captureHp: 300, cells: [{q:5,r:12},{q:6,r:12}] },
   ]
   applyZoneCells(cells, zones)
 

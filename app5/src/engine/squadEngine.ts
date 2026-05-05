@@ -1,9 +1,9 @@
 import type {
   GameState, SquadInstance, HexPos, BattleEvent, AttackFXType, CaptainType, FollowerType, LaneDef,
-  TraitType, TraitCard, ShieldLayer, DamageType
+  TraitType, TraitCard, ShieldLayer, DamageType, ZoneState, MapCell, WaveSpawner
 } from './types'
 import { hexDistance, hexKey } from './types'
-import { captainDefs, followerDefs } from '../data/testSquads'
+import { captainDefs, followerDefs, basicCaptainDefs } from '../data/testSquads'
 import { findPath, nearestInZone, neighbors } from './pathfind'
 
 // ─── 常數 ─────────────────────────────────────────────────────────────────────
@@ -22,7 +22,9 @@ function toFXType(type: CaptainType | FollowerType): AttackFXType {
 
 // ─── 工具 ─────────────────────────────────────────────────────────────────────
 
-function getCaptainDef(id: string) { return captainDefs.find(c => c.id === id)! }
+function getCaptainDef(id: string) {
+  return captainDefs.find(c => c.id === id) ?? basicCaptainDefs.find(c => c.id === id)!
+}
 function getFollowerDef(id: string) { return followerDefs.find(f => f.id === id)! }
 
 // ─── 小隊存活（隊長 HP > 0 且不在撤退）──────────────────────────────────────
@@ -191,6 +193,8 @@ function applyDamage(
   const tgtDef  = getCaptainDef(target.captainDefId)
   const dmgType = getDamageType(attackerUnitType)
   const baseAtk = attackerAtk   // 屬性傷害透過抗性體現，不額外乘倍率
+  // iron_wall：目標防禦 ×2
+  const ironWallMult = (target.spBuffActive && target.spBuffType === 'iron_wall') ? 2 : 1
 
   // ── 護盾層優先承傷 ────────────────────────────────────────────────────
   const activeShields = target.shieldLayers.filter(s => !s.isDead)
@@ -203,8 +207,8 @@ function applyDamage(
     })
     const blockerDef = getFollowerDef(blocker.followerDefId)
 
-    // Pierce：忽視 40% 對應抗性
-    const rawDef = getDefValue(blockerDef.stats, dmgType)
+    // Pierce：忽視 40% 對應抗性；iron_wall：×2 防禦
+    const rawDef = getDefValue(blockerDef.stats, dmgType) * ironWallMult
     const effectiveDef = attackerTraits.includes('Pierce') ? rawDef * 0.6 : rawDef
 
     let dmg = Math.max(1, Math.floor(baseAtk - effectiveDef))
@@ -235,7 +239,7 @@ function applyDamage(
 
   // ── 無護盾，直接傷隊長 ───────────────────────────────────────────────
   const tgtCapDef    = getCaptainDef(target.captainDefId)
-  const rawCapDef    = getDefValue(tgtCapDef.stats, dmgType)
+  const rawCapDef    = getDefValue(tgtCapDef.stats, dmgType) * ironWallMult
   const effectiveDef = attackerTraits.includes('Pierce') ? rawCapDef * 0.6 : rawCapDef
 
   const dmg = Math.max(1, Math.floor(baseAtk - effectiveDef))
@@ -342,8 +346,9 @@ function tickSquad(squad: SquadInstance, state: GameState): void {
     squad.state = 'moving'     // aggressive，或 capture 路線切換後立即離開
   }
 
-  // ② 移動
-  if (squad.state === 'moving') tickMove(squad, state, enemies)
+  // ② 移動（iron_wall 防禦陣型期間移速歸零）
+  const isIronWall = squad.spBuffActive && squad.spBuffType === 'iron_wall'
+  if (squad.state === 'moving' && !isIronWall) tickMove(squad, state, enemies)
 
   // ③ 攻擊
   tickATB(squad, state, inRange, state.events)
@@ -419,6 +424,15 @@ function tickCapture(squad: SquadInstance, state: GameState): void {
   if (cell.zoneId) {
     const zone = state.zones[cell.zoneId]
     if (!zone || zone.team === squad.team) return
+
+    // 佔領打斷：敵方小隊在同一 zone 內 → 凍結進度
+    const contested = Object.values(state.squads).some(other =>
+      other.team !== squad.team &&
+      isSquadAlive(other) &&
+      zone.cells.some(zc => zc.q === other.pos.q && zc.r === other.pos.r)
+    )
+    if (contested) return
+
     zone.captureHp = Math.max(0, zone.captureHp - capDef.stats.captureRate)
     if (zone.captureHp === 0) {
       zone.team = squad.team
@@ -426,14 +440,41 @@ function tickCapture(squad: SquadInstance, state: GameState): void {
       state.log.push(`🏴 ${capDef.name} 佔領 ${zone.zoneId}`)
       state.resources.mana += 10
       state.resources.experience += 5
+      // barracks 佔領：玩家獲得 wave spawner
+      if (zone.nodeType === 'barracks' && squad.team === 'player' && state.playerWaveRotation.length > 0) {
+        const spawnCell = zone.cells[0]
+        state.waveSpawners.push({
+          spawnerId:     `player_barracks_${zone.zoneId}`,
+          team:          'player',
+          spawnPos:      spawnCell,
+          route:         squad.aiConfig.route,
+          rotation:      state.playerWaveRotation,
+          rotationIndex: 0,
+          intervalTicks: 350,
+          nextSpawnTick: state.tick + 350,
+          maxActiveWaves: 2,
+        })
+        state.log.push(`🏗️ 兵營啟動，開始派遣波次小隊`)
+      }
     }
     return
   }
 
-  // ── 單格建築佔領（主堡、城門…）──────────────────────────────────────
+  // ── 單格建築佔領（城門等可佔建築）──────────────────────────────────
+  // 主堡（playerBase / enemyBase）不走佔領邏輯，改由 stepGame HP 損耗決定勝敗
   if (!cell.building) return
   const b = cell.building
+  if (b.nodeType === 'playerBase' || b.nodeType === 'enemyBase') return
   if (b.team === squad.team) return
+
+  // 佔領打斷：敵方小隊站在同格 → 凍結進度
+  const buildingContested = Object.values(state.squads).some(other =>
+    other.team !== squad.team &&
+    isSquadAlive(other) &&
+    other.pos.q === squad.pos.q && other.pos.r === squad.pos.r
+  )
+  if (buildingContested) return
+
   b.captureHp = Math.max(0, b.captureHp - capDef.stats.captureRate)
   if (b.captureHp === 0) {
     b.team = squad.team
@@ -441,6 +482,119 @@ function tickCapture(squad: SquadInstance, state: GameState): void {
     state.log.push(`🏴 ${capDef.name} 佔領 ${b.buildingId}`)
     state.resources.mana += 10
     state.resources.experience += 5
+  }
+}
+
+// ─── SP 技能觸發 ─────────────────────────────────────────────────────────────
+
+function applyShieldOrCaptainDmg(
+  target: SquadInstance, dmg: number, events: BattleEvent[]
+): void {
+  const alive = target.shieldLayers.filter(s => !s.isDead)
+  if (alive.length > 0) {
+    alive[0].hp = Math.max(0, alive[0].hp - dmg)
+    if (alive[0].hp === 0) alive[0].isDead = true
+  } else {
+    target.hp = Math.max(0, target.hp - dmg)
+    if (target.hp === 0)
+      events.push({ type: 'death', targetId: target.squadId, pos: { ...target.pos } })
+  }
+  events.push({ type: 'damage', targetId: target.squadId, pos: { ...target.pos }, amount: dmg })
+}
+
+function triggerSPSkill(
+  squad: SquadInstance,
+  state: GameState,
+  inRange: SquadInstance[],
+  events: BattleEvent[]
+): void {
+  const capDef = getCaptainDef(squad.captainDefId)
+  squad.sp = 0
+  events.push({ type: 'sp_skill', squadId: squad.squadId, skillName: capDef.spSkillName, pos: { ...squad.pos } })
+  state.log.push(`✨ ${capDef.name}【${capDef.spSkillName}】`)
+
+  switch (capDef.spSkillId) {
+
+    // ── 戰吼衝鋒（步兵）：下一擊 ×1.6 + 目標 ATB 清零 ─────────────────────
+    case 'charge_roar':
+      squad.spBuffActive = true
+      squad.spBuffType = 'charge_roar'
+      squad.spBuffTicksRemaining = 0  // 不計時，由 tickATB 在出手時清除
+      break
+
+    // ── 鐵甲壁壘（重甲）：60 tick 防禦 ×2、移速歸零 ────────────────────────
+    case 'iron_wall':
+      squad.spBuffActive = true
+      squad.spBuffType = 'iron_wall'
+      squad.spBuffTicksRemaining = 60
+      break
+
+    // ── 鐵騎踐踏（騎兵）：對警戒範圍所有敵方 ATK×0.8 + ATB 清零 ──────────
+    case 'trample': {
+      const enemies = getEnemiesInAlert(squad, state.squads)
+      const dmg = Math.max(1, Math.floor(capDef.stats.atk * 0.8))
+      for (const e of enemies) {
+        applyShieldOrCaptainDmg(e, dmg, events)
+        e.atb = 0
+      }
+      break
+    }
+
+    // ── 箭雨（弓手）：對主目標周圍 1 格所有敵方 ATK×1.5 ───────────────────
+    case 'arrow_rain': {
+      const targets = sortByPriority(squad, inRange)
+      if (targets.length === 0) break
+      const primary = targets[0]
+      const dmg = Math.max(1, Math.floor(capDef.stats.atk * 1.5))
+      for (const e of Object.values(state.squads)) {
+        if (e.team === squad.team || !isSquadAlive(e)) continue
+        if (hexDistance(e.pos, primary.pos) > 1) continue
+        applyShieldOrCaptainDmg(e, dmg, events)
+      }
+      break
+    }
+
+    // ── 破城突擊（攻城）：推進最近未佔領區域/主堡 captureHp 20% ────────────
+    case 'breach': {
+      // 找最近未佔領的 zone
+      let bestZone: ZoneState | null = null
+      let bestZoneDist = Infinity
+      for (const zone of Object.values(state.zones)) {
+        if (zone.team === squad.team) continue
+        for (const zPos of zone.cells) {
+          const d = hexDistance(squad.pos, zPos)
+          if (d < bestZoneDist) { bestZoneDist = d; bestZone = zone }
+        }
+      }
+      // 找最近敵方主堡格
+      const targetNodeType = squad.team === 'player' ? 'enemyBase' : 'playerBase'
+      let bestBaseCell: MapCell | null = null
+      let bestBaseDist = Infinity
+      for (const cell of Object.values(state.cells)) {
+        if (!cell.building || cell.building.nodeType !== targetNodeType) continue
+        const d = hexDistance(squad.pos, cell.pos)
+        if (d < bestBaseDist) { bestBaseDist = d; bestBaseCell = cell }
+      }
+      // 優先推進較近的目標
+      if (bestZone !== null && bestZoneDist <= bestBaseDist) {
+        const push = bestZone.maxCaptureHp * 0.2
+        bestZone.captureHp = Math.max(0, bestZone.captureHp - push)
+        if (bestZone.captureHp === 0) {
+          bestZone.team = squad.team
+          bestZone.captureHp = bestZone.maxCaptureHp
+          state.log.push(`🏴 破城突擊佔領 ${bestZone.zoneId}`)
+        }
+      } else if (bestBaseCell?.building) {
+        const push = bestBaseCell.building.maxCaptureHp * 0.2
+        bestBaseCell.building.captureHp = Math.max(0, bestBaseCell.building.captureHp - push)
+        if (bestBaseCell.building.captureHp === 0) {
+          bestBaseCell.building.team = squad.team
+          bestBaseCell.building.captureHp = bestBaseCell.building.maxCaptureHp
+          state.log.push(`🏴 破城突擊佔領主堡`)
+        }
+      }
+      break
+    }
   }
 }
 
@@ -461,9 +615,21 @@ function tickATB(
     squad.atb = 0
     const target = sortByPriority(squad, inRange)[0]
     if (hexDistance(squad.pos, target.pos) <= capDef.stats.range + rangeBonus) {
+      // charge_roar：消費 buff，本次攻擊 ×1.6 + 清目標 ATB
+      let capAtkMult = 1.0
+      if (squad.spBuffActive && squad.spBuffType === 'charge_roar') {
+        capAtkMult = 1.6
+        target.atb = 0
+        squad.spBuffActive = false
+        squad.spBuffType = null
+      }
       events.push({ type: 'attack', fromPos: { ...squad.pos }, toPos: { ...target.pos }, fxType: toFXType(capDef.type) })
-      applyDamage(squad, true, capDef.type, capDef.stats.atk, target, state.log, events, state)
+      applyDamage(squad, true, capDef.type, Math.floor(capDef.stats.atk * capAtkMult), target, state.log, events, state)
       squad.sp = Math.min(100, squad.sp + capDef.stats.spGainPerHit)
+      // SP 技能觸發（auto 模式，且目前沒有持續型 buff 佔用）
+      if (squad.sp >= 100 && squad.aiConfig.spMode !== 'manual' && !squad.spBuffActive) {
+        triggerSPSkill(squad, state, inRange, events)
+      }
     }
   }
 
@@ -567,6 +733,89 @@ function tickResources(state: GameState): void {
   }
 }
 
+// ─── 波次小隊建構 ────────────────────────────────────────────────────────────
+
+function buildWaveSquad(spawner: WaveSpawner, tick: number, idx: number): SquadInstance {
+  const followerIds = spawner.rotation[spawner.rotationIndex % spawner.rotation.length]
+  spawner.rotationIndex++
+
+  const capDef = basicCaptainDefs.find(c => c.id === 'captain_basic_infantry')
+    ?? basicCaptainDefs[0]
+  // 若全是弓兵，改用弓兵 basic captain（射程正確）
+  const isRanged = followerIds.every(id => id === 'follower_ranged')
+  const actualCapDef = isRanged
+    ? (basicCaptainDefs.find(c => c.id === 'captain_basic_ranged') ?? capDef)
+    : capDef
+
+  const shields: ShieldLayer[] = followerIds.map((defId, i) => {
+    const fDef = getFollowerDef(defId)
+    return {
+      instanceId:    `ws_${spawner.spawnerId}_${tick}_${i}`,
+      followerDefId: defId,
+      hp:            fDef.shieldHp,
+      maxHp:         fDef.shieldHp,
+      atb:           0,
+      isDead:        false,
+      statusEffects: [],
+      traits:        [],
+      chargeReady:   false,
+    }
+  })
+
+  const squadId = `wave_${spawner.spawnerId}_${tick}_${idx}`
+  return {
+    squadId,
+    team:            spawner.team,
+    captainCardId:   '',
+    captainDefId:    actualCapDef.id,
+    waveSpawnerId:   spawner.spawnerId,
+    hp:              actualCapDef.stats.hp,
+    maxHp:           actualCapDef.stats.hp,
+    atb:             0,
+    sp:              0,
+    statusEffects:   [],
+    spBuffActive:    false,
+    spBuffType:      null,
+    spBuffTicksRemaining: 0,
+    shieldLayers:    shields,
+    maxShieldSlots:  actualCapDef.baseFollowerSlots,
+    unlockedNodes:   [],
+    passiveUnlocked: false,
+    pos:             { ...spawner.spawnPos },
+    spawnPos:        { ...spawner.spawnPos },
+    state:           'idle',
+    aiConfig: {
+      behavior:       'aggressive',
+      targetPriority: 'nearest',
+      spMode:         'manual',
+      route:          spawner.route,
+      alertRange:     2,
+    },
+    reviveAtTick:  null,
+    deployAtTick:  null,
+  }
+}
+
+// ─── 波次刷兵 tick ───────────────────────────────────────────────────────────
+
+function tickWaveSpawners(state: GameState): void {
+  for (const spawner of state.waveSpawners) {
+    if (state.tick < spawner.nextSpawnTick) continue
+
+    // 計算此刷兵器的存活 wave 數
+    const active = Object.values(state.squads).filter(
+      s => s.waveSpawnerId === spawner.spawnerId && isSquadAlive(s)
+    ).length
+    if (active >= spawner.maxActiveWaves) continue
+
+    const squad = buildWaveSquad(spawner, state.tick, Object.keys(state.squads).length)
+    state.squads[squad.squadId] = squad
+    state.events.push({ type: 'spawn', squadId: squad.squadId, pos: { ...spawner.spawnPos } })
+    state.log.push(`🌊 ${spawner.spawnerId} 派出波次小隊`)
+    spawner.nextSpawnTick = state.tick + spawner.intervalTicks
+  }
+}
+
 // ─── 主 tick 步進 ────────────────────────────────────────────────────────────
 
 export function stepGame(state: GameState): GameState {
@@ -576,10 +825,11 @@ export function stepGame(state: GameState): GameState {
   next.tick++
   next.events = []
 
-  // 0. 資源自然產出 + 運輸帶
+  // 0. 資源自然產出 + 運輸帶 + 波次刷兵
   tickResources(next)
   tickFollowerBelt(next)
   tickTraitBelt(next)
+  tickWaveSpawners(next)
 
   // 1. 復活檢查
   for (const squad of Object.values(next.squads)) {
@@ -624,49 +874,62 @@ export function stepGame(state: GameState): GameState {
     tickSquad(squad, next)
   }
 
-  // 4. 隊長陣亡 → retreating
+  // 3b. SP Buff 持續時間倒數（iron_wall 等時限型；charge_roar 由 tickATB 清除）
   for (const squad of Object.values(next.squads)) {
-    if (squad.hp <= 0 && squad.state !== 'retreating') {
-      squad.state = 'retreating'
-      const capDef = getCaptainDef(squad.captainDefId)
-      if (squad.team === 'player') {
-        squad.reviveAtTick = next.tick + capDef.stats.reviveDelay
-        next.log.push(`💀 ${capDef.name} 敗退，${capDef.stats.reviveDelay} tick 後復活`)
-      } else {
-        next.log.push(`💀 ${capDef.name} 敗退`)
+    if (!squad.spBuffActive || squad.spBuffType === 'charge_roar') continue
+    if (squad.spBuffTicksRemaining > 0) {
+      squad.spBuffTicksRemaining--
+      if (squad.spBuffTicksRemaining === 0) {
+        squad.spBuffActive = false
+        squad.spBuffType = null
       }
     }
   }
 
+  // 4. 隊長陣亡：basic tier → 直接刪除；elite/hero → 撤退 + 玩家復活
+  const toDelete: string[] = []
+  for (const [squadId, squad] of Object.entries(next.squads)) {
+    if (squad.hp <= 0 && squad.state !== 'retreating') {
+      const capDef = getCaptainDef(squad.captainDefId)
+      if (capDef.tier === 'basic') {
+        // wave 小隊永久消失
+        toDelete.push(squadId)
+        next.log.push(`💀 ${capDef.name} 覆滅`)
+      } else {
+        // elite/hero：撤退
+        squad.state = 'retreating'
+        if (squad.team === 'player') {
+          squad.reviveAtTick = next.tick + capDef.stats.reviveDelay
+          next.log.push(`💀 ${capDef.name} 敗退，${capDef.stats.reviveDelay} tick 後復活`)
+        } else {
+          next.log.push(`💀 ${capDef.name} 敗退`)
+        }
+      }
+    }
+  }
+  for (const id of toDelete) delete next.squads[id]
+
   // 5. 主堡 HP 損耗（敵方小隊踏上主堡格時逐步削減）
-  // 每個站在敵方主堡格的小隊每 tick 造成 0.4 點壓制損耗
+  // 11 個主堡 cell 共用同一個 HP 池（playerBaseHp / enemyBaseHp）
+  // 每支進駐小隊每 tick 造成 2.0 點損耗
   for (const squad of Object.values(next.squads)) {
     if (!isSquadAlive(squad)) continue
     const cell = next.cells[hexKey(squad.pos)]
     if (!cell?.building) continue
     if (squad.team === 'enemy' && cell.building.nodeType === 'playerBase') {
-      next.playerBaseHp = Math.max(0, next.playerBaseHp - 0.4)
+      next.playerBaseHp = Math.max(0, next.playerBaseHp - 2.0)
     } else if (squad.team === 'player' && cell.building.nodeType === 'enemyBase') {
-      next.enemyBaseHp = Math.max(0, next.enemyBaseHp - 0.4)
+      next.enemyBaseHp = Math.max(0, next.enemyBaseHp - 2.0)
     }
   }
 
-  // 6. 勝敗判斷（優先序：主堡佔領 > 主堡 HP 歸零 > 計時器）
-  const enemyBaseCaptured = Object.values(next.cells).some(
-    c => c.building?.nodeType === 'enemyBase' && c.building.team === 'player'
-  )
-  const playerBaseLost = Object.values(next.cells).some(
-    c => c.building?.nodeType === 'playerBase' && c.building.team === 'enemy'
-  )
-
-  if (enemyBaseCaptured || next.enemyBaseHp <= 0) {
+  // 6. 勝敗判斷（主堡共用 HP 歸零 > 計時器佔點數）
+  if (next.enemyBaseHp <= 0) {
     next.phase = 'player_won'
-    if (next.enemyBaseHp <= 0 && !enemyBaseCaptured)
-      next.log.push('🏆 敵方主堡在壓制下崩潰！玩家勝利')
-  } else if (playerBaseLost || next.playerBaseHp <= 0) {
+    next.log.push('🏆 敵方主堡崩潰！玩家勝利')
+  } else if (next.playerBaseHp <= 0) {
     next.phase = 'enemy_won'
-    if (next.playerBaseHp <= 0 && !playerBaseLost)
-      next.log.push('💀 主堡在壓制下崩潰！敵方勝利')
+    next.log.push('💀 主堡崩潰！敵方勝利')
   } else if (next.tick >= next.maxTicks) {
     // 時間到：比較佔領區域數量
     const playerZones = Object.values(next.zones).filter(z => z.team === 'player').length

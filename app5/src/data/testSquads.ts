@@ -1,4 +1,4 @@
-import type { CaptainDef, FollowerDef, CaptainCard, SummonerCard, AIConfig, TraitDef } from '../engine/types'
+import type { CaptainDef, FollowerDef, CaptainCard, SummonerCard, AIConfig, TraitDef, CaptainTier, WaveRotationPreset } from '../engine/types'
 
 // ─── 從者定義（5 種）────────────────────────────────────────────────────────
 
@@ -64,10 +64,11 @@ export const captainDefs: CaptainDef[] = [
     id: 'captain_infantry',
     name: '衝鋒隊長',
     type: 'infantry',
+    tier: 'elite' as CaptainTier,
     stats: {
       hp: 600, atk: 280, physDef: 80, pierceDef: 55, magDef: 50,
       atbSpeed: 1.0, moveSpeed: 1.0, range: 1,
-      reviveDelay: 10, captureRate: 10, spGainPerHit: 8,
+      reviveDelay: 10, captureRate: 1.0, spGainPerHit: 8,
     },
     baseFollowerSlots: 2,
     spSkillId: 'charge_roar',
@@ -97,10 +98,11 @@ export const captainDefs: CaptainDef[] = [
     id: 'captain_heavy',
     name: '防守隊長',
     type: 'heavy',
+    tier: 'elite' as CaptainTier,
     stats: {
       hp: 800, atk: 220, physDef: 120, pierceDef: 80, magDef: 55,
       atbSpeed: 0.9, moveSpeed: 0.9, range: 1,
-      reviveDelay: 8, captureRate: 15, spGainPerHit: 6,
+      reviveDelay: 8, captureRate: 1.5, spGainPerHit: 6,
     },
     baseFollowerSlots: 2,
     spSkillId: 'iron_wall',
@@ -130,10 +132,11 @@ export const captainDefs: CaptainDef[] = [
     id: 'captain_cavalry',
     name: '騎士隊長',
     type: 'cavalry',
+    tier: 'elite' as CaptainTier,
     stats: {
       hp: 520, atk: 300, physDef: 70, pierceDef: 55, magDef: 45,
       atbSpeed: 1.2, moveSpeed: 1.6, range: 1,
-      reviveDelay: 15, captureRate: 5, spGainPerHit: 10,
+      reviveDelay: 15, captureRate: 0.8, spGainPerHit: 10,
     },
     baseFollowerSlots: 2,
     spSkillId: 'trample',
@@ -163,10 +166,11 @@ export const captainDefs: CaptainDef[] = [
     id: 'captain_ranged',
     name: '弓手隊長',
     type: 'ranged',
+    tier: 'elite' as CaptainTier,
     stats: {
       hp: 450, atk: 260, physDef: 55, pierceDef: 45, magDef: 45,
       atbSpeed: 1.1, moveSpeed: 0.9, range: 3,
-      reviveDelay: 8, captureRate: 8, spGainPerHit: 7,
+      reviveDelay: 8, captureRate: 0.8, spGainPerHit: 7,
     },
     baseFollowerSlots: 2,
     spSkillId: 'arrow_rain',
@@ -196,10 +200,11 @@ export const captainDefs: CaptainDef[] = [
     id: 'captain_siege',
     name: '攻城隊長',
     type: 'siege',
+    tier: 'elite' as CaptainTier,
     stats: {
       hp: 580, atk: 380, physDef: 75, pierceDef: 60, magDef: 50,
       atbSpeed: 0.7, moveSpeed: 0.8, range: 4,
-      reviveDelay: 12, captureRate: 25, spGainPerHit: 6,
+      reviveDelay: 12, captureRate: 3.0, spGainPerHit: 6,
     },
     baseFollowerSlots: 2,
     spSkillId: 'breach',
@@ -224,6 +229,48 @@ export const captainDefs: CaptainDef[] = [
         requires: 'sge_b1',
         effect: { followerSlotsUp: true, upgradesSP: true, description: 'SP 升級：在當前格建立臨時工事阻擋敵方 60 tick，解鎖第三從者槽' } },
     ],
+  },
+]
+
+// ─── 基礎小兵隊長（basic tier，波次刷兵用，不復活）─────────────────────────
+// 不加入 captainDefs（玩家不能選），由 waveSpawner 內部直接引用
+
+export const basicCaptainDefs: CaptainDef[] = [
+  {
+    id: 'captain_basic_infantry',
+    name: '士兵小隊',
+    type: 'infantry',
+    tier: 'basic',
+    stats: {
+      hp: 120, atk: 140, physDef: 40, pierceDef: 30, magDef: 25,
+      atbSpeed: 1.0, moveSpeed: 1.1, range: 1,
+      reviveDelay: 0,   // basic tier 不使用
+      captureRate: 0.3,
+      spGainPerHit: 0,  // 無 SP 技能
+    },
+    baseFollowerSlots: 3,
+    spSkillId: '',
+    spSkillName: '',
+    spSkillDesc: '',
+    techTree: [],
+  },
+  {
+    id: 'captain_basic_ranged',
+    name: '弓兵小隊',
+    type: 'ranged',
+    tier: 'basic',
+    stats: {
+      hp: 100, atk: 120, physDef: 25, pierceDef: 25, magDef: 25,
+      atbSpeed: 0.9, moveSpeed: 0.9, range: 3,
+      reviveDelay: 0,
+      captureRate: 0.2,
+      spGainPerHit: 0,
+    },
+    baseFollowerSlots: 3,
+    spSkillId: '',
+    spSkillName: '',
+    spSkillDesc: '',
+    techTree: [],
   },
 ]
 
@@ -343,6 +390,51 @@ export const traitDefs: TraitDef[] = [
     name: '嘲諷',
     desc: '強制成為敵方優先攻擊目標',
     icon: '😤',
+  },
+]
+
+// ─── 波次輪換方案（戰前設定用）──────────────────────────────────────────────
+
+export const waveRotationPresets: WaveRotationPreset[] = [
+  {
+    id: 'infantry_flood',
+    name: '步兵洪流',
+    desc: '大量步兵持續推進，穩定佔點壓力',
+    rotation: [
+      ['follower_infantry', 'follower_infantry'],
+      ['follower_infantry', 'follower_infantry'],
+      ['follower_infantry', 'follower_infantry', 'follower_infantry'],
+    ],
+  },
+  {
+    id: 'cavalry_raid',
+    name: '騎兵奇襲',
+    desc: '騎兵快速輪番騷擾，節奏不規律',
+    rotation: [
+      ['follower_cavalry'],
+      ['follower_infantry', 'follower_cavalry'],
+      ['follower_cavalry'],
+    ],
+  },
+  {
+    id: 'iron_wall',
+    name: '鐵壁陣列',
+    desc: '重甲搭配遠程，難以清除',
+    rotation: [
+      ['follower_heavy'],
+      ['follower_infantry', 'follower_ranged'],
+      ['follower_heavy'],
+    ],
+  },
+  {
+    id: 'guerrilla',
+    name: '游擊部隊',
+    desc: '弓兵騷擾為主，遠程施壓佔點',
+    rotation: [
+      ['follower_ranged', 'follower_ranged'],
+      ['follower_cavalry'],
+      ['follower_ranged'],
+    ],
   },
 ]
 

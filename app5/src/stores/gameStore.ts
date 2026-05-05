@@ -2,11 +2,12 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type {
   GameState, SquadInstance, AIConfig, RouteAssign, AIBehavior,
-  TraitType, MapTemplate,
+  TraitType, MapTemplate, WaveRotationId,
 } from '../engine/types'
 import {
   captainDefs, followerDefs, captainCards, summonerCards,
   DEFAULT_AI_CONFIG, captainAlertRange, traitDefs,
+  waveRotationPresets,
 } from '../data/testSquads'
 import { createMap, getTemplateInfo } from '../engine/mapData'
 import { stepGame } from '../engine/squadEngine'
@@ -26,6 +27,11 @@ export const useGameStore = defineStore('game', () => {
   const selectedTemplate = ref<MapTemplate>('standard')
 
   function setTemplate(t: MapTemplate) { selectedTemplate.value = t }
+
+  // ─── 備戰：玩家波次方案（佔領 barracks 後套用）────────────────────────────
+  const selectedWaveRotationId = ref<WaveRotationId>('infantry_flood')
+
+  function setWaveRotation(id: WaveRotationId) { selectedWaveRotationId.value = id }
 
   // ─── 戰場狀態 ──────────────────────────────────────────────────────────────
   const gameState = ref<GameState | null>(null)
@@ -52,8 +58,9 @@ export const useGameStore = defineStore('game', () => {
       atb:            0,
       sp:             0,
       statusEffects:  [],
-      spBuffActive:   false,
-      spBuffType:     null,
+      spBuffActive:         false,
+      spBuffType:           null,
+      spBuffTicksRemaining: 0,
       shieldLayers:   [],
       maxShieldSlots: capDef.baseFollowerSlots,
       unlockedNodes:  [],
@@ -176,6 +183,59 @@ export const useGameStore = defineStore('game', () => {
         conveyorProgress: 0,
         conveyorMax:      100,
       },
+      // 玩家波次方案（barracks 佔領後套用）
+      playerWaveRotation: waveRotationPresets.find(
+        p => p.id === selectedWaveRotationId.value
+      )?.rotation ?? waveRotationPresets[0].rotation,
+
+      // 波次刷兵器：敵方主堡三路，兵種跟對應隊長一致
+      waveSpawners: [
+        {
+          spawnerId:     'enemy_spawner_top',
+          team:          'enemy',
+          spawnPos:      { q: 14, r: 2 },
+          route:         'top',
+          rotation:      [
+            ['follower_infantry', 'follower_infantry'],
+            ['follower_cavalry'],
+            ['follower_infantry', 'follower_infantry'],
+          ],
+          rotationIndex: 0,
+          intervalTicks: 300,
+          nextSpawnTick: 200,
+          maxActiveWaves: 2,
+        },
+        {
+          spawnerId:     'enemy_spawner_mid',
+          team:          'enemy',
+          spawnPos:      { q: 14, r: 7 },
+          route:         'mid',
+          rotation:      [
+            ['follower_heavy'],
+            ['follower_infantry', 'follower_infantry'],
+            ['follower_heavy'],
+          ],
+          rotationIndex: 0,
+          intervalTicks: 300,
+          nextSpawnTick: 200,
+          maxActiveWaves: 2,
+        },
+        {
+          spawnerId:     'enemy_spawner_bot',
+          team:          'enemy',
+          spawnPos:      { q: 14, r: 12 },
+          route:         'bottom',
+          rotation:      [
+            ['follower_ranged', 'follower_ranged'],
+            ['follower_infantry', 'follower_ranged'],
+            ['follower_ranged', 'follower_ranged'],
+          ],
+          rotationIndex: 0,
+          intervalTicks: 300,
+          nextSpawnTick: 200,
+          maxActiveWaves: 2,
+        },
+      ],
       ddzList: [],
       events:  [],
       log:     ['戰鬥開始'],
@@ -332,6 +392,8 @@ export const useGameStore = defineStore('game', () => {
     gameState,
     speedMultiplier,
     selectedTemplate, setTemplate,
+    selectedWaveRotationId, setWaveRotation,
+    waveRotationPresets,
     startBattle, stopTicking, setSpeed,
     setSquadRoute, setSquadBehavior,
     stageFollower, applyTraitToStaged, summonStagedFollower,

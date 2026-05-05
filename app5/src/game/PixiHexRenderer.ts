@@ -388,6 +388,11 @@ export class PixiHexRenderer {
         this.effectLayer.addChild(fx)
         this.attackFXList.push(fx)
       }
+      if (event.type === 'sp_skill') {
+        const { x, y } = hexToPixel(event.pos.q, event.pos.r)
+        this.showSkillName(x, y, event.skillName)
+        this.squadSprites.get(event.squadId)?.flash()
+      }
       if (event.type === 'damage') {
         const { x, y } = hexToPixel(event.pos.q, event.pos.r)
         // 尋找是否有飛行中的遠程攻擊命中同一個目標
@@ -589,6 +594,26 @@ export class PixiHexRenderer {
         this.selectionLayer.addChild(diamondGfx)
       }
     }
+  }
+
+  // ── SP 技能名稱浮字（金色大字，持續較久）────────────────────────────────
+
+  private showSkillName(x: number, y: number, name: string) {
+    const floatText = new Text({
+      text: `✨ ${name}`,
+      style: new TextStyle({
+        fontSize:   16 * this.zoom,
+        fill:       0xffcc00,
+        fontWeight: 'bold',
+        stroke:     { color: 0x4a2800, width: 4 },
+      }),
+    })
+    floatText.anchor.set(0.5, 1)
+    floatText.scale.set(1 / this.zoom)
+    floatText.x = x
+    floatText.y = y - 36
+    this.effectLayer.addChild(floatText)
+    this.floatTexts.push({ text: floatText, life: 1600, maxLife: 1600 })
   }
 
   // ── 浮動傷害數字（近戰直接呼叫；遠程由 pendingDamage 延遲呼叫）─────────

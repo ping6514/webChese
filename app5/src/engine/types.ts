@@ -90,10 +90,13 @@ export type TechTreeNode = {
 
 // ─── 隊長定義（靜態資料）─────────────────────────────────────────────────────
 
+export type CaptainTier = 'basic' | 'elite' | 'hero'
+
 export type CaptainDef = {
   id: string
   name: string
   type: CaptainType
+  tier: CaptainTier   // basic = 死亡即刪除；elite/hero = 撤退後復活
   stats: {
     hp: number
     atk: number
@@ -261,11 +264,37 @@ export type SquadState =
   | 'idle'
   | 'retreating'     // 陣亡後返回出生點等待復活
 
+// ─── 波次刷兵器 ───────────────────────────────────────────────────────────────
+// 建築或主堡定期生成 basic tier 波次小隊（wave squad）
+
+// 波次輪換方案（戰前選擇，佔領 barracks 後套用）
+export type WaveRotationId = 'infantry_flood' | 'cavalry_raid' | 'iron_wall' | 'guerrilla'
+
+export type WaveRotationPreset = {
+  id:           WaveRotationId
+  name:         string
+  desc:         string
+  rotation:     string[][]   // 每波的 followerDefId 列表，循環使用
+}
+
+export type WaveSpawner = {
+  spawnerId:       string
+  team:            SquadTeam
+  spawnPos:        HexPos
+  route:           RouteAssign
+  rotation:        string[][]  // 波次輪換序列
+  rotationIndex:   number      // 目前輪換到第幾波
+  intervalTicks:   number
+  nextSpawnTick:   number
+  maxActiveWaves:  number
+}
+
 export type SquadInstance = {
   squadId: string
   team: SquadTeam
   captainCardId: string     // 對應 CaptainCard.id（敵方小隊可為空）
   captainDefId: string      // 對應 CaptainDef.id
+  waveSpawnerId?: string    // wave 小隊：記錄來源刷兵器 ID
 
   // ── 隊長狀態 ───────────────────────────────────────────────────────────
   hp: number
@@ -275,6 +304,7 @@ export type SquadInstance = {
   statusEffects: ActiveStatus[]
   spBuffActive: boolean
   spBuffType: string | null
+  spBuffTicksRemaining: number  // 持續型 SP 技能（iron_wall 等）倒數 tick
 
   // ── 護盾層（已部署的從者）────────────────────────────────────────────
   shieldLayers: ShieldLayer[]
@@ -421,11 +451,12 @@ export type MapCell = {
 export type AttackFXType = 'slash' | 'stab' | 'arrow' | 'cannonball'
 
 export type BattleEvent =
-  | { type: 'damage'; targetId: string; pos: HexPos; amount: number }
-  | { type: 'death';  targetId: string; pos: HexPos }
-  | { type: 'revive'; squadId: string;  pos: HexPos }   // 復活（玩家）
-  | { type: 'spawn';  squadId: string;  pos: HexPos }   // 首次入場
-  | { type: 'attack'; fromPos: HexPos; toPos: HexPos; fxType: AttackFXType }
+  | { type: 'damage';   targetId: string; pos: HexPos; amount: number }
+  | { type: 'death';    targetId: string; pos: HexPos }
+  | { type: 'revive';   squadId: string;  pos: HexPos }   // 復活（玩家）
+  | { type: 'spawn';    squadId: string;  pos: HexPos }   // 首次入場
+  | { type: 'attack';   fromPos: HexPos; toPos: HexPos; fxType: AttackFXType }
+  | { type: 'sp_skill'; squadId: string; skillName: string; pos: HexPos }
 
 // ─── 遊戲整體狀態（v2）──────────────────────────────────────────────────────
 
@@ -449,6 +480,8 @@ export type GameState = {
   stagingArea: StagingArea               // 暫存區（疊 Trait 後召喚）
   production: ProductionState
   tacticHand: TacticHand
+  waveSpawners: WaveSpawner[]         // 波次刷兵器列表
+  playerWaveRotation: string[][]      // 玩家波次方案（戰前選定，barracks 佔領後套用）
   ddzList: DDZ[]
   events: BattleEvent[]
   log: string[]
