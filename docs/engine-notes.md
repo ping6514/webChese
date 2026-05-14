@@ -176,13 +176,13 @@ All purchases push the acquired soul id into `hands[currentSide].souls`.
 - Stores (`src/stores/`)
   - `ui.ts` — UI-only state (selection / pending confirm / shoot preview / item target mode)
   - `gameSetup.ts` — pre-game settings (mode / side / clans / difficulty)
-  - `connection.ts` — online multiplayer state (WebSocket + polling)
+  - `connection.ts` — online multiplayer state (peerjs P2P; host as source of truth)
 
 ## 9) Known TODOs (suggested next)
 
 - Add tests for `REVIVE` gold cost (success + insufficient gold)
 - Surrender / resign action
-- Room expiry / cleanup (old rooms linger in Supabase)
+- P2P host-side guest-disconnect timeout / kick (see docs/bug-audit-2026-05-14.md)
 - Localize `ShootPreviewModal` effect text to Chinese
 - BLOOD_SACRIFICE (亡命誓約: 以帥血換傷害) — deferred, needs custom UI
 - DEATH_COUNTER (亡命誓約: 死亡觸發反擊) — deferred, needs event system extension

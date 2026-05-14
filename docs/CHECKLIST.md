@@ -81,20 +81,25 @@
 - [x] Update item tests for new default item buy action limit (override `buyItemActionsPerTurn` in test state)
 - [ ] Add tests for `REVIVE` gold cost (success + insufficient gold)
 
-## Online Multiplayer
-- [x] Vercel Serverless API: create / join / action / state endpoints
-- [x] Supabase PostgreSQL `rooms` table for game state persistence
-- [x] Random side assignment (red/black) + first-mover by server on room create
-- [x] Hybrid sync adapter: Supabase Realtime + 4s polling fallback
-- [x] `_lastEvents` propagation: opponent events decoded as `pollEvents` in client
-- [x] `_suppressPollEvents` flag prevents double-processing own events
-- [x] Disconnect + localStorage reconnect on page reload
+## Online Multiplayer (peerjs P2P — 當前架構)
+
+歷史上曾用 Supabase + Vercel `api/rooms/` 架構，已封存到 `_backup_supabase/`。以下為現用 peerjs P2P 架構的 checklist。
+
+- [x] peerjs P2P direct connection between browsers (host/guest model)
+- [x] Random side assignment (red/black) + first-mover by host on room create
+- [x] `MsgInit` / `MsgAck` / `MsgPush` / `MsgError` message protocol
+- [x] Events array propagated alongside state in each message (no polling layer)
+- [x] Disconnect + localStorage `{roomId, side}` reconnect on page reload
 - [x] Clan selection UI on room create (online + local PVP/PVE)
 - [x] Side splash on game start shows player colour + enabled clans
 - [x] Online gear menu hides developer settings
 - [ ] Surrender / resign action
-- [ ] Room expiry / cleanup (old rooms linger in Supabase)
 - [ ] Spectator / observer mode
+- [ ] Host-side timeout / kick when guest disconnects silently (see bug-audit-2026-05-14.md)
+- [ ] Secret/token authentication for host → guest connection (see bug-audit-2026-05-14.md)
+- [ ] Crypto-safe roomId generation (currently `Math.random()`, see bug-audit-2026-05-14.md)
+- [ ] Guest version monotonic guard for `MsgAck`/`MsgPush` (see bug-audit-2026-05-14.md)
+- [ ] TURN server for strict-NAT users (currently STUN-only)
 
 ## Known Constraints
 - [ ] Node.js version: Vite build requires Node 20.19+ (Node 18 will fail `vite build`)

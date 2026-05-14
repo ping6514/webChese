@@ -64,7 +64,7 @@ npm run sim:balance   # 單次模擬報告
 | 復活費用 | 3 財力 |
 | 展示區購買 | 2 財力 |
 | 盲抽 | 1 財力 |
-| 盜取（敵方墓場）| 3 財力 |
+| 盜取（敵方墓場）| 2 財力 |
 | 靈魂手牌上限 | 5 |
 | 道具手牌上限 | 3 |
 
@@ -91,5 +91,17 @@ npm run sim:balance   # 單次模擬報告
 ## 注意事項
 - 引擎測試全綠是 commit 前提，修改 engine/ 後必跑 `npm run test`
 - 規則文件（docs/）是設計參考，**以引擎實作為準**，兩者不符時優先修正文件
-- 修改 engine/ 後必須跑 `npm run build` 重新編譯 `api/_engine/`，否則線上對戰使用舊引擎
+- `api/_engine/` 是 build artifact（gitignored），只給 `api/test-engine.ts` 健檢用，**線上對戰已改 peerjs P2P 不依賴它**；但 `npm run build` 仍會重新編譯以保健檢可用
 - 開發分支：`temp`，由開發者手動 merge 到線上環境
+
+## 文檔同步原則
+
+文檔漂移（doc drift）是 bug 來源 — agent 與開發者會基於錯誤文檔做決策。這次 audit 曝光了 Supabase → peerjs P2P 切換時文檔未同步的問題，定下以下原則：
+
+1. **架構切換是文檔事件**：技術選型重大變更（後端、同步機制、部署模型等）時，**收尾 checklist 必含**「同步更新 CLAUDE.md / docs/開發計劃.md / docs/CHECKLIST.md / online-sync-checklist.md」。
+2. **數值來源唯一**：遊戲數值（費用、上限、產出）以 `app/src/engine/gameConfig.ts` 為單一真實來源。文檔提到的數值要對齊；發現不一致時，**先確認引擎值再改文檔**（除非設計上要改引擎，需明確拍板）。
+3. **能力 schema 對齊**：靈魂卡 `text` 欄位的字面描述要與 `abilities[]` schema + `effects.ts` 的實際行為一致。新增/修改卡牌時兩邊同步檢查。
+4. **過時內容不要刪**：如果某段 doc 描述的功能已棄用（如 `_backup_supabase/` 內的 Supabase 線上對戰），標記「已棄用」+ 指向新位置即可，不要直接刪除（保留 design rationale 與歷史脈絡）。
+5. **疑似漂移時的對策**：開發者或 agent 對文檔內容存疑時，優先 grep 引擎程式碼驗證，不要盲目相信文檔。發現漂移時直接修文檔不需 ceremony。
+
+對應的審計紀錄見 [docs/bug-audit-2026-05-14.md](docs/bug-audit-2026-05-14.md)。
