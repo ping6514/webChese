@@ -5,6 +5,7 @@ import { computeRawDamage, computeDamageWithBreakdown } from './damage'
 import { countCorpses, countSoldiers, chebyshev } from './corpses'
 import { palaceContains, crossedRiver } from './boardUtils'
 import { isResonanceActive } from './stats'
+import { abilityUsedCount } from './effects'
 
 export type ShotPreviewEffect =
   | {
@@ -65,6 +66,17 @@ export type ShotPreviewEffect =
       byUnitId: string
       key: 'phys' | 'magic'
       amount: number
+    }
+  | {
+      kind: 'FREE_SHOOT'
+      byUnitId: string
+    }
+  | {
+      kind: 'ARMY_RALLY'
+      byUnitId: string
+      sourceUnitId: string
+      targetUnitId: string
+      fixedDamage: number
     }
 
 export type DamageFormulaItem = {
@@ -375,6 +387,13 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
           }
         }
 
+        // PIERCE is optional: if mana gate isn't met, skip preview entirely.
+        const requiresManaGte = Number(ab.requiresManaGte ?? 0)
+        if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
+          const mana = state.resources[attacker.side]?.mana ?? 0
+          if (mana < requiresManaGte) continue
+        }
+
         const mode = ab.mode
 
         if (mode === 'CANNON_SCREEN_AND_TARGET') {
@@ -398,6 +417,8 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
           const screen = screenId ? state.units[screenId] : null
           if (!screen) continue
           if (screen.side === attacker.side) continue
+          const manaCost = Number(ab.manaCost ?? 0)
+          if (Number.isFinite(manaCost) && manaCost > 0) cost += Math.floor(manaCost)
           effects.push({
             kind: 'PIERCE',
             byUnitId: attacker.id,
@@ -428,6 +449,9 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
           }
 
           if (!enemies.includes(target.id)) continue
+          if (enemies.length <= 1) continue
+          const manaCost = Number(ab.manaCost ?? 0)
+          if (Number.isFinite(manaCost) && manaCost > 0) cost += Math.floor(manaCost)
           effects.push({ kind: 'PIERCE', byUnitId: attacker.id, mode: 'LINE_ENEMIES', targetUnitIds: enemies, fixedDamage: rawDamage })
         }
       }
@@ -450,6 +474,11 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       const forKey = ab.for ?? ''
       if (forKey === 'CROSS_RIVER_UNITS' && !crossedRiver(attacker.side, attacker.pos.y)) continue
 
+      const perTurn = Number(ab.perTurn ?? 0)
+      if (Number.isFinite(perTurn) && perTurn > 0) {
+        if (abilityUsedCount(state, u.id, 'AURA_IGNORE_BLOCKING') >= perTurn) continue
+      }
+
       const count = Number(ab.count ?? 0)
       if (Number.isFinite(count) && count > 0) {
         effects.push({ kind: 'AURA_IGNORE_BLOCKING_COUNT', byUnitId: u.id, count })
@@ -468,9 +497,14 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
       if (splashAb) {
         const whenType = splashAb.when?.type ?? ''
         const crossed = crossedRiver(attacker.side, attacker.pos.y)
+        const splashPerTurn = Number(splashAb.perTurn ?? 0)
+        const splashUsedUp = Number.isFinite(splashPerTurn) && splashPerTurn > 0
+          && abilityUsedCount(state, attacker.id, 'SPLASH') >= splashPerTurn
         // Data-driven gate
         if (whenType === 'AFTER_CROSS_RIVER' && !crossed) {
           // not active
+        } else if (splashUsedUp) {
+          // perTurn exhausted; engine won't add SPLASH instances
         } else {
           const radius = Number(splashAb.radius)
           if (Number.isFinite(radius) && radius > 0) {
@@ -522,8 +556,15 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
         return true
       })()
 
+      // perTurn gate: if engine would refuse to fire because used up, don't preview.
+      // SacrificeBuff path bypasses the perTurn limit (mirrors effects.ts behavior).
+      const chainPerTurn = Number(chainAb?.perTurn ?? 0)
+      const chainPerTurnUsedUp = Number.isFinite(chainPerTurn) && chainPerTurn > 0
+        && !(Number.isFinite(sbRadius) && sbRadius > 0)
+        && abilityUsedCount(state, attacker.id, 'CHAIN') >= chainPerTurn
+
       const extraId = extraTargetUnitId ?? null
-      if (chainActive && extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
+      if (chainActive && !chainPerTurnUsedUp && extraId && extraId !== target.id && Number.isFinite(radius) && radius > 0) {
         const extra = state.units[extraId]
         if (extra && extra.side !== attacker.side && chebyshev(extra.pos, target.pos) <= radius) {
           const manaCost = Number(chainAb?.manaCost ?? 0)
@@ -636,6 +677,64 @@ export function buildShotPreview(state: GameState, attackerId: string, targetUni
         if (Number.isFinite(count) && count > 0) effects.push({ kind: 'IGNORE_BLOCKING_COUNT', byUnitId: attacker.id, count })
       }
     }
+  }
+
+  // ARMY_RALLY: mirror effects.ts — adjacent allied soldier piggybacks the shot
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      const rallyAb = findAbility(card.abilities, 'ARMY_RALLY')
+      if (rallyAb) {
+        const rallySoldier = Object.values(state.units)
+          .filter((unit) => unit.side === attacker.side && unit.base === 'soldier')
+          .filter((unit) => chebyshev(unit.pos, target.pos) <= 1)
+          .sort((a, b) => a.id.localeCompare(b.id))[0]
+        if (rallySoldier) {
+          effects.push({
+            kind: 'ARMY_RALLY',
+            byUnitId: attacker.id,
+            sourceUnitId: rallySoldier.id,
+            targetUnitId: target.id,
+            fixedDamage: rawDamage,
+          })
+        }
+      }
+    }
+  }
+
+  // FREE_SHOOT (regular card ability): mirror effects.ts — if conditions met, cost is overridden to 0.
+  let freeShootActive = false
+  if (attackerSoulId) {
+    const card = getSoulCard(attackerSoulId)
+    if (card) {
+      for (const ab of card.abilities) {
+        if (ab.type !== 'FREE_SHOOT') continue
+        const when = ab.when
+        if (when?.type === 'CORPSES_GTE') {
+          const need = Number(when.count)
+          if (!(Number.isFinite(need) && need > 0)) continue
+          if (countCorpses(state, attacker.side) < need) continue
+        }
+        if (when?.type === 'SOLDIERS_GTE') {
+          const need = Number(when.count)
+          if (!(Number.isFinite(need) && need > 0)) continue
+          if (countSoldiers(state, attacker.side) < need) continue
+        }
+        const perTurn = Number(ab.perTurn ?? 0)
+        if (!(Number.isFinite(perTurn) && perTurn > 0)) continue
+        if (abilityUsedCount(state, attacker.id, 'FREE_SHOOT') >= perTurn) continue
+        freeShootActive = true
+        break
+      }
+    }
+  }
+  // BLOOD_SACRIFICE FREE_SHOOT: temporary shot effect makes this shot free.
+  if (bsShotEffect && String(bsShotEffect.type ?? '') === 'FREE_SHOOT') {
+    freeShootActive = true
+  }
+  if (freeShootActive) {
+    cost = 0
+    effects.push({ kind: 'FREE_SHOOT', byUnitId: attacker.id })
   }
 
   let shared: { toUnitId: string; amount: number } | null = null

@@ -193,11 +193,22 @@ describe('styx abilities', () => {
     // Clear other blockers on file 4
     moveUnitAwayFromLine(s, 4, 3, 8, [attackerId, enemy1, enemy2])
 
-    // New: PIERCE requiresManaGte=2
+    // PIERCE is optional: with mana=1 the gate fails so pierce is skipped,
+    // but the unit can still perform a normal shot at base cost.
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 1 } }
-    const failPlan = buildShotPlan(s, attackerId, enemy1)
-    expect(failPlan.ok).toBe(false)
-    if (!failPlan.ok) expect(failPlan.error).toBe('魔力不足')
+    const lowManaPlan = buildShotPlan(s, attackerId, enemy1)
+    expect(lowManaPlan.ok).toBe(true)
+    if (lowManaPlan.ok) {
+      expect(lowManaPlan.plan.cost).toBe(1)
+      const lowManaPierce = lowManaPlan.plan.instances.filter((i) => i.kind === 'pierce')
+      expect(lowManaPierce).toHaveLength(0)
+    }
+    const lowManaPreview = buildShotPreview(s, attackerId, enemy1)
+    expect(lowManaPreview.ok).toBe(true)
+    if (lowManaPreview.ok) {
+      expect(lowManaPreview.cost).toBe(1)
+      expect(lowManaPreview.effects.some((e) => e.kind === 'PIERCE')).toBe(false)
+    }
 
     // Enough mana for gate and for cost
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
@@ -249,7 +260,23 @@ describe('styx abilities', () => {
     // Clear other blockers on the file
     moveUnitAwayFromLine(s, 4, 1, 8, [attackerId, targetId, screenId])
 
-    // New: PIERCE manaCost=1 when screen condition is met
+    // PIERCE is optional: mana=1 → gate fails, base cannon shot still legal.
+    s.resources = { ...s.resources, red: { ...s.resources.red, mana: 1 } }
+    const lowManaPlan = buildShotPlan(s, attackerId, targetId)
+    expect(lowManaPlan.ok).toBe(true)
+    if (lowManaPlan.ok) {
+      expect(lowManaPlan.plan.cost).toBe(1)
+      const lowManaPierce = lowManaPlan.plan.instances.filter((i) => i.kind === 'pierce')
+      expect(lowManaPierce).toHaveLength(0)
+    }
+    const lowManaPreview = buildShotPreview(s, attackerId, targetId)
+    expect(lowManaPreview.ok).toBe(true)
+    if (lowManaPreview.ok) {
+      expect(lowManaPreview.cost).toBe(1)
+      expect(lowManaPreview.effects.some((e) => e.kind === 'PIERCE')).toBe(false)
+    }
+
+    // mana=2 → PIERCE triggers, total cost becomes base(1) + manaCost(1) = 2
     s.resources = { ...s.resources, red: { ...s.resources.red, mana: 2 } }
 
     const planRes = buildShotPlan(s, attackerId, targetId)

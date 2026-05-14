@@ -15,7 +15,7 @@
       ]
     },
     "abilities": [{ "type": "PIERCE", "mode": "LINE_ENEMIES", "count": 2, "requiresManaGte": 2, "manaCost": 1 }],
-    "text": "【貫穿】：射擊時，若己方魔力 ≥ 2，可發動貫穿：對射擊路徑上「包含主要目標在內」的前 2 個敵方單位造成同等傷害；發動時本次射擊額外消耗 1 點魔力。"
+    "text": "【貫穿】：射擊時，若己方魔力 ≥ 2，可發動貫穿：對射擊路徑上「包含主要目標在內」的前 2 個敵方單位造成同等傷害；發動時本次射擊額外消耗 1 點魔力。魔力不足時仍可進行普通射擊（不觸發貫穿）。"
   },
   {
     "id": "styx_rook_feiyan",
@@ -104,8 +104,8 @@
         { "key": "magic", "value": 1 }
       ]
     },
-    "abilities": [{ "type": "PIERCE", "mode": "CANNON_SCREEN_AND_TARGET", "manaCost": 1 }],
-    "text": "【貫穿】：隔子射擊時，作為砲架（阻擋者）的敵方與目標敵方均受到同等傷害；發動時本次射擊額外消耗 1 點魔力。"
+    "abilities": [{ "type": "PIERCE", "mode": "CANNON_SCREEN_AND_TARGET", "requiresManaGte": 2, "manaCost": 1 }],
+    "text": "【貫穿】：隔子射擊時，若己方魔力 ≥ 2，可發動貫穿：作為砲架（阻擋者）的敵方與目標敵方均受到同等傷害；發動時本次射擊額外消耗 1 點魔力。魔力不足時仍可進行普通射擊（不觸發貫穿）。"
   },
   {
     "id": "styx_elephant_mingleixiang",

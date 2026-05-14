@@ -2,7 +2,7 @@
 
 ## 專案概述
 2 人回合制策略遊戲：中國象棋底盤 + 靈魂附魔系統 + HP 射擊 + 屍骸資源循環。
-支援**本機對戰（PVP/PVE）** 與**線上對戰**模式，已部署至 Vercel。
+支援**本機對戰（PVP/PVE）** 與**線上對戰（peerjs P2P）**模式，前端靜態檔案部署至 Vercel。
 
 ## 目錄結構
 ```
@@ -16,15 +16,12 @@ webChess/
 │   │   ├── stores/         # Pinia（gameSetup.ts, ui.ts, connection.ts）
 │   │   ├── components/     # UI 元件（BoardGrid, HandItems, TopBar, DebugMenuModal...）
 │   │   └── views/          # 頁面（Game.vue, IntroPage.vue, Home.vue）
-│   └── api/                # Vercel Serverless Functions（Node.js）
-│       ├── rooms/
-│       │   ├── create.ts          # POST /api/rooms/create
-│       │   └── [roomId]/
-│       │       ├── join.ts        # POST /api/rooms/:id/join
-│       │       ├── action.ts      # POST /api/rooms/:id/action
-│       │       └── state.ts       # GET  /api/rooms/:id/state
-│       └── _engine/               # 編譯後的 CJS 引擎（由 build-engine.mjs 產生）
-└── docs/                   # 規則文件（象棋桌遊規則NOW.md, 象棋桌遊開發計劃.md）
+│   └── api/                # Vercel Serverless Functions（Node.js，目前僅健檢用）
+│       ├── ping.ts                # Supabase 連線健檢
+│       ├── test-engine.ts         # 引擎健檢
+│       └── _engine/               # 編譯後的 CJS 引擎（由 build-engine.mjs 產生，build artifact，gitignored）
+├── _backup_supabase/       # 舊版 Supabase + api/rooms 線上對戰架構（已封存，不再活用）
+└── docs/                   # 規則文件（象棋桌遊規則NOW.md, 象棋桌遊開發計劃.md, bug-audit-*.md）
 ```
 
 ## 常用指令（在 `app/` 目錄執行）
@@ -44,18 +41,18 @@ npm run sim:balance   # 單次模擬報告
 - `TurnFlags`：每回合暫存狀態（freeShootBonus、itemNecroBonus 等），`NEXT_PHASE` 時重置
 - **NEXT_PHASE** 從 combat 一步到位：combat → turnEnd（autoTurnEnd）→ turnStart（autoTurnStart）→ buy（下一玩家）
 
-## 線上對戰架構（Vercel + Supabase）
-- **DB**：Supabase PostgreSQL，`rooms` 資料表（id, version, state_json, status, red_secret, black_secret）
-- **Serverless API**：`api/rooms/` 下的 Vercel functions
-  - `create`：隨機分配 side/firstSide，支援 `enabledClans` 自訂卡池
-  - `join`：joiner 加入，version +1，status → 'playing'
-  - `action`：驗證 secret → canDispatch → reduce → 更新 state_json（含 `_lastEvents`）
-  - `state`：version-gated（since= 參數），回傳 state + status
-- **同步機制**：Realtime（Supabase WebSocket）+ 4 秒 Polling 保底（hybrid adapter）
-- **前端 store**：`stores/connection.ts`（useConnection）
-  - `pollEvents`：對手操作事件（polling 更新時提取 state_json._lastEvents）
-  - `_suppressPollEvents`：sendAction 時防止自身事件被重複處理
-- **引擎編譯**：`src/engine/` → `api/_engine/`（CJS），每次 build 自動更新
+## 線上對戰架構（peerjs P2P，目前活的版本）
+- **連線層**：[stores/connection.ts](app/src/stores/connection.ts) 用 `peerjs` 做瀏覽器間 P2P 直連，無中心伺服器
+  - host 用 `genId(6)` 產 room code（32 字元集）；guest 用 `Peer.connect(roomId)` 連入
+  - 訊息類型：`MsgInit`（host→guest 開局）、`MsgAck`（host→guest 回覆 action）、`MsgPush`（host→guest 推送自己 action）、`MsgError`
+  - 兩端都跑同一份瀏覽器 ESM 引擎；**host 是 source of truth**：guest action 送給 host → host `canDispatch + reduce` → 回傳新 state；host 自己的 action 直接 reduce 再 push
+- **持久化**：`localStorage.chess_connection`（roomId + side），用於頁面重整恢復
+- **STUN/TURN**：PEER_CONFIG 只有 STUN（無 TURN），嚴格 NAT 下可能連不上
+- **Vercel 部署**：只部署前端靜態檔案，`api/` 下只剩 `ping.ts` 健檢用，不參與線上對戰
+- **引擎編譯**：`src/engine/` → `api/_engine/`（CJS，gitignored，build 時重新編譯）— 給 `api/test-engine.ts` 健檢用，不參與線上對戰
+- **已知議題**（見 [docs/bug-audit-2026-05-14.md](docs/bug-audit-2026-05-14.md)）：guest 收訊息未做 version 單調遞增驗證；host 未驗證連入者身份（任何知道 room code 者皆可送 action）— 友善 PVP 場景可接受，但若做 ranked 模式需補強
+
+> 註：歷史上曾用 Supabase + Vercel `api/rooms/` 架構（在 `_backup_supabase/`），已棄用
 
 ## 遊戲數值（gameConfig.ts）
 | 參數 | 值 |

@@ -49,7 +49,7 @@ export type ShotPlan = {
   __buildEvents?: Event[]
 }
 
-function abilityUseKey(unitId: string, abilityType: string): string {
+export function abilityUseKey(unitId: string, abilityType: string): string {
   return `${unitId}:${abilityType}`
 }
 
@@ -103,7 +103,7 @@ function firstUnitBetweenOrthogonal(state: GameState, a: { x: number; y: number 
   return null
 }
 
-function abilityUsedCount(state: GameState, unitId: string, abilityType: string): number {
+export function abilityUsedCount(state: GameState, unitId: string, abilityType: string): number {
   const key = abilityUseKey(unitId, abilityType)
   return Number(state.turnFlags.abilityUsed?.[key] ?? 0)
 }
@@ -474,10 +474,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         onBeforeShootValidate: (ctx) => {
           if (ctx.attackerId !== u.id) return
 
+          // PIERCE is optional: if mana gate isn't met, skip the ability entirely
+          // (no extra manaCost, no pierce). The base shot is still allowed.
           const requiresManaGte = Number(ab.requiresManaGte ?? 0)
           if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
             const mana = ctx.state.resources[u.side]?.mana ?? 0
-            if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
+            if (mana < requiresManaGte) return
           }
 
           const manaCost = Number(ab.manaCost ?? 0)
@@ -495,6 +497,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
           const attacker = ctx.state.units[ctx.attackerId]
           const target = ctx.state.units[ctx.targetUnitId]
           if (!attacker || !target) return
+
+          const requiresManaGte = Number(ab.requiresManaGte ?? 0)
+          if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
+            const mana = ctx.state.resources[u.side]?.mana ?? 0
+            if (mana < requiresManaGte) return
+          }
 
           const mode = ab.mode
           if (mode === 'CANNON_SCREEN_AND_TARGET') {
@@ -583,10 +591,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         handlers.push({
           onBeforeShootValidate: (ctx) => {
             if (ctx.attackerId !== bsUnit.id) return
+            // Soft skip: if mana gate isn't met, this BS sub-effect doesn't fire,
+            // but the base shot is still allowed.
             const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
-              if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
+              if (mana < requiresManaGte) return
             }
             const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
@@ -619,10 +629,11 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             if (!(Number.isFinite(radius) && radius > 0)) return
             if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
 
+            // Soft skip
             const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
-              if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
+              if (mana < requiresManaGte) return
             }
             const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
@@ -641,6 +652,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             const attacker = ctx.state.units[ctx.attackerId]
             if (!mainTarget || !extraTarget || !attacker) return
             if (extraTarget.side === attacker.side) return
+            // Soft-skip mirror: if mana gate not met, don't generate chain instance.
+            const requiresManaGte = Number(eff.requiresManaGte ?? 0)
+            if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
+              const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
+              if (mana < requiresManaGte) return
+            }
             const radius = Number(eff.radius ?? 0)
             if (chebyshev(extraTarget.pos, mainTarget.pos) > radius) return
             plan.instances.push({ kind: 'chain', sourceUnitId: attacker.id, targetUnitId: extraTarget.id })
@@ -661,10 +678,11 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
         handlers.push({
           onBeforeShootValidate: (ctx) => {
             if (ctx.attackerId !== bsUnit.id) return
+            // Soft skip
             const requiresManaGte = Number(eff.requiresManaGte ?? 0)
             if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
               const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
-              if (mana < requiresManaGte) return { ok: false, error: '魔力不足' }
+              if (mana < requiresManaGte) return
             }
             const manaCost = Number(eff.manaCost ?? 0)
             if (Number.isFinite(manaCost) && manaCost > 0) {
@@ -679,6 +697,12 @@ export function getEffectHandlers(_state: GameState): EffectHandler[] {
             const attacker = ctx.state.units[ctx.attackerId]
             const target = ctx.state.units[ctx.targetUnitId]
             if (!attacker || !target) return
+            // Soft-skip mirror
+            const requiresManaGte = Number(eff.requiresManaGte ?? 0)
+            if (Number.isFinite(requiresManaGte) && requiresManaGte > 0) {
+              const mana = ctx.state.resources[bsUnit.side]?.mana ?? 0
+              if (mana < requiresManaGte) return
+            }
             if (String(eff.mode ?? '') !== 'LINE_ENEMIES') return
             const cnt = Number(eff.count ?? 0)
             if (!(Number.isFinite(cnt) && cnt > 1)) return
