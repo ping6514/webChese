@@ -1,0 +1,13 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0a1628;
+  color: #e8f4fd;
+}
+
+#app { height: 100%; }
+
+button { font-family: inherit; }
