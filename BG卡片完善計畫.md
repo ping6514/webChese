@@ -753,7 +753,7 @@ app4/public/assets/cards/
 ## Phase 4 — 線上對戰（選配）
 
 - [ ] P2P 連線（移植象棋版 connection.ts）
-- [ ] QR Code 分享房間
+- [ ] QR Code 分享房間ttt
 
 ---
 
